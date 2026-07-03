@@ -548,7 +548,7 @@
   {% endif %}{# /is_empty_state（検索・フィルター群） #}
 
   <!-- 日記コンテナ -->
-  <div id="diary-container" class="home-diary-grid">
+  <div id="diary-container" class="home-diary-grid" style="scroll-margin-top: 80px;">
     {% include "stockdiary/partials/diary_list.html" with diaries=diaries page_obj=page_obj %}
   </div>
 </main><!-- /.home-main -->
@@ -581,6 +581,38 @@
     if (e.target && (e.target.id === 'diary-container' ||
         (e.target.closest && e.target.closest('#diary-container')))) {
       groupDiaryJournal();
+
+      // 検索・絞り込みの後は日記一覧まで自動スクロール（毎回手動で下へ
+      // スクロールする手間を解消）。無限スクロール（?page=N の追記）では
+      // 発火させない＝読み込み位置に留まる。
+      var path = (e.detail && e.detail.pathInfo && e.detail.pathInfo.requestPath) ||
+                 (e.detail && e.detail.xhr && e.detail.xhr.responseURL) || '';
+      if (!/[?&]page=/.test(path)) {
+        var grid = document.getElementById('diary-container');
+        if (grid) {
+          grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    }
+  });
+
+  // サイドバー検索（ネイティブGET送信＝フルリロード）後も、検索・絞り込みが
+  // 効いている場合は日記一覧まで自動スクロールする（最上部に戻る手間を解消）。
+  document.addEventListener('DOMContentLoaded', function () {
+    var p = new URLSearchParams(window.location.search);
+    var status = p.get('status');
+    var hasFilter = p.get('query') || p.get('tag') || p.get('sector') ||
+                    p.get('transaction_date_range') || p.get('disclosure') ||
+                    p.get('date_range') || p.get('sort') ||
+                    (status && status !== 'active');
+    if (hasFilter) {
+      var grid = document.getElementById('diary-container');
+      if (grid) {
+        // レイアウト確定後にスクロール（画像読み込み等での位置ズレを避ける）
+        requestAnimationFrame(function () {
+          grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
     }
   });
 })();

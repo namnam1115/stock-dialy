@@ -457,7 +457,28 @@ def apply_diary_filters(queryset, params, user):
         # 決算が近い順（決算予定が無い銘柄は末尾）
         'earnings_asc': [_F('_next_earnings_date').asc(nulls_last=True), '-updated_at'],
     }
-    queryset = queryset.order_by(*sort_map.get(sort, ['-updated_at']))
+
+    # タイトル（銘柄名・コード）一致を優先する。全文検索は本文・ノート等も
+    # 対象のため、既定ソートのままだと「本文だけ一致した最近更新の日記」が
+    # 銘柄名一致より上に来てしまう。検索語があり、ユーザーが明示ソートを
+    # 選んでいない（既定）ときのみ、タイトル一致を第1キーに前置する。
+    from django.db.models import Case, When, Value, IntegerField
+    title_priority = []
+    if query and not sort and not (query.startswith('@') and ' ' not in query and '　' not in query):
+        title_q = _Q()
+        for term in split_search_terms(query):
+            title_q &= (_Q(stock_name__icontains=term) | _Q(stock_symbol__icontains=term))
+        if title_q:
+            queryset = queryset.annotate(
+                _title_match=Case(
+                    When(title_q, then=Value(1)),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                )
+            )
+            title_priority = ['-_title_match']
+
+    queryset = queryset.order_by(*title_priority, *sort_map.get(sort, ['-updated_at']))
 
     return queryset.distinct()
 
