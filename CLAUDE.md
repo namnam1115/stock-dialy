@@ -433,8 +433,8 @@ Claude Code
 | パス | 返却内容 |
 |------|----------|
 | `GET /api/analysis/holdings/` | 保有中全銘柄（銘柄コード・名前・数量・平均取得単価・実現損益） |
-| `GET /api/analysis/diaries/` | **記録銘柄の一覧（スクリーニング用・保有/売却/メモ横断）**。`?tags=半導体,AI`（OR）・`?sector=`・`?status=holding\|sold\|memo\|all`・`?user=` で絞り込み。各銘柄に最新の信用倍率を付与（バリュエーションは呼び出し側で補完） |
-| `GET /api/analysis/positions/` | **現在保有中の全ポジションを判断材料付きで返す（利確/損切り/継続/買い増しのスクリーニング用）**。各ポジションに現在値・含み損益（率）・時価・信用倍率・**仮説の有無（`thesis_count`/`open_thesis_count`）**を付与。`?valuation=1` で PER/PBR/ROE/配当利回りも付与（財務諸表を引くため重い・既定OFF）・`?price=0`・`?user=` で調整。ポートフォリオ合計（時価・含み損益）も返す |
+| `GET /api/analysis/diaries/` | **記録銘柄の一覧（スクリーニング用・保有/売却/メモ横断）**。`?tags=半導体,AI`（OR）・`?sector=`・`?status=holding\|sold\|memo\|all` で絞り込み。各銘柄に最新の信用倍率を付与（バリュエーションは呼び出し側で補完）。返却は `ANALYSIS_API_USER` 固定 |
+| `GET /api/analysis/positions/` | **現在保有中の全ポジションを判断材料付きで返す（利確/損切り/継続/買い増しのスクリーニング用）**。各ポジションに現在値・含み損益（率）・時価・信用倍率・**仮説の有無（`thesis_count`/`open_thesis_count`）**を付与。`?valuation=1` で PER/PBR/ROE/配当利回りも付与（財務諸表を引くため重い・既定OFF）・`?price=0` で調整。返却は `ANALYSIS_API_USER` 固定。ポートフォリオ合計（時価・含み損益）も返す |
 | `GET /api/analysis/diary/<symbol>/` | 指定銘柄の日記全体＋取引履歴＋継続記録＋**最新ニュース**。**現在値・含み損益（率）・時価・バリュエーション（PER/PBR/ROE/配当利回り）・投資仮説（`theses`）も返す**（`?price=0`・`?valuation=0` で省略可）。⚠️ **買った理由（エントリー仮説）は `theses`（Thesis の claim/basis/worst_case/status＋Verdict）にある。`investment_reason`（reason）は『企業説明テンプレート』で書かれる企業の俯瞰説明で、買い判断が入っているとは限らない**ため、継続/損切り判断では theses を主ソースにする |
 | `GET /api/analysis/portfolio/` | 業種分布・損益合計などポートフォリオサマリー |
 | `POST /api/analysis/diary/<symbol>/notes/` | **継続記録（DiaryNote）を追加**（書き込み）。書き込み先ユーザーは `ANALYSIS_API_USER` で固定 |
@@ -444,7 +444,7 @@ Claude Code
 クエリパラメータ:
 - `diary/<symbol>/?news=0` → ニュース取得をスキップ（高速）
 - `diary/<symbol>/?margin=0` → 信用残（信用倍率）取得をスキップ
-- `diary/<symbol>/?user=<username>` → 複数ユーザー環境での絞り込み
+- 返却データは `ANALYSIS_API_USER` に固定（他ユーザーの日記は返さない）
 
 `diary_detail` は `margin` フィールドを返す（`margin_tracking.MarginData` 連携）。
 JPX週次の信用取引残高から、最新の `margin_ratio`（=買い残/売り残）と直近トレンド
@@ -546,9 +546,12 @@ Claude が `diary_detail` エンドポイントを叩き、
   の「⛔ 本文未取り込み」を参照）は、本文が揃うまで記録用途には使わない。
 
 ### 注意事項
-- `holdings/` は全ユーザーのデータを返す（シングルユーザー前提）。
-  マルチユーザーで運用する場合は `?user=<username>` で絞るか、
-  `api_analysis.py` の `holdings()` にユーザーフィルターを追加すること。
+- **読み取り系（`holdings`/`diary_detail`/`positions`/`diaries`/`portfolio`）は
+  `ANALYSIS_API_USER` のデータに固定**され、他ユーザーの日記は一切返さない
+  （`_get_scope_user`）。`ANALYSIS_API_USER` 未設定なら 503 で fail-closed。
+  `?user=` に設定ユーザー以外を指定すると 403。本番DBは複数ユーザーを含むため、
+  この固定を外して全ユーザーを返す実装に戻してはならない。回帰テスト:
+  `tests/test_api_analysis_scope.py`。
 - `ANALYSIS_API_KEY` はセッション認証とは完全に独立。ローテーションは
   `.env` の書き換え＋サーバー再起動のみで完結する。
 - ニュースは yfinance 経由のため日本株は `.T` サフィックスを自動付与。

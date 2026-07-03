@@ -71,6 +71,28 @@ def _get_api_user():
         )
 
 
+def _get_scope_user(request):
+    """
+    読み取りをスコープする（＝データを絞る）ユーザーを返す。
+
+    本APIは単一の ANALYSIS_API_KEY を持つ運用者ひとりのためのもの。よって
+    読み取り系も書き込み系と同じく **ANALYSIS_API_USER に固定** し、他ユーザーの
+    データは一切返さない（本番DBは複数ユーザーを含むため、絞らないと他人の日記が
+    混ざる）。設定が無ければ 503 で fail-closed（全ユーザー露出を防ぐ）。
+
+    後方互換のため ?user= は受け付けるが、設定ユーザーと異なる値なら 403。
+    """
+    user, err = _get_api_user()
+    if err:
+        return None, err
+    requested = request.GET.get('user', '').strip()
+    if requested and requested != user.username:
+        return None, JsonResponse(
+            {'error': '他ユーザーのデータは参照できません'}, status=403
+        )
+    return user, None
+
+
 def _sync_diary_tags(diary, user) -> list[str]:
     """本文（reason＋全ノート）の @タグを diary.tags へ同期し、結果のタグ名を返す。
 
@@ -278,14 +300,17 @@ def _fetch_yfinance_news(stock_symbol: str, limit: int = 10) -> list[dict]:
 @_require_analysis_key
 def holdings(request):
     """
-    現在保有中の銘柄一覧。
+    現在保有中の銘柄一覧（ANALYSIS_API_USER のデータのみ）。
 
     GET /api/analysis/holdings/
     Authorization: Bearer <key>
     """
+    user, err = _get_scope_user(request)
+    if err:
+        return err
     diaries = (
         StockDiary.objects
-        .filter(user__isnull=False, current_quantity__gt=0)
+        .filter(user=user, current_quantity__gt=0)
         .order_by('-first_purchase_date')
         .values(
             'id', 'stock_symbol', 'stock_name', 'sector',
@@ -323,15 +348,15 @@ def diary_detail(request, symbol: str):
     GET /api/analysis/diary/<symbol>/
     Authorization: Bearer <key>
 
-    ?user=<username>  複数ユーザー環境で絞り込む場合に使用
+    データは ANALYSIS_API_USER に固定（他ユーザーの日記は返さない）。
     ?news=0           ニュース取得をスキップ（高速化）
     """
-    symbol = symbol.upper().strip()
-    qs = StockDiary.objects.filter(stock_symbol__iexact=symbol)
+    user, err = _get_scope_user(request)
+    if err:
+        return err
 
-    username = request.GET.get('user', '').strip()
-    if username:
-        qs = qs.filter(user__username=username)
+    symbol = symbol.upper().strip()
+    qs = StockDiary.objects.filter(stock_symbol__iexact=symbol, user=user)
 
     diary = qs.prefetch_related(
         'transactions', 'notes', 'tags', 'theses__verdict'
@@ -424,10 +449,15 @@ def portfolio_summary(request):
 
     GET /api/analysis/portfolio/
     Authorization: Bearer <key>
+
+    ANALYSIS_API_USER のデータのみを集計する。
     """
     from django.db.models import Count, Q, Sum
 
-    qs = StockDiary.objects.filter(user__isnull=False)
+    user, err = _get_scope_user(request)
+    if err:
+        return err
+    qs = StockDiary.objects.filter(user=user)
 
     agg = qs.aggregate(
         total_diaries=Count('id'),
@@ -480,16 +510,15 @@ def list_diaries(request):
       ?tags=半導体,AI   いずれかのタグを持つ日記に絞る（OR）
       ?sector=電気       業種の部分一致で絞る
       ?status=holding|sold|memo|all（既定 all）
-      ?user=<username>   複数ユーザー環境での絞り込み
 
+    データは ANALYSIS_API_USER に固定（他ユーザーの日記は返さない）。
     各銘柄に最新の信用倍率（margin_ratio）を付与する（バリュエーションは
     呼び出し側で yfinance 等から補完する想定＝サーバ側で外部APIは叩かない）。
     """
-    qs = StockDiary.objects.filter(user__isnull=False).prefetch_related('tags')
-
-    username = request.GET.get('user', '').strip()
-    if username:
-        qs = qs.filter(user__username=username)
+    user, err = _get_scope_user(request)
+    if err:
+        return err
+    qs = StockDiary.objects.filter(user=user).prefetch_related('tags')
 
     status = request.GET.get('status', 'all').strip()
     if status == 'holding':
@@ -557,15 +586,19 @@ def positions(request):
     クエリ:
       ?valuation=1       PER/PBR/ROE/配当利回りを付与（財務諸表を引くため重い。既定 0）
       ?price=0           現在値取得をスキップ（含み損益は算出されない）
-      ?user=<username>   複数ユーザー環境での絞り込み
 
+    データは ANALYSIS_API_USER に固定（他ユーザーのポジションは返さない）。
     ポートフォリオ合計（時価・含み損益・取得原価）も併せて返す。
     """
     from django.db.models import Count, Q
 
+    user, err = _get_scope_user(request)
+    if err:
+        return err
+
     qs = (
         StockDiary.objects
-        .filter(user__isnull=False, current_quantity__gt=0)
+        .filter(user=user, current_quantity__gt=0)
         .prefetch_related('tags')
         .annotate(
             thesis_total=Count('theses', distinct=True),
@@ -575,10 +608,6 @@ def positions(request):
         )
         .order_by('stock_symbol')
     )
-
-    username = request.GET.get('user', '').strip()
-    if username:
-        qs = qs.filter(user__username=username)
 
     fetch_price = request.GET.get('price', '1') != '0'
     fetch_valuation = request.GET.get('valuation', '0') == '1'

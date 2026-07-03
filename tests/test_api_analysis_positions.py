@@ -24,6 +24,7 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def auth_settings(settings):
     settings.ANALYSIS_API_KEY = 'testkey'
+    settings.ANALYSIS_API_USER = 'p_user'  # holding フィクスチャの所有者にスコープ
     return settings
 
 
