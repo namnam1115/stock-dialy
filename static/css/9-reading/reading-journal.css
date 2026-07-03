@@ -232,11 +232,16 @@ body.reading-app .app-footer .social-link:hover {
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--hairline);
-  border-radius: 0;
+  /* フォーカス/選択枠が角張らないよう角を丸める（背景透明なので通常時は不可視） */
+  border-radius: var(--radius-md);
 }
 .reading-page .home-diary-grid .diary-article:hover {
   background: transparent;
   box-shadow: none;
+  /* デスクトップ用 diary-card.css の hover（translateY で浮く／primary-200 の
+     青白い縁取り）がジャーナルでは浮いて見えるため打ち消す。静かな行のまま。 */
+  transform: none;
+  border-color: var(--hairline);
 }
 /* 二重パディング解消：記事自体の余白を消し、間隔は card-body-inner に一本化 */
 .reading-page .home-diary-grid .diary-article { padding: 0 10px 0 0 !important; }
@@ -252,9 +257,9 @@ body.reading-app .app-footer .social-link:hover {
   margin-top: 0.4rem;
   padding-top: 0.5rem;
 }
-/* ヘッダ内側はスワイプパネルを覆うため不透明。紙色に揃えてライト/ダーク両方で背景と馴染ませる
-   （ダークでは旧テーマの青系 --dm-card が出ていた） */
-.reading-page .diary-header-inner { background: var(--paper) !important; }
+/* スワイプパネルを廃止したので、ヘッダ内側を覆う不透明背景は不要。
+   本文と同じ背景（透明）に揃え、タイトル帯だけが浮いて見える問題を解消する。 */
+.reading-page .diary-header-inner { background: transparent; border-radius: var(--radius-md); }
 
 /* 件数チップ行（継続・取引を脇役に） */
 .reading-page .diary-meta-chips {
@@ -1175,6 +1180,17 @@ body.writing-focus .pc-only-header:hover { opacity: 1; }
 .reading-page .status-badge-active {
   color: var(--profit-up-quiet) !important;
   border-color: color-mix(in srgb, var(--profit-up-quiet) 32%, var(--hairline)) !important;
+}
+/* カード内のチップ（ステータス・損益）を、タグチップと同じ“丸いピル”寸法に揃える。
+   保有中バッジだけ小さく角ばって見える不整合（tag-pill=999px/0.8125rem に対し
+   status-badge=6px/0.7rem だった）を解消する。詳細ページに波及しないよう
+   ホームカードの meta 行に限定する。 */
+.reading-page .diary-meta-row .status-badge-improved,
+.reading-page .diary-title-row .diary-profit-pill .badge {
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  line-height: 1.2;
 }
 
 /* アクティブなフィルター（status-tab / filter-chip）を青 → 墨に */

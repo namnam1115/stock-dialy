@@ -17,18 +17,6 @@
           data-toggle-exclude-url="{% url 'stockdiary:toggle_exclude' diary.id %}"
           data-is-excluded="{{ diary.is_excluded|yesno:'true,false' }}">
 
-    <!-- 右スワイプで露出（左端の除外パネル） -->
-    <div class="exclude-action-panel" role="button"
-         aria-label="{% if diary.is_excluded %}除外を解除する{% else %}一覧・グラフから除外する{% endif %}">
-      {% if diary.is_excluded %}
-        <i class="bi bi-eye"></i>
-        <span>解除</span>
-      {% else %}
-        <i class="bi bi-eye-slash"></i>
-        <span>除外</span>
-      {% endif %}
-    </div>
-
     <div class="diary-header-inner">
       {% if diary.stock_symbol %}
         <a href="{% url 'stockdiary:detail' diary.id %}"
@@ -75,12 +63,6 @@
       </div>
 
     </div><!-- /.diary-header-inner -->
-
-    <!-- アクションパネル（左スワイプで露出） -->
-    <div class="note-action-panel" role="button" aria-label="継続記録を追加">
-      <i class="bi bi-pencil-square"></i>
-      <span>記録</span>
-    </div>
   </header>
 
   <!-- ========== 検索ヒット箇所 ========== -->

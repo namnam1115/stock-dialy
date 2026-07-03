@@ -830,64 +830,9 @@
   grid-column: 1;
   position: relative; /* z-index 有効化 */
   z-index: 1;
-  background: var(--bg-100);
-  will-change: transform;
-  touch-action: pan-y; /* タッチターゲット自体にも設定 */
-  /* overflow: hidden は削除 — display:flex が BFC を形成するため不要。
-     overflow:hidden はアイコンの box-shadow をクリップして不自然な切れ目を生じさせていた。 */
-}
-.exclude-action-panel {
-  grid-row: 1;
-  grid-column: 1;
-  justify-self: start; /* 左端に寄せる */
-  align-self: stretch;
-  width: 80px;
-  z-index: 0;
-  background: var(--warning-500, #d97706);
-  color: white;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  user-select: none;
-}
-.exclude-action-panel i { font-size: 1.25rem; }
-
-.note-action-panel {
-  /* グリッドの同セルに配置 → 高さが inner と自動一致 */
-  grid-row: 1;
-  grid-column: 1;
-  justify-self: end;   /* 右端に寄せる */
-  align-self: stretch; /* inner と高さを揃える */
-  width: 80px;
-  z-index: 0;
-  background: var(--success-color, #16a34a);
-  color: white;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  user-select: none;
-}
-.note-action-panel i { font-size: 1.25rem; }
-
-/* ダークモード対応 */
-.dark-mode .diary-header-inner,
-[data-theme="dark"] .diary-header-inner {
-  background: var(--dm-card);
-}
-.dark-mode .note-action-panel,
-[data-theme="dark"] .note-action-panel {
-  /* 緑はダークモードでも視認しやすいが、彩度を少し落とす */
-  background: #15803d;
+  /* スワイプパネル（除外/記録）を廃止したため、パネルを覆うための不透明背景は不要。
+     本文と同じ背景（透明）に揃え、タイトル帯だけが浮いて見える問題を解消する。 */
+  background: transparent;
 }
 
 /* クイックノート pill ボタン */
