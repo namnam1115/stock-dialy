@@ -50,6 +50,18 @@
     font-size: 0.72rem; font-weight: 600; padding: 0.12rem 0.5rem; border-radius: 6px;
     background: var(--bg-tertiary, #eef1f4); color: var(--text-secondary);
 }
+/* 予想日（確定前）バッジ。確定日と視覚的に区別する。 */
+.ec-estimated {
+    font-size: 0.72rem; font-weight: 700; padding: 0.12rem 0.5rem; border-radius: 6px;
+    background: #fdf0d5; color: #8a5a00; border: 1px solid #e6c67a; white-space: nowrap;
+}
+/* 前回（直前）決算日。次回より控えめに。 */
+.ec-prev { font-size: 0.82rem; color: var(--text-secondary); white-space: nowrap; }
+.ec-prev-est {
+    font-size: 0.66rem; font-weight: 700; margin-left: 0.25rem; padding: 0 0.3rem;
+    border-radius: 5px; background: #fdf0d5; color: #8a5a00; border: 1px solid #e6c67a;
+}
+.ec-arrow { color: var(--text-tertiary, #9aa0a6); font-size: 0.82rem; }
 .ec-badge {
     font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.7rem;
     border-radius: var(--radius-full, 999px); color: #fff; background: #6b7280;

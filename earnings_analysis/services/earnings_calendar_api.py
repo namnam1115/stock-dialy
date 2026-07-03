@@ -54,6 +54,9 @@ _MARKET_KEYS = (
     'market_code',
 )
 _UPDATED_KEYS = ('updated_at', 'updatedAt', 'modified', 'last_updated')
+# 確定日（announcementDate 系）と予想日（estimatedAnnouncementDate 系）を区別する
+_CONFIRMED_DATE_KEYS = ('earnings_date', 'announcementDate', 'announcement_date')
+_STATUS_KEYS = ('dateStatus', 'date_status', 'status')
 
 
 def _first(d: dict, keys) -> str:
@@ -221,15 +224,66 @@ class EarningsCalendarAPIService:
         parsed = EarningsCalendarAPIService._parse_date(date_str)
         if parsed is None:
             return None
+        # 予測日（将来分の estimatedAnnouncementDate）は前年実績＋約1年で
+        # 曜日がずれ、土日に落ちることがある。日本企業は土日に決算発表しない
+        # ため、週末に落ちた予定日は最寄りの平日へ寄せる。
+        parsed = EarningsCalendarAPIService._to_business_day(parsed)
 
         return {
             'securities_code': code,
             'company_name': _first(raw, _NAME_KEYS),
             'earnings_date': parsed,
+            'is_estimated': EarningsCalendarAPIService._is_estimated(raw),
             'earnings_type': _first(raw, _TYPE_KEYS),
             'market_segment': _first(raw, _MARKET_KEYS),
             'source_updated_at': _first(raw, _UPDATED_KEYS),
         }
+
+    @staticmethod
+    def _is_estimated(raw: dict) -> bool:
+        """この決算日が予想(estimated)か確定(confirmed)かを判定する。
+
+        優先順位:
+          1. dateStatus が明示されていればそれに従う（confirmed→False / estimated→True）
+          2. 無ければ、確定日(announcementDate 系)に値があれば確定=False
+          3. どちらも無ければ予想=True（＝将来分の予測日のみ）
+        """
+        status = (_first(raw, _STATUS_KEYS) or '').strip().lower()
+        if status == 'confirmed':
+            return False
+        if status == 'estimated':
+            return True
+        return not bool(_first(raw, _CONFIRMED_DATE_KEYS))
+
+    @staticmethod
+    def _is_business_day(d) -> bool:
+        """営業日（土日でも祝日でもない）か判定する。"""
+        if d.weekday() >= 5:  # 土=5, 日=6
+            return False
+        try:
+            import jpholiday
+            return not jpholiday.is_holiday(d)
+        except Exception:
+            # jpholiday が無い環境では土日のみ考慮（フォールバック）
+            return True
+
+    @staticmethod
+    def _to_business_day(d):
+        """土日・祝日に落ちた決算予定日を最寄りの営業日へ寄せる。
+
+        同じ距離なら前営業日を優先する（土曜→金曜・日曜→月曜と整合）。
+        連休（GW・年末年始等）に落ちた場合も、外側へ探索して最寄りの営業日へ。
+        """
+        if EarningsCalendarAPIService._is_business_day(d):
+            return d
+        for delta in range(1, 10):
+            prev = d - timedelta(days=delta)
+            if EarningsCalendarAPIService._is_business_day(prev):
+                return prev
+            nxt = d + timedelta(days=delta)
+            if EarningsCalendarAPIService._is_business_day(nxt):
+                return nxt
+        return d
 
     @staticmethod
     def _parse_date(value: str):

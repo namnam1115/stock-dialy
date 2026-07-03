@@ -12,6 +12,7 @@
     <div class="ec-item{% if item.is_mine %} ec-item--mine{% endif %}">
       <span class="ec-code">{{ item.ticker_normalized }}</span>
       <span class="ec-item-name">{{ item.company_name|company_short|default:"—" }}</span>
+      {% if item.is_estimated %}<span class="ec-estimated" title="予想日です（確定前。実際の発表日は数日ずれることがあります）">予想</span>{% endif %}
       {% if item.earnings_type %}<span class="ec-type">{{ item.earnings_type }}</span>{% endif %}
       {% if item.market_segment %}<span class="ec-market">{{ item.market_segment }}</span>{% endif %}
       {% if item.is_mine %}<span class="ec-mine-tag"><i class="bi bi-bookmark-star-fill"></i> 記録中</span>{% endif %}

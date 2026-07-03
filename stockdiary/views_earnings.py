@@ -134,13 +134,13 @@ def earnings_calendar(request):
 
     # --- サマリー: 保有銘柄・ウォッチリスト（月・日に依らず常時表示） ---
     holdings = attach_next_earnings(
-        user_diaries.filter(current_quantity__gt=0), today=today)
+        user_diaries.filter(current_quantity__gt=0), today=today, with_previous=True)
     holdings = sorted(
         [d for d in holdings if d.next_earnings],
         key=lambda d: d.next_earnings.date)
 
     watchlist = attach_next_earnings(
-        user_diaries.filter(transaction_count=0), today=today)
+        user_diaries.filter(transaction_count=0), today=today, with_previous=True)
     watchlist = sorted(
         [d for d in watchlist if d.next_earnings],
         key=lambda d: d.next_earnings.date)

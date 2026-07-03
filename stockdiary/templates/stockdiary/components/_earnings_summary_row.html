@@ -6,7 +6,14 @@
     <span class="ec-row-name">{{ diary.stock_name|company_short }}</span>
   </div>
   <div class="ec-row-meta">
+    {% if diary.prev_earnings %}
+      <span class="ec-prev" title="前回の決算{% if diary.prev_earnings.is_estimated %}（予想日ベース）{% else %}（実績）{% endif %}">
+        前回 {{ diary.prev_earnings.date|date:"n/j" }}{% if diary.prev_earnings.is_estimated %}<span class="ec-prev-est">予想</span>{% endif %}
+      </span>
+      <span class="ec-arrow">→</span>
+    {% endif %}
     {% if diary.next_earnings.type %}<span class="ec-type">{{ diary.next_earnings.type }}</span>{% endif %}
+    {% if diary.next_earnings.is_estimated %}<span class="ec-estimated" title="予想日です（確定前。実際の発表日は数日ずれることがあります）">予想</span>{% endif %}
     <span class="ec-row-date">{{ diary.next_earnings.date|date:"Y/m/d" }}</span>
     {% with d=diary.next_earnings.days_until %}
       {% if d == 0 %}

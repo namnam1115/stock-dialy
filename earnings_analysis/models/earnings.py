@@ -27,6 +27,9 @@ class EarningsSchedule(models.Model):
     )
     company_name = models.CharField('企業名', max_length=255, blank=True)
     earnings_date = models.DateField('決算予定日', db_index=True)
+    # 予想日(estimated)か確定日(confirmed)か。将来分の多くは前年実績+約1年の
+    # 予想で数日ずれる。既定は True（＝予想）とし、確定が取れたときだけ False。
+    is_estimated = models.BooleanField('予想日フラグ', default=True, db_index=True)
     # 本決算・第1四半期・第2四半期 など。APIの値をそのまま保持する。
     earnings_type = models.CharField('決算種別', max_length=50, blank=True)
     market_segment = models.CharField('市場区分', max_length=50, blank=True)

@@ -23,6 +23,20 @@ class NextEarnings:
     type: str
     days_until: int
     proximity: str
+    is_estimated: bool = True  # 予想日か確定日か（既定は予想）
+
+
+@dataclass
+class PreviousEarnings:
+    """ある銘柄の「前回（直前）決算」表示用の値オブジェクト。
+
+    実発表の専用ソース（TDNET決算短信）は未投入のため、確定分
+    （is_estimated=False）を実績、予想分を予想として扱う（A+B）。
+    """
+    date: date
+    type: str
+    is_estimated: bool  # False=確定(実績) / True=予想のまま過ぎた日
+    days_ago: int
 
 
 def to_ticker(securities_code: str) -> str:
@@ -70,7 +84,7 @@ def get_next_earnings_map(symbols, today=None) -> dict:
         .filter(securities_code__in=candidate_codes(tickers),
                 earnings_date__gte=today)
         .order_by('securities_code', 'earnings_date')
-        .values('securities_code', 'earnings_date', 'earnings_type')
+        .values('securities_code', 'earnings_date', 'earnings_type', 'is_estimated')
     )
 
     result = {}
@@ -84,18 +98,58 @@ def get_next_earnings_map(symbols, today=None) -> dict:
             type=row['earnings_type'],
             days_until=days,
             proximity=classify_proximity(days),
+            is_estimated=row.get('is_estimated', True),
         )
     return result
 
 
-def attach_next_earnings(diaries, today=None):
+def get_previous_earnings_map(symbols, today=None) -> dict:
+    """銘柄コード集合 → {ticker(4桁): PreviousEarnings} を1クエリで引く。
+
+    各銘柄について「当日より前で最も新しい」決算予定（履歴）を採用する。
+    同期は当日以降のみ洗い替えるため、過去分は履歴として残っている。
+    """
+    if today is None:
+        today = date.today()
+
+    tickers = {s for s in symbols if s and s.isdigit() and len(s) == 4}
+    if not tickers:
+        return {}
+
+    rows = (
+        EarningsSchedule.objects
+        .filter(securities_code__in=candidate_codes(tickers),
+                earnings_date__lt=today)
+        .order_by('securities_code', '-earnings_date')
+        .values('securities_code', 'earnings_date', 'earnings_type', 'is_estimated')
+    )
+
+    result = {}
+    for row in rows:
+        ticker = to_ticker(row['securities_code'])
+        if ticker in result:
+            continue  # ソート済みなので先頭＝最も新しい過去日
+        result[ticker] = PreviousEarnings(
+            date=row['earnings_date'],
+            type=row['earnings_type'],
+            is_estimated=row.get('is_estimated', True),
+            days_ago=(today - row['earnings_date']).days,
+        )
+    return result
+
+
+def attach_next_earnings(diaries, today=None, with_previous=False):
     """日記群へ `diary.next_earnings`（NextEarnings or None）を付与する。
 
     一覧表示で使う。渡された全件分の決算予定を1クエリでまとめて引く。
+    with_previous=True のとき `diary.prev_earnings`（PreviousEarnings or None）も付与する。
     """
     diaries = list(diaries)
     symbols = {d.stock_symbol for d in diaries if d.stock_symbol}
     mapping = get_next_earnings_map(symbols, today=today)
+    prev_map = get_previous_earnings_map(symbols, today=today) if with_previous else {}
     for diary in diaries:
         diary.next_earnings = mapping.get(diary.stock_symbol)
+        if with_previous:
+            diary.prev_earnings = prev_map.get(diary.stock_symbol)
     return diaries
