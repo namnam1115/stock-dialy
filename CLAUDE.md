@@ -433,7 +433,8 @@ Claude Code
 |------|----------|
 | `GET /api/analysis/holdings/` | 保有中全銘柄（銘柄コード・名前・数量・平均取得単価・実現損益） |
 | `GET /api/analysis/diaries/` | **記録銘柄の一覧（スクリーニング用・保有/売却/メモ横断）**。`?tags=半導体,AI`（OR）・`?sector=`・`?status=holding\|sold\|memo\|all`・`?user=` で絞り込み。各銘柄に最新の信用倍率を付与（バリュエーションは呼び出し側で補完） |
-| `GET /api/analysis/diary/<symbol>/` | 指定銘柄の日記全体＋取引履歴＋継続記録＋**最新ニュース** |
+| `GET /api/analysis/positions/` | **現在保有中の全ポジションを判断材料付きで返す（利確/損切り/継続/買い増しのスクリーニング用）**。各ポジションに現在値・含み損益（率）・時価・信用倍率・**仮説の有無（`thesis_count`/`open_thesis_count`）**を付与。`?valuation=1` で PER/PBR/ROE/配当利回りも付与（財務諸表を引くため重い・既定OFF）・`?price=0`・`?user=` で調整。ポートフォリオ合計（時価・含み損益）も返す |
+| `GET /api/analysis/diary/<symbol>/` | 指定銘柄の日記全体＋取引履歴＋継続記録＋**最新ニュース**。**現在値・含み損益（率）・時価・バリュエーション（PER/PBR/ROE/配当利回り）・投資仮説（`theses`）も返す**（`?price=0`・`?valuation=0` で省略可）。⚠️ **買った理由（エントリー仮説）は `theses`（Thesis の claim/basis/worst_case/status＋Verdict）にある。`investment_reason`（reason）は『企業説明テンプレート』で書かれる企業の俯瞰説明で、買い判断が入っているとは限らない**ため、継続/損切り判断では theses を主ソースにする |
 | `GET /api/analysis/portfolio/` | 業種分布・損益合計などポートフォリオサマリー |
 | `POST /api/analysis/diary/<symbol>/notes/` | **継続記録（DiaryNote）を追加**（書き込み）。書き込み先ユーザーは `ANALYSIS_API_USER` で固定 |
 | `DELETE /api/analysis/diary/<symbol>/notes/<note_id>/` | **継続記録を1件削除**（書き込み）。削除後にタグを再同期する |
@@ -525,8 +526,12 @@ Claude が `diary_detail` エンドポイントを叩き、
 |------------|------------|----------------|------------------|
 | **企業分析**（ビジネスモデル・稼ぐ力・競合の俯瞰） | 日記本体（`reason`） | `PATCH .../diary/<symbol>/reason/` | `企業説明テンプレート.md` |
 | **決算分析**（決算の質×継続性×アクション判定） | 継続記録（DiaryNote） | `POST .../diary/<symbol>/notes/` | `決算業績分析テンプレート.md` |
+| **ポジション判定**（保有中を利確/損切り/継続/買い増しで判定） | 継続記録（DiaryNote） | `POST .../diary/<symbol>/notes/` | `保有ポジション判定テンプレート.md` |
 
 - **決算分析を継続記録に書くときは `topic="決算分析"` を必ず指定する。**
+- **ポジション判定を継続記録に書くときは `topic="ポジション判定"` を必ず指定する。**
+  判定材料は `positions/`（一覧スクリーニング）→ `diary/<symbol>/`（個別の現在値・含み損益・
+  投資理由・ノート・ニュース）で取得する。新しい書き込みAPIは不要（既存の `add_note` で記録）。
 - タグは **`docs/analysis_templates/tag_master.md` から最大4つ**だけ選ぶ
   （子タグ優先・企業名/コードは不可・マクロは方向矢印付き・マスタにないタグは作らない）。
   本文中の `@タグ` は書き込み後に `diary.tags` へ**自動同期**される（UIと同じ

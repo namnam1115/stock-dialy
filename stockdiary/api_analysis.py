@@ -121,6 +121,115 @@ def _fetch_margin_data(symbol: str, weeks: int = 8) -> dict | None:
     }
 
 
+def _fetch_current_price(symbol: str) -> float | None:
+    """現在株価を取得（Yahoo Finance Chart API・無料・軽量）。
+
+    api.get_stock_price と同じ v8/chart エンドポイントを使う（1リクエスト）。
+    取得失敗・外国株の取り違え等は None を返す（含み損益は算出しない）。
+    """
+    try:
+        import requests
+        ticker_symbol = symbol if not is_japanese_stock(symbol) else f"{symbol}.T"
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker_symbol}"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        resp = requests.get(url, headers=headers, timeout=5)
+        data = resp.json()
+        result = (data.get('chart') or {}).get('result') or []
+        if not result:
+            return None
+        price = (result[0].get('meta') or {}).get('regularMarketPrice')
+        return float(price) if price else None
+    except Exception as e:
+        logger.warning("current price fetch failed for %s: %s", symbol, e)
+        return None
+
+
+def _fetch_valuation(symbol: str) -> dict | None:
+    """バリュエーション指標（PER/PBR/ROE/配当利回り/時価総額）を返す。
+
+    common.services.YahooFinanceService（財務諸表ベース＋info フォールバック）を使う。
+    価格取得より重い（財務諸表を引く）ため、呼び出し側で opt-in する想定。
+    取得できなければ None。
+    """
+    try:
+        from common.services.yahoo_finance_service import YahooFinanceService
+        data = YahooFinanceService.fetch_company_data(symbol)
+        if not data:
+            return None
+        keys = ('per', 'pbr', 'roe', 'dividend_yield', 'market_cap')
+        val = {k: (float(data[k]) if k in data and data[k] is not None else None) for k in keys}
+        if all(v is None for v in val.values()):
+            return None
+        val['note'] = ('PER/PBR は割高・割安の目安、ROE は稼ぐ力、配当利回り[%]、'
+                       '時価総額[億円]。買い増し判断のバリュエーション補助指標。')
+        return val
+    except Exception as e:
+        logger.warning("valuation fetch failed for %s: %s", symbol, e)
+        return None
+
+
+def _position_metrics(diary, current_price: float | None) -> dict:
+    """保有ポジションの含み損益・時価を算出する。
+
+    含み損益 = (現在値 − 平均取得単価) × 保有数量。
+    保有なし・平均取得単価なし・現在値なしのときは金額系を None にする。
+    """
+    qty = float(diary.current_quantity or 0)
+    avg = float(diary.average_purchase_price) if diary.average_purchase_price else None
+
+    metrics = {
+        'current_price': current_price,
+        'market_value': None,
+        'cost_basis': (avg * qty) if (avg and qty) else None,
+        'unrealized_profit': None,
+        'unrealized_profit_rate': None,
+    }
+    if current_price and qty:
+        metrics['market_value'] = current_price * qty
+    if current_price and avg and qty:
+        metrics['unrealized_profit'] = (current_price - avg) * qty
+        if avg:
+            metrics['unrealized_profit_rate'] = (current_price / avg - 1) * 100
+    return metrics
+
+
+def _serialize_theses(diary) -> list[dict]:
+    """投資仮説（Thesis）＝「なぜ買ったか」の答え合わせ可能な主張を返す。
+
+    重要: 日記本体の reason（投資理由）は『企業説明テンプレート』で書かれる
+    “企業の俯瞰説明”であり、エントリー時の買い判断（仮説）が入っているとは限らない。
+    買った理由・崩れる条件（worst_case）・検証状況は Thesis 側にある。ポジション判定
+    （継続/損切り/買い増し）は「テーマ＝仮説が今も生きているか」で決まるため、
+    reason ではなくこの theses を主ソースにする。検証済みなら Verdict も添える。
+    """
+    theses = []
+    for t in diary.theses.all():
+        verdict = None
+        v = getattr(t, 'verdict', None)
+        if v is not None:
+            verdict = {
+                'hypothesis_result': v.get_hypothesis_result_display(),
+                'pnl_result': v.get_pnl_result_display(),
+                'decision_quality': v.decision_quality,
+                'quadrant': v.quadrant_label,
+                'learning': v.learning,
+            }
+        theses.append({
+            'id': t.id,
+            'claim': t.claim,                 # 主張（＝この投資で賭けていること）
+            'basis': t.basis,                 # 根拠
+            'worst_case': t.worst_case,       # これが起きたら仮説は崩れる（＝損切り/撤退の起点）
+            'horizon': t.get_horizon_display(),
+            'status': t.get_status_display(),  # 未検証 / 検証済み / 取り下げ
+            'review_due_date': t.review_due_date.isoformat() if t.review_due_date else None,
+            'is_due': t.is_due,               # 検証期日が到来した未検証の仮説か
+            'verdict': verdict,
+        })
+    return theses
+
+
 def _fetch_yfinance_news(stock_symbol: str, limit: int = 10) -> list[dict]:
     """yfinance でニュースを取得（無料）"""
     try:
@@ -224,7 +333,9 @@ def diary_detail(request, symbol: str):
     if username:
         qs = qs.filter(user__username=username)
 
-    diary = qs.prefetch_related('transactions', 'notes', 'tags').first()
+    diary = qs.prefetch_related(
+        'transactions', 'notes', 'tags', 'theses__verdict'
+    ).first()
     if not diary:
         return JsonResponse({'error': f'{symbol} の日記が見つかりません'}, status=404)
 
@@ -267,17 +378,35 @@ def diary_detail(request, symbol: str):
     fetch_margin = request.GET.get('margin', '1') != '0'
     margin = _fetch_margin_data(symbol) if fetch_margin else None
 
+    # 現在値・含み損益（保有ポジションの手仕舞い/継続/買い増し判断に使う）
+    fetch_price = request.GET.get('price', '1') != '0'
+    current_price = _fetch_current_price(symbol) if fetch_price else None
+    position = _position_metrics(diary, current_price)
+
+    # バリュエーション（PER/PBR等）は財務諸表を引くため重い。?valuation=0 で省略可
+    fetch_valuation = request.GET.get('valuation', '1') != '0'
+    valuation = _fetch_valuation(symbol) if fetch_valuation else None
+
     return JsonResponse({
         'symbol': symbol,
         'name': diary.stock_name,
         'status': status,
         'sector': diary.sector,
         'tags': tags,
+        # reason は『企業説明』（企業の俯瞰）であり、買った理由とは限らない点に注意。
+        # エントリー仮説・崩れる条件は theses を参照する。
         'investment_reason': diary.reason or '',
+        'theses': _serialize_theses(diary),
         'first_purchase_date': diary.first_purchase_date.isoformat() if diary.first_purchase_date else None,
         'current_quantity': float(diary.current_quantity),
         'avg_cost': float(diary.average_purchase_price) if diary.average_purchase_price else None,
         'realized_profit': float(diary.realized_profit),
+        'current_price': position['current_price'],
+        'market_value': position['market_value'],
+        'cost_basis': position['cost_basis'],
+        'unrealized_profit': position['unrealized_profit'],
+        'unrealized_profit_rate': position['unrealized_profit_rate'],
+        'valuation': valuation,
         'transaction_count': diary.transaction_count,
         'transactions': transactions,
         'notes': notes,
@@ -410,6 +539,119 @@ def list_diaries(request):
         })
 
     return JsonResponse({'count': len(diaries), 'diaries': diaries})
+
+
+@require_GET
+@_require_analysis_key
+def positions(request):
+    """
+    現在保有中の全ポジションを、判断材料付きで返す（利確/損切り/継続/買い増し用）。
+
+    GET /api/analysis/positions/
+    Authorization: Bearer <key>
+
+    各ポジションに現在値・含み損益（率）・時価を付与し、需給（信用倍率）と
+    直近開示日も添える。個別の深掘り（投資理由・ノート・ニュース）は
+    diary/<symbol>/ を叩く。この一覧はどのポジションを見直すかのスクリーニング用。
+
+    クエリ:
+      ?valuation=1       PER/PBR/ROE/配当利回りを付与（財務諸表を引くため重い。既定 0）
+      ?price=0           現在値取得をスキップ（含み損益は算出されない）
+      ?user=<username>   複数ユーザー環境での絞り込み
+
+    ポートフォリオ合計（時価・含み損益・取得原価）も併せて返す。
+    """
+    from django.db.models import Count, Q
+
+    qs = (
+        StockDiary.objects
+        .filter(user__isnull=False, current_quantity__gt=0)
+        .prefetch_related('tags')
+        .annotate(
+            thesis_total=Count('theses', distinct=True),
+            open_thesis_count=Count(
+                'theses', filter=Q(theses__status='open'), distinct=True
+            ),
+        )
+        .order_by('stock_symbol')
+    )
+
+    username = request.GET.get('user', '').strip()
+    if username:
+        qs = qs.filter(user__username=username)
+
+    fetch_price = request.GET.get('price', '1') != '0'
+    fetch_valuation = request.GET.get('valuation', '0') == '1'
+
+    # 最新週の信用倍率をまとめて引く（list_diaries と同じく1クエリ）
+    margin_map = {}
+    try:
+        from django.db.models import Max
+        from margin_tracking.models import MarginData
+        latest_date = MarginData.objects.aggregate(d=Max('record_date'))['d']
+        if latest_date:
+            margin_map = {
+                m.stock_code: float(m.margin_ratio) if m.margin_ratio is not None else None
+                for m in MarginData.objects.filter(record_date=latest_date)
+            }
+    except Exception:
+        margin_map = {}
+
+    rows = []
+    total_market_value = 0.0
+    total_cost_basis = 0.0
+    total_unrealized = 0.0
+    for d in qs:
+        current_price = _fetch_current_price(d.stock_symbol) if fetch_price else None
+        pos = _position_metrics(d, current_price)
+        valuation = _fetch_valuation(d.stock_symbol) if fetch_valuation else None
+
+        if pos['market_value'] is not None:
+            total_market_value += pos['market_value']
+        if pos['cost_basis'] is not None:
+            total_cost_basis += pos['cost_basis']
+        if pos['unrealized_profit'] is not None:
+            total_unrealized += pos['unrealized_profit']
+
+        rows.append({
+            'symbol': d.stock_symbol,
+            'name': d.stock_name,
+            'sector': d.sector,
+            'tags': list(d.tags.values_list('name', flat=True)),
+            'quantity': float(d.current_quantity),
+            'avg_cost': float(d.average_purchase_price) if d.average_purchase_price else None,
+            'realized_profit': float(d.realized_profit),
+            'current_price': pos['current_price'],
+            'market_value': pos['market_value'],
+            'cost_basis': pos['cost_basis'],
+            'unrealized_profit': pos['unrealized_profit'],
+            'unrealized_profit_rate': pos['unrealized_profit_rate'],
+            'valuation': valuation,
+            'margin_ratio': margin_map.get(d.stock_symbol),
+            # 買った理由（仮説）が記録されているか。0 なら判定前に diary/<symbol>/ で
+            # 仮説の有無を確認し、無ければ「エントリー仮説未記録」として扱う。
+            'thesis_count': d.thesis_total,
+            'open_thesis_count': d.open_thesis_count,
+            'latest_disclosure_date': (
+                d.latest_disclosure_date.isoformat() if d.latest_disclosure_date else None
+            ),
+        })
+
+    total_unrealized_rate = (
+        (total_unrealized / total_cost_basis * 100) if total_cost_basis else None
+    )
+
+    return JsonResponse({
+        'count': len(rows),
+        'portfolio': {
+            'total_market_value': total_market_value,
+            'total_cost_basis': total_cost_basis,
+            'total_unrealized_profit': total_unrealized,
+            'total_unrealized_profit_rate': total_unrealized_rate,
+        },
+        'positions': rows,
+        'fetched_at': datetime.now(tz=dt_timezone.utc).strftime('%Y-%m-%d %H:%M UTC'),
+    })
 
 
 # ------------------------------------------------------------------ #
