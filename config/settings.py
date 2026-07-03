@@ -845,4 +845,4 @@ Q_CLUSTER = {
     'catch_up': False,
 }
 
-STATIC_VERSION = '1.2.997'
+STATIC_VERSION = '1.2.1002'

@@ -379,7 +379,7 @@
       </div>
 
       <!-- ステータス選択（ドロップダウン） + 表示モード切替 -->
-      <div class="d-flex align-items-center gap-2 mb-2">
+      <div class="d-flex align-items-center gap-2 mb-2 status-filter-row">
         <div class="dropdown">
           <button type="button" class="status-dropdown-btn dropdown-toggle" id="statusDropdownBtn"
                   data-bs-toggle="dropdown" aria-expanded="false"
@@ -424,14 +424,14 @@
                value="{{ request.GET.status|default:'all' }}">
       {% if recent_hashtags %}
       <button type="button" id="hashtagChipsToggle"
-              class="btn btn-sm btn-outline-secondary flex-shrink-0 d-lg-none"
+              class="status-row-btn flex-shrink-0 d-lg-none"
               title="よく使うハッシュタグを表示"
               aria-expanded="{% if request.GET.hashtag %}true{% else %}false{% endif %}">
         @タグ
       </button>
       {% endif %}
       <a href="{% url 'stockdiary:diary_summary' %}{% if request.GET.query %}?q={{ request.GET.query|urlencode }}{% endif %}"
-         class="btn btn-sm btn-outline-secondary flex-shrink-0"
+         class="status-row-btn flex-shrink-0"
          title="銘柄単位のサマリー表で表示">
         <i class="bi bi-table me-1"></i>銘柄別
       </a>

@@ -250,6 +250,34 @@
   color: white;
 }
 
+/* ステータス行の他コントロール（@タグ・銘柄別）: ドロップダウンと高さを揃えたアウトライン調ボタン */
+.status-row-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.9rem;
+  border: 1.5px solid var(--bg-300);
+  border-radius: var(--radius-md);
+  background: var(--bg-200);
+  color: var(--text-100);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none !important;
+  transition: all 0.2s ease;
+}
+
+.status-row-btn:hover {
+  background: var(--bg-300);
+  border-color: var(--accent-200);
+}
+
+.status-filter-row {
+  flex-wrap: wrap;
+  row-gap: 0.5rem;
+}
+
 .status-dropdown-menu {
   min-width: 11rem;
 }
@@ -635,8 +663,10 @@
 
 .dark-mode .filter-toggle-btn,
 .dark-mode .sort-toggle-btn,
+.dark-mode .status-row-btn,
 [data-theme="dark"] .filter-toggle-btn,
-[data-theme="dark"] .sort-toggle-btn {
+[data-theme="dark"] .sort-toggle-btn,
+[data-theme="dark"] .status-row-btn {
   background: var(--dm-muted);
   border-color: var(--dm-border);
   color: var(--dm-foreground);
@@ -644,8 +674,10 @@
 
 .dark-mode .filter-toggle-btn:hover,
 .dark-mode .sort-toggle-btn:hover,
+.dark-mode .status-row-btn:hover,
 [data-theme="dark"] .filter-toggle-btn:hover,
-[data-theme="dark"] .sort-toggle-btn:hover {
+[data-theme="dark"] .sort-toggle-btn:hover,
+[data-theme="dark"] .status-row-btn:hover {
   border-color: var(--dm-primary);
 }
 
