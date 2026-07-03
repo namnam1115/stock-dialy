@@ -24,7 +24,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
 
-from .models import DiaryNote, ReasonVersion, StockDiary
+from .models import DiaryNote, ReasonVersion, StockDiary, Thesis
 from .utils import is_japanese_stock
 
 logger = logging.getLogger(__name__)
@@ -863,3 +863,104 @@ def update_reason(request, symbol: str):
         'reason_length': len(new_reason),
         'tags': synced_tags,
     })
+
+
+_VALID_HORIZONS = {c[0] for c in Thesis.HORIZON_CHOICES}
+
+
+@csrf_exempt
+@require_http_methods(['POST'])
+@_require_analysis_key
+def add_thesis(request, symbol: str):
+    """
+    投資仮説（Thesis）を1件作成する＝「買った理由」と「崩れる条件(worst_case)」を構造化する。
+
+    POST /api/analysis/diary/<symbol>/thesis/
+    Authorization: Bearer <key>
+    Content-Type: application/json
+
+    {
+      "claim":       "この投資で賭けている命題",      // 必須（最大500字）
+      "worst_case":  "これが起きたら仮説は崩れる（＝損切り/縮小条件）",  // 任意（最大300字）
+      "basis":       "なぜ成り立つと考えるか",         // 任意（最大1000字）
+      "horizon":     "6m",                          // 任意（next_earnings/3m/6m/1y/long。既定 6m）
+      "review_due_date": "2026-08-26"               // 任意。省略時は horizon から自動補完（UIと同じ導出）
+    }
+
+    review_due_date がホーム想起（答え合わせ待ちの仮説）を駆動する。省略時は
+    views_growth._default_review_due_date（UIと同一ロジック）で補完する。
+    書き込み先ユーザーは ANALYSIS_API_USER 環境変数で固定。
+    ※ Thesis.claim/worst_case は @タグ同期の対象外（diary.tags は reason＋notes の和集合）。
+    """
+    user, err = _get_api_user()
+    if err:
+        return err
+
+    symbol = symbol.upper().strip()
+    diary = StockDiary.objects.filter(
+        stock_symbol__iexact=symbol, user=user
+    ).first()
+    if not diary:
+        return JsonResponse(
+            {'error': f'{symbol} の日記が見つかりません（ユーザー: {user.username}）'},
+            status=404,
+        )
+
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({'error': 'リクエストボディが不正な JSON です'}, status=400)
+
+    claim = (body.get('claim') or '').strip()
+    if not claim:
+        return JsonResponse({'error': 'claim（主張）は必須です'}, status=400)
+
+    horizon = (body.get('horizon') or '6m').strip()
+    if horizon not in _VALID_HORIZONS:
+        return JsonResponse(
+            {'error': f'horizon が不正です。使用可能: {sorted(_VALID_HORIZONS)}'},
+            status=400,
+        )
+
+    review_due_date = None
+    raw_due = body.get('review_due_date')
+    if raw_due:
+        try:
+            review_due_date = date.fromisoformat(raw_due)
+        except ValueError:
+            return JsonResponse(
+                {'error': 'review_due_date は YYYY-MM-DD 形式で指定してください'}, status=400
+            )
+
+    thesis = Thesis(
+        diary=diary,
+        claim=claim,
+        basis=(body.get('basis') or '').strip(),
+        worst_case=(body.get('worst_case') or '').strip(),
+        horizon=horizon,
+        review_due_date=review_due_date,
+    )
+    try:
+        thesis.full_clean(exclude=['review_due_date'])
+    except ValidationError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+    if not thesis.review_due_date:
+        # UI と同じ導出（初回購入日 or 今日を基準に horizon 日数を加算）
+        from .views_growth import _default_review_due_date
+        thesis.review_due_date = _default_review_due_date(diary, thesis.horizon)
+
+    thesis.save()
+
+    return JsonResponse({
+        'success': True,
+        'symbol': symbol,
+        'diary_name': diary.stock_name,
+        'thesis_id': thesis.id,
+        'claim': thesis.claim,
+        'worst_case': thesis.worst_case,
+        'horizon': thesis.get_horizon_display(),
+        'status': thesis.get_status_display(),
+        'review_due_date': thesis.review_due_date.isoformat() if thesis.review_due_date else None,
+        'is_due': thesis.is_due,
+    }, status=201)

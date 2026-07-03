@@ -94,6 +94,7 @@ urlpatterns = [
     path('api/analysis/diary/<str:symbol>/notes/', api_analysis.add_note, name='api_analysis_add_note'),
     path('api/analysis/diary/<str:symbol>/notes/<int:note_id>/', api_analysis.delete_note, name='api_analysis_delete_note'),
     path('api/analysis/diary/<str:symbol>/reason/', api_analysis.update_reason, name='api_analysis_update_reason'),
+    path('api/analysis/diary/<str:symbol>/thesis/', api_analysis.add_thesis, name='api_analysis_add_thesis'),
 
     # APIエンドポイント（将来的な拡張用）
     # path('api/v1/earnings/', include('earnings_analysis.urls')),  # API専用
