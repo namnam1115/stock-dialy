@@ -22,6 +22,9 @@
         </div>
       </div>
       <p class="karte-claim">{{ thesis.claim|linebreaksbr }}</p>
+      {% if thesis.checkpoint %}
+        <p class="karte-checkpoint"><i class="bi bi-bullseye"></i>目印：{{ thesis.checkpoint }}{% if thesis.checkpoint_direction %} → {{ thesis.get_checkpoint_direction_display }}{% endif %}</p>
+      {% endif %}
       {% if thesis.basis %}<p class="karte-basis">{{ thesis.basis|linebreaksbr }}</p>{% endif %}
       <div class="karte-thesis-meta">
         {% for tag in thesis.basis_tags.all %}<span class="chip-quiet">{{ tag.name }}</span>{% endfor %}

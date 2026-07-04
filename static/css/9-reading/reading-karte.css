@@ -67,6 +67,43 @@ body.dark-mode, html[data-theme="dark"] {
 }
 .reading-page .karte-worst .bi { color: var(--faint-ink); }
 
+/* 確認の目印（賭け化：答え合わせで見るもの） */
+.reading-page .karte-checkpoint {
+  font-size: 0.8125rem; color: var(--ink-soft, var(--ink));
+  margin: 0 0 0.45rem; display: flex; gap: 0.4rem; align-items: baseline;
+  font-weight: 600;
+}
+.reading-page .karte-checkpoint .bi { color: var(--accent-ink, var(--muted-ink)); }
+
+/* フォーム内ヒント（目印の補足） */
+.reading-page .karte-hint {
+  font-size: 0.72rem; color: var(--faint-ink); line-height: 1.5;
+  margin: 0.25rem 0 0.5rem;
+}
+/* 目印から作られる主張のその場プレビュー（何が記録されるかを見せる） */
+.reading-page .karte-preview {
+  font-size: 0.85rem; line-height: 1.6; color: var(--ink-soft, var(--ink));
+  background: var(--paper-sunk, rgba(0,0,0,0.03));
+  border-radius: 0.5rem; padding: 0.45rem 0.7rem; margin: 0 0 0.6rem;
+}
+.reading-page .karte-preview strong { font-weight: 600; color: var(--ink); }
+/* 「もっと書く」折りたたみ（根拠・タグを二次情報へ） */
+.reading-page .karte-more { margin: 0.4rem 0 0.2rem; }
+.reading-page .karte-more > summary {
+  cursor: pointer; font-size: 0.8rem; color: var(--muted-ink);
+  padding: 0.35rem 0; list-style: revert; user-select: none;
+}
+.reading-page .karte-more[open] > summary { margin-bottom: 0.35rem; }
+
+/* 検証フォームの目印の問い返し */
+.reading-page .karte-form-checkpoint {
+  font-size: 0.85rem; line-height: 1.6; color: var(--ink-soft, var(--ink));
+  background: var(--paper-sunk, rgba(0,0,0,0.03));
+  border-radius: 0.5rem; padding: 0.5rem 0.7rem; margin: 0 0 0.6rem;
+  display: flex; gap: 0.4rem; align-items: baseline;
+}
+.reading-page .karte-form-checkpoint .bi { color: var(--accent-ink, var(--muted-ink)); }
+
 /* 検証（2×2） */
 .reading-page .karte-verdict {
   border-left: 3px solid var(--hairline);

@@ -6,7 +6,40 @@
     {% csrf_token %}
     <div class="karte-form-title"><i class="bi bi-lightbulb"></i> 当時の仮説</div>
 
-    <label class="karte-label">主張 <span class="karte-req">必須</span></label>
+    {# ── 賭け：答え合わせで見る「目印」を1つ先に決める ── #}
+    <label class="karte-label">確認の目印 <span class="karte-hint-inline">※答え合わせで見るものを1つ</span></label>
+    <div class="karte-form-2col">
+      <div>{{ form.checkpoint }}</div>
+      <div>{{ form.checkpoint_direction }}</div>
+    </div>
+    {% if form.checkpoint.errors %}<div class="karte-field-err">{{ form.checkpoint.errors.0 }}</div>{% endif %}
+    <p class="karte-hint">数字でなくてもOK（KPI・イベントの成否・定性チェックも可）。</p>
+
+    {# 目印から作られる主張のその場プレビュー #}
+    <p class="karte-preview" data-thesis-preview hidden>→ こう記録されます：<strong data-thesis-preview-text></strong></p>
+
+    <label class="karte-label">そう考えた理由 <span class="karte-hint-inline">※任意・なぜその目印がそう動くと思うか</span></label>
+    {{ form.basis }}
+    {% if form.basis.errors %}<div class="karte-field-err">{{ form.basis.errors.0 }}</div>{% endif %}
+
+    <label class="karte-label">最悪のケース <span class="karte-hint-inline">※どうなったら崩れるか</span></label>
+    {{ form.worst_case }}
+
+    <div class="karte-form-2col">
+      <div>
+        <label class="karte-label">想定検証期間</label>
+        {{ form.horizon }}
+      </div>
+      <div>
+        <label class="karte-label">検証予定日（空欄で自動設定）</label>
+        {{ form.review_due_date }}
+      </div>
+    </div>
+
+    <details class="karte-more">
+      <summary>もっと書く（主張を自分で書く・タグ）</summary>
+
+    <label class="karte-label">主張を自分で書く <span class="karte-hint-inline">※任意・空欄なら上の目印から作成</span></label>
     {{ form.claim }}
     {% if form.claim.errors %}<div class="karte-field-err">{{ form.claim.errors.0 }}</div>{% endif %}
 
@@ -21,6 +54,7 @@
       <div class="tag-suggest-list" id="basisTagList" hidden></div>
     </div>
     {{ all_tags|json_script:"basisTagData" }}
+    </details>
     <script>
     (function(){
       var root=document.getElementById('basisTagSuggest');
@@ -56,24 +90,6 @@
     })();
     </script>
 
-    <label class="karte-label">根拠・理由（文章）</label>
-    {{ form.basis }}
-    {% if form.basis.errors %}<div class="karte-field-err">{{ form.basis.errors.0 }}</div>{% endif %}
-
-    <div class="karte-form-2col">
-      <div>
-        <label class="karte-label">想定検証期間</label>
-        {{ form.horizon }}
-      </div>
-      <div>
-        <label class="karte-label">検証予定日（空欄で自動設定）</label>
-        {{ form.review_due_date }}
-      </div>
-    </div>
-
-    <label class="karte-label">最悪のケース</label>
-    {{ form.worst_case }}
-
     <div class="karte-form-actions">
       <button type="button" class="btn-quiet-ghost"
               hx-get="{% url 'stockdiary:karte_block' diary.id %}"
@@ -81,4 +97,24 @@
       <button type="submit" class="btn-quiet">仮説を保存</button>
     </div>
   </form>
+
+  <script>
+  (function(){
+    var host = document.getElementById('karte-block');
+    if(!host || host.dataset.previewInit){ return; } host.dataset.previewInit='1';
+    var cp=host.querySelector('[name=checkpoint]'), dir=host.querySelector('[name=checkpoint_direction]'),
+        claim=host.querySelector('[name=claim]'),
+        box=host.querySelector('[data-thesis-preview]'), txt=host.querySelector('[data-thesis-preview-text]');
+    if(!box||!txt){ return; }
+    var LBL={up:'上がる',down:'下がる',flat:'横ばい',happened:'実現する',not_happened:'起きない'};
+    function compose(){
+      var c=((claim&&claim.value)||'').trim(); if(c){ return c; }
+      var k=((cp&&cp.value)||'').trim(); if(!k){ return ''; }
+      var l=LBL[(dir&&dir.value)]||''; return l ? k+'が'+l : k;
+    }
+    function render(){ var s=compose(); if(s){ txt.textContent=s; box.hidden=false; } else { box.hidden=true; } }
+    [cp,dir,claim].forEach(function(el){ if(el){ el.addEventListener('input',render); el.addEventListener('change',render); } });
+    render();
+  })();
+  </script>
 </div>

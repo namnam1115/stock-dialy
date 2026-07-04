@@ -241,6 +241,8 @@ def _serialize_theses(diary) -> list[dict]:
         theses.append({
             'id': t.id,
             'claim': t.claim,                 # 主張（＝この投資で賭けていること）
+            'checkpoint': t.checkpoint,       # 確認の目印（答え合わせで見るもの＝今も成立しているか点検する観測点）
+            'checkpoint_direction': t.get_checkpoint_direction_display() if t.checkpoint_direction else '',
             'basis': t.basis,                 # 根拠
             'worst_case': t.worst_case,       # これが起きたら仮説は崩れる（＝損切り/撤退の起点）
             'horizon': t.get_horizon_display(),
@@ -895,6 +897,7 @@ def update_reason(request, symbol: str):
 
 
 _VALID_HORIZONS = {c[0] for c in Thesis.HORIZON_CHOICES}
+_VALID_CHECKPOINT_DIRS = {c[0] for c in Thesis.CHECKPOINT_DIR_CHOICES}
 
 
 @csrf_exempt
@@ -909,12 +912,18 @@ def add_thesis(request, symbol: str):
     Content-Type: application/json
 
     {
-      "claim":       "この投資で賭けている命題",      // 必須（最大500字）
+      "claim":       "この投資で賭けている命題",      // 任意※（最大500字）
+      "checkpoint":  "答え合わせで見るものを1つ（例: 次決算の資金利益）",  // 任意（最大200字）
+      "checkpoint_direction": "up",                 // 任意（up/down/flat/happened/not_happened）
       "worst_case":  "これが起きたら仮説は崩れる（＝損切り/縮小条件）",  // 任意（最大300字）
       "basis":       "なぜ成り立つと考えるか",         // 任意（最大1000字）
-      "horizon":     "6m",                          // 任意（next_earnings/3m/6m/1y/long。既定 6m）
+      "horizon":     "next_earnings",               // 任意（next_earnings/3m/6m/1y/long。既定 next_earnings）
       "review_due_date": "2026-08-26"               // 任意。省略時は horizon から自動補完（UIと同じ導出）
     }
+
+    ※ claim は checkpoint（＋direction）があれば省略可。省略時は目印から自動生成する
+      （UI の賭け化キャプチャと同じ。→ docs/thesis_capture_redesign.md）。claim も checkpoint も
+      無ければ 400。
 
     review_due_date がホーム想起（答え合わせ待ちの仮説）を駆動する。省略時は
     views_growth._default_review_due_date（UIと同一ロジック）で補完する。
@@ -940,11 +949,22 @@ def add_thesis(request, symbol: str):
     except (json.JSONDecodeError, UnicodeDecodeError):
         return JsonResponse({'error': 'リクエストボディが不正な JSON です'}, status=400)
 
+    checkpoint = (body.get('checkpoint') or '').strip()
+    checkpoint_direction = (body.get('checkpoint_direction') or '').strip()
+    if checkpoint_direction and checkpoint_direction not in _VALID_CHECKPOINT_DIRS:
+        return JsonResponse(
+            {'error': f'checkpoint_direction が不正です。使用可能: {sorted(_VALID_CHECKPOINT_DIRS)}'},
+            status=400,
+        )
+
+    # claim は checkpoint から自動生成可（UI の賭け化と同じ）。両方無ければエラー。
     claim = (body.get('claim') or '').strip()
     if not claim:
-        return JsonResponse({'error': 'claim（主張）は必須です'}, status=400)
+        claim = Thesis.compose_claim(checkpoint, checkpoint_direction)
+    if not claim:
+        return JsonResponse({'error': 'claim（主張）か checkpoint（確認の目印）のどちらかは必須です'}, status=400)
 
-    horizon = (body.get('horizon') or '6m').strip()
+    horizon = (body.get('horizon') or 'next_earnings').strip()
     if horizon not in _VALID_HORIZONS:
         return JsonResponse(
             {'error': f'horizon が不正です。使用可能: {sorted(_VALID_HORIZONS)}'},
@@ -964,6 +984,8 @@ def add_thesis(request, symbol: str):
     thesis = Thesis(
         diary=diary,
         claim=claim,
+        checkpoint=checkpoint,
+        checkpoint_direction=checkpoint_direction,
         basis=(body.get('basis') or '').strip(),
         worst_case=(body.get('worst_case') or '').strip(),
         horizon=horizon,
@@ -987,6 +1009,8 @@ def add_thesis(request, symbol: str):
         'diary_name': diary.stock_name,
         'thesis_id': thesis.id,
         'claim': thesis.claim,
+        'checkpoint': thesis.checkpoint,
+        'checkpoint_direction': thesis.get_checkpoint_direction_display() if thesis.checkpoint_direction else '',
         'worst_case': thesis.worst_case,
         'horizon': thesis.get_horizon_display(),
         'status': thesis.get_status_display(),

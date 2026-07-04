@@ -537,13 +537,15 @@ class ImportService:
         if not thesis_payload or not (thesis_payload.get('claim') or '').strip():
             return
         horizon = thesis_payload.get('horizon')
-        horizon = horizon if horizon in VALID_HORIZON else '6m'
+        horizon = horizon if horizon in VALID_HORIZON else 'next_earnings'
         status = thesis_payload.get('status')
         status = status if status in VALID_THESIS_STATUS else Thesis.STATUS_OPEN
         try:
             thesis = Thesis.objects.create(
                 diary=diary,
                 claim=(thesis_payload.get('claim') or '')[:200],
+                checkpoint=(thesis_payload.get('checkpoint') or '')[:200],
+                checkpoint_direction=(thesis_payload.get('checkpoint_direction') or '')[:16],
                 horizon=horizon,
                 worst_case=(thesis_payload.get('worst_case') or '')[:300],
                 review_due_date=thesis_payload.get('review_due_date') or None,

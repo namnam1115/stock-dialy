@@ -465,11 +465,17 @@ class ThesisForm(forms.ModelForm):
 
     class Meta:
         model = Thesis
-        fields = ['claim', 'basis_tags', 'basis', 'horizon', 'worst_case', 'review_due_date']
+        fields = ['checkpoint', 'checkpoint_direction', 'claim',
+                  'worst_case', 'horizon', 'review_due_date', 'basis_tags', 'basis']
         widgets = {
+            'checkpoint': forms.TextInput(attrs={
+                'class': 'form-control', 'maxlength': 200,
+                'placeholder': '例: 次決算の資金利益 / 販売台数 / TOBの成否',
+            }),
+            'checkpoint_direction': forms.Select(attrs={'class': 'form-select'}),
             'claim': forms.Textarea(attrs={
                 'class': 'form-control', 'maxlength': 500, 'rows': 3,
-                'placeholder': '例: 円安が続き、輸出採算の改善が利益を押し上げる',
+                'placeholder': '空欄なら「目印＋向き」から自動で作ります。自由に書きたいときはここへ（例: 円安継続で輸出採算が改善する）',
             }),
             'basis_tags': forms.SelectMultiple(attrs={'class': 'form-select'}),
             'basis': forms.Textarea(attrs={
@@ -493,6 +499,28 @@ class ThesisForm(forms.ModelForm):
         self.fields['basis'].required = False
         self.fields['worst_case'].required = False
         self.fields['review_due_date'].required = False
+        self.fields['checkpoint'].required = False
+        self.fields['checkpoint_direction'].required = False
+        # claim は任意化：目印から自動生成する経路を許すため（clean で担保）
+        self.fields['claim'].required = False
+
+    def clean(self):
+        """賭け化：claim 未入力なら「確認の目印＋向き」から主張を自動生成する。
+
+        目印も主張も無ければエラー（少なくとも一方は必要）。自由記述したい人は
+        claim を直接書けばよく、それがそのまま自由記述モードの逃げ道になる。
+        """
+        cleaned = super().clean()
+        claim = (cleaned.get('claim') or '').strip()
+        checkpoint = cleaned.get('checkpoint') or ''
+        direction = cleaned.get('checkpoint_direction') or ''
+        if not claim:
+            claim = Thesis.compose_claim(checkpoint, direction)
+            cleaned['claim'] = claim
+        if not claim:
+            self.add_error('checkpoint',
+                           '確認の目印か主張のどちらかを入力してください。')
+        return cleaned
 
 
 class VerdictForm(forms.ModelForm):

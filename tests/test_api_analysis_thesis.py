@@ -112,3 +112,54 @@ def test_thesis_appears_in_diary_detail(auth_settings, diary, monkeypatch):
     assert len(body['theses']) == 1
     assert body['theses'][0]['claim'] == 'AI需要で高成長持続'
     assert body['theses'][0]['worst_case'] == 'ARR減速'
+
+
+# ── 賭け化：確認の目印(checkpoint) の API 対応（→ docs/thesis_capture_redesign.md） ──
+
+def test_horizon_defaults_to_next_earnings(auth_settings, diary):
+    """horizon 省略時の既定は next_earnings（UI と揃える）。"""
+    resp = api_analysis.add_thesis(_post('CRWD', {'claim': 'x'}), 'CRWD')
+    assert resp.status_code == 201
+    thesis = Thesis.objects.get(id=json.loads(resp.content)['thesis_id'])
+    assert thesis.horizon == 'next_earnings'
+
+
+def test_checkpoint_autogenerates_claim(auth_settings, diary):
+    """claim 省略でも checkpoint＋direction から主張が自動生成される（UI と同じ）。"""
+    resp = api_analysis.add_thesis(_post('CRWD', {
+        'checkpoint': '次決算の純新規ARR', 'checkpoint_direction': 'up',
+    }), 'CRWD')
+    assert resp.status_code == 201
+    body = json.loads(resp.content)
+    thesis = Thesis.objects.get(id=body['thesis_id'])
+    assert thesis.checkpoint == '次決算の純新規ARR'
+    assert thesis.checkpoint_direction == 'up'
+    assert thesis.claim == '次決算の純新規ARRが上がる'
+
+
+def test_claim_or_checkpoint_required(auth_settings, diary):
+    """claim も checkpoint も無ければ 400。"""
+    resp = api_analysis.add_thesis(_post('CRWD', {'basis': 'x'}), 'CRWD')
+    assert resp.status_code == 400
+
+
+def test_invalid_checkpoint_direction_rejected(auth_settings, diary):
+    resp = api_analysis.add_thesis(_post('CRWD', {
+        'checkpoint': 'x', 'checkpoint_direction': 'sideways',
+    }), 'CRWD')
+    assert resp.status_code == 400
+    assert 'checkpoint_direction' in json.loads(resp.content)['error']
+
+
+def test_checkpoint_appears_in_diary_detail(auth_settings, diary, monkeypatch):
+    """checkpoint が diary_detail の theses に現れる（テンプレが参照できる）。"""
+    monkeypatch.setattr(api_analysis, '_fetch_current_price', lambda s: None)
+    monkeypatch.setattr(api_analysis, '_fetch_valuation', lambda s: None)
+    api_analysis.add_thesis(_post('CRWD', {
+        'checkpoint': '次決算の営業CF', 'checkpoint_direction': 'up',
+    }), 'CRWD')
+    req = RequestFactory().get('/api/analysis/diary/CRWD/', {'news': '0', 'margin': '0'},
+                               HTTP_AUTHORIZATION='Bearer testkey')
+    body = json.loads(api_analysis.diary_detail(req, 'CRWD').content)
+    assert body['theses'][0]['checkpoint'] == '次決算の営業CF'
+    assert body['theses'][0]['checkpoint_direction'] == '上がる'

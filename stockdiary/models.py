@@ -656,6 +656,21 @@ class Thesis(models.Model):
     basis = models.TextField('根拠・理由', blank=True, max_length=1000,
                              help_text='なぜこの主張が成り立つと考えるか（文章）')
 
+    # 「確認の目印」＝答え合わせで見るものを1つ先にコミットする（賭け化）。
+    # 数値のモデル化ではなく観測点の事前コミット＝検証を「白紙から書く」から
+    # 「決めた目印を答える」に軽くする（→ docs/thesis_capture_redesign.md）。
+    CHECKPOINT_DIR_CHOICES = [
+        ('up', '上がる'),
+        ('down', '下がる'),
+        ('flat', '横ばい'),
+        ('happened', '実現する'),
+        ('not_happened', '起きない'),
+    ]
+    checkpoint = models.CharField('確認の目印', max_length=200, blank=True,
+                                  help_text='答え合わせで見るものを1つ。数字に限らずKPI・イベント結果・定性チェックでも可。例: 次決算の資金利益')
+    checkpoint_direction = models.CharField('目印の向き', max_length=16,
+                                            choices=CHECKPOINT_DIR_CHOICES, blank=True)
+
     HORIZON_CHOICES = [
         ('next_earnings', '次の決算まで'),
         ('3m', '3ヶ月'),
@@ -663,7 +678,7 @@ class Thesis(models.Model):
         ('1y', '1年'),
         ('long', '長期（1年超）'),
     ]
-    horizon = models.CharField('想定検証期間', max_length=20, choices=HORIZON_CHOICES, default='6m')
+    horizon = models.CharField('想定検証期間', max_length=20, choices=HORIZON_CHOICES, default='next_earnings')
     worst_case = models.CharField('最悪のケース', max_length=300, blank=True,
                                   help_text='この仮説が崩れるとしたら何が起きたときか')
     review_due_date = models.DateField('検証予定日', null=True, blank=True, db_index=True)
@@ -695,6 +710,19 @@ class Thesis(models.Model):
         if self.status != self.STATUS_OPEN or not self.review_due_date:
             return False
         return self.review_due_date <= timezone.localdate()
+
+    @staticmethod
+    def compose_claim(checkpoint, direction):
+        """確認の目印＋向きから主張文を組み立てる（claim 未入力時の自動生成）。
+
+        例: ('次決算の資金利益','up') → '次決算の資金利益が上がる'。
+        向きが無ければ目印そのものを主張とする。目印も無ければ空。
+        """
+        checkpoint = (checkpoint or '').strip()
+        if not checkpoint:
+            return ''
+        label = dict(Thesis.CHECKPOINT_DIR_CHOICES).get(direction or '', '')
+        return f'{checkpoint}が{label}' if label else checkpoint
 
 
 class Verdict(models.Model):

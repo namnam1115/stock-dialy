@@ -435,7 +435,7 @@ Claude Code
 | `GET /api/analysis/holdings/` | 保有中全銘柄（銘柄コード・名前・数量・平均取得単価・実現損益） |
 | `GET /api/analysis/diaries/` | **記録銘柄の一覧（スクリーニング用・保有/売却/メモ横断）**。`?tags=半導体,AI`（OR）・`?sector=`・`?status=holding\|sold\|memo\|all` で絞り込み。各銘柄に最新の信用倍率を付与（バリュエーションは呼び出し側で補完）。返却は `ANALYSIS_API_USER` 固定 |
 | `GET /api/analysis/positions/` | **現在保有中の全ポジションを判断材料付きで返す（利確/損切り/継続/買い増しのスクリーニング用）**。各ポジションに現在値・含み損益（率）・時価・信用倍率・**仮説の有無（`thesis_count`/`open_thesis_count`）**を付与。`?valuation=1` で PER/PBR/ROE/配当利回りも付与（財務諸表を引くため重い・既定OFF）・`?price=0` で調整。返却は `ANALYSIS_API_USER` 固定。ポートフォリオ合計（時価・含み損益）も返す |
-| `GET /api/analysis/diary/<symbol>/` | 指定銘柄の日記全体＋取引履歴＋継続記録＋**最新ニュース**。**現在値・含み損益（率）・時価・バリュエーション（PER/PBR/ROE/配当利回り）・投資仮説（`theses`）も返す**（`?price=0`・`?valuation=0` で省略可）。⚠️ **買った理由（エントリー仮説）は `theses`（Thesis の claim/basis/worst_case/status＋Verdict）にある。`investment_reason`（reason）は『企業説明テンプレート』で書かれる企業の俯瞰説明で、買い判断が入っているとは限らない**ため、継続/損切り判断では theses を主ソースにする |
+| `GET /api/analysis/diary/<symbol>/` | 指定銘柄の日記全体＋取引履歴＋継続記録＋**最新ニュース**。**現在値・含み損益（率）・時価・バリュエーション（PER/PBR/ROE/配当利回り）・投資仮説（`theses`）も返す**（`?price=0`・`?valuation=0` で省略可）。⚠️ **買った理由（エントリー仮説）は `theses`（Thesis の claim/**checkpoint（確認の目印＋向き）**/basis/worst_case/status＋Verdict）にある。継続/損切り判断では、記録者が答え合わせ用にコミットした `checkpoint`（確認の目印）を状態点検の起点にする（→ `docs/thesis_capture_redesign.md`）。`investment_reason`（reason）は『企業説明テンプレート』で書かれる企業の俯瞰説明で、買い判断が入っているとは限らない**ため、継続/損切り判断では theses を主ソースにする |
 | `GET /api/analysis/portfolio/` | 業種分布・損益合計などポートフォリオサマリー |
 | `POST /api/analysis/diary/<symbol>/notes/` | **継続記録（DiaryNote）を追加**（書き込み）。書き込み先ユーザーは `ANALYSIS_API_USER` で固定 |
 | `DELETE /api/analysis/diary/<symbol>/notes/<note_id>/` | **継続記録を1件削除**（書き込み）。削除後にタグを再同期する |
