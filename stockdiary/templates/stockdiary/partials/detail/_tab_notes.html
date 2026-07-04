@@ -1,0 +1,148 @@
+{% load stockdiary_filters humanize static %}
+          {# 追加導線はスピードダイヤル（右下＋）に一本化。編集・削除は各記録のインラインのまま。 #}
+
+          {% if notes %}
+          <!-- フィルタバー: 検索 -->
+          <div class="notes-filter-bar mb-3">
+            <input type="text" class="form-control form-control-sm" id="noteSearchInput" placeholder="記録を検索..." onkeyup="filterNotesByText(this.value)">
+          </div>
+          {% endif %}
+
+          {% comment %}
+            表示切替: テーマ別（デフォルト） / 仮説（検証ループ） / 活動（取引・分割・記録を時系列統合）。
+            仮説（検証ループ）は概要タブから移設し、テーマ別・活動と同じトグル並びに統一。
+            仮説ビューは銘柄に記録/取引が無くても常に意味を持つため、トグルは常設する。
+          {% endcomment %}
+          <div class="notes-view-toggle mb-3" role="tablist">
+            <button type="button" class="notes-view-btn active" data-view="topic" onclick="switchNotesView('topic')">
+              <i class="bi bi-collection me-1"></i>テーマ別
+            </button>
+            <button type="button" class="notes-view-btn" data-view="thesis" onclick="switchNotesView('thesis')">
+              <i class="bi bi-lightbulb me-1"></i>仮説
+            </button>
+            <button type="button" class="notes-view-btn" data-view="activity" onclick="switchNotesView('activity')">
+              <i class="bi bi-clock-history me-1"></i>活動
+            </button>
+          </div>
+
+          <!-- テーマ別ビュー: トピックインデックス（デフォルト表示） -->
+          <div class="notes-topic-index" id="notes-view-topic">
+            {% for topic, topic_notes in notes_by_topic.items %}
+            <button type="button" class="topic-index-row"
+                    onclick="openNoteDetailModal('{{ topic|default:''|escapejs }}')"
+                    data-topic="{{ topic|default:'' }}">
+              <div class="topic-index-left">
+                {% if topic %}<span class="topic-tag"># {{ topic }}</span>
+                {% else %}<span class="topic-tag topic-tag--muted">未分類</span>{% endif %}
+                <span class="topic-index-count" data-total-count="{{ topic_notes|length }}" data-match-count="{{ topic_notes|length }}">{{ topic_notes|length }}件</span>
+              </div>
+              <div class="topic-index-right">
+                <span class="topic-index-date">{{ topic_notes.0.date|date:"m/d" }}</span>
+                <i class="bi bi-chevron-right"></i>
+              </div>
+            </button>
+            {% empty %}
+            {% include "stockdiary/components/_empty_state.html" with icon="bi-journal-text" title="継続記録はまだありません" description="決算・ニュース・株価変動など、保有中の気づきを記録しましょう" %}
+            <div class="text-center" style="margin-top:-0.5rem;">
+              <button type="button" class="btn btn-primary" onclick="resetNoteFormToAdd();openBottomSheet('addNoteSheet')">
+                <i class="bi bi-plus-circle me-1"></i>記録を追加
+              </button>
+            </div>
+            {% endfor %}
+          </div>
+
+          {% comment %}
+            記録カードの時系列リスト。トグルボタンは持たないが、テーマ別モーダルの表示判定・
+            検索フィルタの参照元として DOM に常設する（hidden・編集はテーマ別モーダルから）。
+          {% endcomment %}
+          <div class="notes-timeline-wrap" id="notes-view-timeline" hidden>
+            <div class="notes-list mobile-optimized" id="timelineCards">
+              {% for note in notes %}
+              {% include "stockdiary/partials/_note_card.html" %}
+              {% empty %}
+              {% include "stockdiary/components/_empty_state.html" with icon="bi-journal-text" title="継続記録はまだありません" description="右下の＋ボタンから記録を追加できます" %}
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- 仮説ビュー: 検証ループ（仮説→結果→検証→学び）。概要タブから移設 -->
+          <div class="notes-thesis-wrap" id="notes-view-thesis" hidden>
+            {% include "stockdiary/partials/_karte_block.html" %}
+          </div>
+
+          <!-- 活動ビュー: 取引・分割・継続記録を時系列で統合（旧「時系列」タブを移設） -->
+          <div class="notes-activity-wrap" id="notes-view-activity" hidden>
+            <ol class="timeline-list event-timeline">
+              {% for event in event_timeline %}
+                <li class="timeline-item event-{{ event.type }}">
+                  <span class="timeline-date">{{ event.date|date:"Y/m/d" }}</span>
+                  <div class="timeline-card p-3">
+                    {% if event.type == 'transaction' %}
+                      <!-- 取引 -->
+                      <div class="transaction-event">
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="badge {% if event.data.transaction_type == 'buy' %}bg-primary{% else %}bg-danger{% endif %}">
+                            <i class="bi {% if event.data.transaction_type == 'buy' %}bi-cart-plus{% else %}bi-cart-dash{% endif %}"></i>
+                            {% if event.data.transaction_type == 'buy' %}購入{% else %}売却{% endif %}
+                          </span>
+                          {% if event.data.is_margin %}<span class="badge bg-warning"><i class="bi bi-percent"></i>信用</span>{% endif %}
+                        </div>
+                        <div class="mt-2 small">
+                          <div><strong>単価:</strong> {{ event.data.price|floatformat:2|intcomma }}{{ diary|currency_unit }}</div>
+                          <div><strong>数量:</strong> {{ event.data.quantity|floatformat:0 }} 株</div>
+                          <div><strong>金額:</strong> {{ event.data.amount|intcomma_float:0 }}{{ diary|currency_unit }}</div>
+                          {% if event.data.memo %}<div class="mt-2 text-muted">{{ event.data.memo|truncatewords:20 }}</div>{% endif %}
+                          <a href="#" class="text-decoration-none small"
+                             onclick="document.getElementById('transactions-tab').click(); return false;">
+                            <i class="bi bi-pencil me-1"></i>取引履歴タブで編集
+                          </a>
+                        </div>
+                      </div>
+                    {% elif event.type == 'split' %}
+                      <!-- 株式分割 -->
+                      <div class="split-event">
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="badge bg-warning">
+                            <i class="bi bi-diagram-3"></i>
+                            株式分割
+                          </span>
+                        </div>
+                        <div class="mt-2 small">
+                          <div><strong>分割比率:</strong> {{ event.data.split_ratio }}倍</div>
+                          {% if event.data.memo %}<div class="mt-2 text-muted">{{ event.data.memo|truncatewords:20 }}</div>{% endif %}
+                        </div>
+                      </div>
+                    {% elif event.type == 'note' %}
+                      <!-- 継続記録 -->
+                      <div class="note-event">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                          <span class="badge bg-success">
+                            <i class="bi bi-journal-richtext"></i>
+                            {% if event.data.note_type %}{{ event.data.get_note_type_display }}{% else %}メモ{% endif %}
+                          </span>
+                          {% if event.data.topic %}<span class="badge bg-light text-dark">#{{ event.data.topic }}</span>{% endif %}
+                        </div>
+                        <div class="note-content small">
+                          {% if event.data.current_price %}
+                            <div class="text-muted mb-1"><strong>価格:</strong> {{ diary|currency_symbol }}{{ event.data.current_price|floatformat:0 }}{% if event.data.get_price_change %} ({{ event.data.get_price_change|floatformat:1 }}%){% endif %}</div>
+                          {% endif %}
+                          <p class="markdown-content">{{ event.data.content|truncatewords:30 }}</p>
+                        </div>
+                      </div>
+                    {% endif %}
+                  </div>
+                </li>
+              {% empty %}
+                <p class="text-muted text-center py-4">活動記録がありません</p>
+              {% endfor %}
+            </ol>
+          </div>
+
+          <!-- ノートカード格納庫（モーダル用・非表示） -->
+          <div id="note-card-store" aria-hidden="true" style="display:none;">
+            {% for note in notes %}
+            {% include "stockdiary/partials/_note_card.html" %}
+            {% endfor %}
+          </div>
+        </div>
+

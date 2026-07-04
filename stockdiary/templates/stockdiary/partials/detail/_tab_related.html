@@ -1,0 +1,69 @@
+{% load stockdiary_filters humanize static %}
+          <div class="info-card mobile-optimized">
+            <div class="info-card-title d-flex justify-content-between align-items-center">
+              <span>
+                <i class="bi bi-link-45deg"></i> 関連日記
+                <span class="related-unified-note">希少な関連ほど上位</span>
+              </span>
+              <button type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      id="related-toggle-btn"
+                      onclick="toggleRelatedSearch()"
+                      title="関連日記を追加">
+                <i class="bi bi-plus" id="related-toggle-icon"></i>
+              </button>
+            </div>
+
+            <div id="related-diaries-list" class="related-unified-list">
+              {% for item in related_unified %}
+              <div class="related-unified-item corr-{{ item.correlation|default:'none' }}" id="related-item-{{ item.diary.id }}"
+                   {% if item.correlation == 'positive' %}style="border-left:3px solid #16a34a;"{% elif item.correlation == 'inverse' %}style="border-left:3px solid #dc2626;"{% endif %}>
+                <a href="{% url 'stockdiary:detail' item.diary.pk %}" class="related-unified-main">
+                  <div class="related-unified-head">
+                    {% if item.diary.stock_symbol %}<span class="badge bg-secondary related-unified-code">{{ item.diary.stock_symbol }}</span>{% endif %}
+                    <span class="related-unified-name">{{ item.diary.stock_name }}</span>
+                    {% if item.correlation == 'positive' %}<span class="badge" style="background:#16a34a;color:#fff;">順相関</span>{% elif item.correlation == 'inverse' %}<span class="badge" style="background:#dc2626;color:#fff;">逆相関</span>{% endif %}
+                  </div>
+                  {% if item.via %}
+                  <div class="related-unified-vias">
+                    {% for v in item.via %}<span class="rs-via rs-via-{{ v.type }}">{{ v.label }}</span>{% endfor %}
+                  </div>
+                  {% endif %}
+                  {% if item.excerpt %}
+                  <div class="related-unified-excerpt">{{ item.excerpt }}</div>
+                  {% endif %}
+                </a>
+                {% if item.is_manual %}
+                <button type="button"
+                        class="btn btn-sm btn-link text-danger p-0 related-unified-remove"
+                        onclick="removeRelatedDiary({{ item.diary.id }})"
+                        title="手動リンクを解除">
+                  <i class="bi bi-x-circle"></i>
+                </button>
+                {% endif %}
+              </div>
+              {% empty %}
+              <p class="text-muted mb-0 small" id="no-related-msg">関連日記はありません</p>
+              {% endfor %}
+            </div>
+
+            <!-- 検索フォーム（折りたたみ） -->
+            <div id="related-search-area" style="display:none; margin-top:0.6rem;">
+              <div class="related-search-wrap">
+                <input type="text"
+                       class="form-control form-control-sm"
+                       id="related-search-input"
+                       placeholder="銘柄名・コードで検索"
+                       autocomplete="off"
+                       oninput="searchRelatedDiaries(this.value)">
+              </div>
+              <div id="related-search-results" style="max-height:220px; overflow-y:auto; margin-top:0.3rem;"></div>
+            </div>
+          </div>
+
+          {# バックリンク（他の記録からの言及）は関連タブ表示時に HTMX で遅延ロード #}
+          <div id="backlinks-panel-body">
+            <div id="backlinks-loading" class="htmx-indicator text-center text-muted small py-3">
+              <span class="spinner-border spinner-border-sm me-1"></span>言及を読み込み中…
+            </div>
+          </div>

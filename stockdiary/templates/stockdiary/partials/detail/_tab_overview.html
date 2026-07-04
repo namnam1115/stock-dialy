@@ -1,0 +1,228 @@
+{% load stockdiary_filters humanize static %}
+          {% if needs_retrospective %}
+          <!-- 振り返りプロンプト（売却完結済み・retrospectiveノート未記入時のみ） -->
+          <div class="rp-retro-prompt d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div class="small">
+              <div class="rp-retro-title"><i class="bi bi-arrow-counterclockwise me-1"></i>未来のあなたへ、いま学びを残しませんか</div>
+              この銘柄は売却済みです。実現損益
+              <strong class="{% if diary.realized_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                {{ diary.currency_symbol }}{{ diary.realized_profit|floatformat:0 }}
+              </strong>
+              — 結果どうだったか・なぜか、を一度書き留めておくと、次の判断が変わります。
+            </div>
+            <button type="button" class="btn-quiet btn-quiet--primary" onclick="startRetrospective()">
+              <i class="bi bi-pencil me-1"></i>振り返りを書く
+            </button>
+          </div>
+          {% endif %}
+          {% if diary.image_url %}
+          <div class="diary-image-section fade-in">
+            <div class="card border-0">
+              <div class="card-body p-2">
+                <div class="text-center">
+                  <img src="{{ diary.image_url }}" 
+                       class="img-fluid rounded diary-main-image" 
+                       alt="{{ diary.stock_name }}の画像"
+                       loading="lazy"
+                       onclick="showImageModal('{{ diary.image_url }}', '{{ diary.stock_name }} - {{ diary.first_purchase_date|date:"Y年m月d日" }}')">
+                  <div class="mt-2">
+                    <small class="text-muted">
+                      <i class="bi bi-image me-1"></i>
+                      クリックで拡大表示
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- 背景/メモ（全幅・読書ブロックとして主役化） -->
+          <div class="info-card mobile-optimized fade-in rp-reason-block" id="section-reason" style="margin-bottom: 1rem;">
+            <div class="info-card-title">
+              <i class="bi bi-journal-text"></i>
+              {% if diary.is_memo %}メモ{% else %}この銘柄の背景{% endif %}
+              {% if diary.reason %}
+              <button type="button" class="reason-expand-btn" id="reasonExpandBtn"
+                      title="全画面で読む">
+                <i class="bi bi-arrows-fullscreen"></i>
+                <span>全画面で読む</span>
+              </button>
+              {% endif %}
+            </div>
+            <div class="reason-content mobile-optimized markdown-content rp-prose" id="reasonContent">
+              {{ diary.reason|render_markdown_with_mentions:mention_map }}
+            </div>
+            {% if diary.reason %}
+            <button type="button" class="reason-more-btn" id="reasonMoreBtn" hidden
+                    onclick="toggleReasonCollapse(this)">続きを読む ▾</button>
+            {% endif %}
+          </div>
+
+          
+          <script>
+          (function () {
+            var sec = document.getElementById('section-reason');
+            var content = document.getElementById('reasonContent');
+            var btn = document.getElementById('reasonMoreBtn');
+            if (!sec || !content || !btn) { return; }
+            // 一定以上の高さなら折りたたみ対象にする
+            if (content.scrollHeight > 360) {
+              sec.classList.add('is-collapsible');
+              btn.hidden = false;
+            }
+            window.toggleReasonCollapse = function (b) {
+              var expanded = sec.classList.toggle('is-expanded');
+              b.textContent = expanded ? '閉じる ▴' : '続きを読む ▾';
+            };
+          })();
+          </script>
+
+          <!-- 見立ての変遷（ReasonVersion: reason 上書き前の来歴・既定非表示） -->
+          {% include "stockdiary/partials/_reason_versions.html" %}
+
+          <!-- テーマ × 感応（付与タグ＋この銘柄への影響方向）。補助情報として投資理由の後に降ろす -->
+          {% include "stockdiary/partials/_theme_sensitivity.html" %}
+
+          <!-- 同テーマの過去判断（補助情報のため投資理由の後に配置） -->
+          {% include "stockdiary/partials/_theme_recall.html" %}
+
+          <!-- PCサイドバー非表示時用フォールバック: 取引サマリー・タグ -->
+          <div class="info-grid mobile-optimized fade-in detail-fallback-on-narrow">
+            {% if not diary.is_memo %}
+            <div class="info-card mobile-optimized">
+              <div class="info-card-title">
+                <i class="bi bi-graph-up"></i>
+                取引サマリー
+              </div>
+              <div class="info-items mobile-optimized">
+                <div class="info-item-improved mobile-optimized">
+                  <div class="info-icon-improved">
+                    <i class="bi bi-calendar-date"></i>
+                  </div>
+                  <div class="info-content-improved">
+                    <div class="info-label-improved">最初の購入日</div>
+                    <div class="info-value-improved">
+                      {% include "stockdiary/components/_date_display.html" with date=diary.first_purchase_date show_icon=False %}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="info-item-improved mobile-optimized">
+                  <div class="info-icon-improved">
+                    <i class="bi bi-currency-yen"></i>
+                  </div>
+                  <div class="info-content-improved">
+                    <div class="info-label-improved">平均取得単価</div>
+                    <div class="info-value-improved">
+                      {% include "stockdiary/components/_price_display.html" with price=diary.average_purchase_price currency=diary.currency_unit %}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="info-item-improved mobile-optimized">
+                  <div class="info-icon-improved">
+                    <i class="bi bi-graph-up"></i>
+                  </div>
+                  <div class="info-content-improved">
+                    <div class="info-label-improved">現在保有数</div>
+                    <div class="info-value-improved">{{ diary.current_quantity|floatformat:0 }}株</div>
+                  </div>
+                </div>
+
+                <div class="info-item-improved mobile-optimized">
+                  <div class="info-icon-improved">
+                    <i class="bi bi-cash-stack"></i>
+                  </div>
+                  <div class="info-content-improved">
+                    <div class="info-label-improved">総取得原価(信用含む)</div>
+                    <div class="info-value-improved">{{ diary.total_cost|intcomma_float:0 }}{{ diary|currency_unit }}</div>
+                  </div>
+                </div>
+
+                {% if diary.realized_profit != 0 %}
+                <div class="info-item-improved mobile-optimized">
+                  <div class="info-icon-improved">
+                    <i class="bi bi-piggy-bank"></i>
+                  </div>
+                  <div class="info-content-improved">
+                    <div class="info-label-improved">実現損益(信用含む)</div>
+                    <div class="info-value-improved">
+                      {% include "stockdiary/components/_profit_display.html" with profit=diary.realized_profit currency=diary.currency_unit %}
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            {% endif %}
+
+            {# タグは theme_tags があれば上部「テーマ×感応」で表示済み。重複を避け、タグ未設定時のみ素のタグ枠を出す #}
+            {% if not theme_tags %}
+            <div class="info-card mobile-optimized">
+              <div class="info-card-title">
+                <i class="bi bi-tags"></i>
+                タグ
+              </div>
+              {% for tag in diary.tags.all %}
+                <a href="{% url 'stockdiary:home' %}?query={{ tag.name|urlencode }}" class="text-decoration-none" title="「{{ tag.name }}」を本文も含めて検索">
+                  {% include "stockdiary/components/_badge.html" with type="primary" text=tag.name icon="bi-tag-fill" extra_class="me-1 mb-1" %}
+                </a>
+              {% empty %}
+              <p class="text-muted mb-0">タグはありません</p>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- 関連グラフセクション -->
+          <div class="info-card mobile-optimized" id="section-graph" style="margin-bottom: 1rem;">
+            <div class="info-card-title d-flex justify-content-between align-items-center flex-wrap gap-1">
+              <span><i class="bi bi-diagram-3"></i> 関連グラフ</span>
+              <div class="d-flex flex-nowrap gap-1 align-items-center overflow-auto">
+                <label class="badge bg-light text-dark border detail-edge-label" style="cursor:pointer;font-weight:normal;font-size:0.75rem;user-select:none;white-space:nowrap;">
+                  <input type="checkbox" class="detail-edge-check" value="manual" checked style="vertical-align:middle;"> 手動
+                </label>
+                <label class="badge bg-light text-dark border detail-edge-label" style="cursor:pointer;font-weight:normal;font-size:0.75rem;user-select:none;white-space:nowrap;">
+                  <input type="checkbox" class="detail-edge-check" value="tag" checked style="vertical-align:middle;"> タグ
+                </label>
+                <label class="badge bg-light text-dark border detail-edge-label" style="cursor:pointer;font-weight:normal;font-size:0.75rem;user-select:none;white-space:nowrap;">
+                  <input type="checkbox" class="detail-edge-check" value="sector" checked style="vertical-align:middle;"> 業種
+                </label>
+                <label class="badge bg-light text-dark border detail-edge-label" style="cursor:pointer;font-weight:normal;font-size:0.75rem;user-select:none;white-space:nowrap;">
+                  <input type="checkbox" class="detail-edge-check" value="hashtag" checked style="vertical-align:middle;"> HT
+                </label>
+                <label class="badge bg-light text-dark border detail-edge-label" style="cursor:pointer;font-weight:normal;font-size:0.75rem;user-select:none;white-space:nowrap;">
+                  <input type="checkbox" class="detail-edge-check" value="mention" checked style="vertical-align:middle;"> 言及
+                </label>
+                <a href="{% url 'stockdiary:diary_graph' %}"
+                   class="btn btn-sm btn-outline-secondary"
+                   style="padding:0.1rem 0.4rem;font-size:0.7rem;"
+                   title="全体グラフを表示">
+                  <i class="bi bi-arrows-fullscreen"></i>
+                </a>
+              </div>
+            </div>
+            <!-- グラフ描画エリア -->
+            <div id="detail-graph-container"
+                 style="position:relative;height:280px;border-radius:0.4rem;overflow:hidden;background:var(--bs-body-bg,#f8f9fa);margin-top:0.5rem;">
+              <svg id="detail-graph-svg" width="100%" height="100%"></svg>
+              <!-- ローディング -->
+              <div id="detail-graph-loading"
+                   style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:inherit;">
+                <div class="spinner-border spinner-border-sm text-secondary" role="status">
+                  <span class="visually-hidden">読み込み中…</span>
+                </div>
+              </div>
+              <!-- 空メッセージ -->
+              <div id="detail-graph-empty"
+                   style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;">
+                <p class="text-muted small mb-0">関連日記がありません</p>
+              </div>
+            </div>
+            <!-- ツールチップ（全ページ共通・fixed配置） -->
+            <div id="detail-graph-tooltip"
+                 style="display:none;position:fixed;background:rgba(0,0,0,0.82);color:#fff;padding:5px 9px;border-radius:5px;font-size:0.75rem;pointer-events:none;z-index:9999;max-width:200px;line-height:1.4;"></div>
+
+          </div>
+
