@@ -17,8 +17,10 @@
   // ==============================
   const NODE_RADIUS_MIN   = 8;
   const NODE_RADIUS_MAX   = 26;
-  const HUB_RADIUS_MIN    = 12;
-  const HUB_RADIUS_MAX    = 56;
+  // T-B1: タグ（ハブ）を控えめに。以前は最大56で銘柄(最大26)を視覚的に圧倒し、
+  // 「タグが出すぎて銘柄が見えない」原因だった。銘柄を主役にするため縮小する。
+  const HUB_RADIUS_MIN    = 10;
+  const HUB_RADIUS_MAX    = 34;
 
   const FORCE_LINK_DISTANCE_DEFAULT  = 120;
   const FORCE_LINK_DISTANCE_HUB      = 160;
@@ -131,6 +133,7 @@
       this._isolatedDiaries = [];   // どのエッジにも繋がっていない primary 日記ノード
       this._adj             = null; // 隣接マップ（_buildAdjacency で構築）
       this._searchMatchIds  = [];
+      this._searchAutoFocused = null; // 検索の単一一致で自動フォーカスした際の nodeId（クリア時に解除）
 
       this._init();
     }
@@ -281,6 +284,7 @@
           debounceTimer = setTimeout(() => {
             this.searchQuery = e.target.value.trim().toLowerCase();
             this._applySearch();
+            this._maybeAutoFocusSearch();   // 単一一致なら自動でその銘柄へ飛ぶ
           }, 200);
         });
       }
@@ -292,6 +296,7 @@
           if (inp) inp.value = '';
           this.searchQuery = '';
           this._applySearch();
+          this._maybeAutoFocusSearch();     // クリアで自動フォーカスを解除
         });
       }
 
@@ -590,6 +595,10 @@
         this.allNodes = data.nodes || [];
         this.allEdges = data.edges || [];
 
+        // T-B2: 1銘柄しか繋がっていないタグ（葉タグ）は銘柄同士を橋渡ししない＝
+        // 関連を1つも作らないノイズ。視認性のため除外する（関連の連鎖は不変）。
+        this._pruneLeafTags();
+
         // 孤立ノード（どのエッジにも接続していない）を除外。
         // 除外した primary 日記は「未接続銘柄」として控え、バッジから一覧できるようにする
         const connectedIds = new Set();
@@ -769,9 +778,9 @@
 
       // エッジ。希少な関連を太く濃く（_edgeWidth/_edgeOpacity 参照）
       const linkSel = g.append('g').attr('class', 'links')
-        .selectAll('line')
+        .selectAll('path')
         .data(edges)
-        .join('line')
+        .join('path')
           .attr('class', d => {
             // タグ/ハッシュタグエッジは方向（追い風up/向かい風down）を
             // クラスで付与し、CSS で確実に色・破線を上書きする（エッジ種別の
@@ -797,9 +806,9 @@
       // クリック用の透明ヒットライン（細い線でもタップしやすく）。
       // クリックでエッジの根拠（なぜ繋がっているか）をサイドパネルに表示する
       const linkHitSel = g.append('g').attr('class', 'links-hit')
-        .selectAll('line')
+        .selectAll('path')
         .data(edges)
-        .join('line')
+        .join('path')
           .attr('class', 'graph-link-hit')
           .on('mouseenter', (event, d) => {
             linkSel.classed('highlighted', l => l === d);
@@ -994,13 +1003,20 @@
         });
 
       // tick
+      // エッジは緩い弧（Q曲線）で描く。直線だと交差・平行が重なって見づらいため、
+      // 中点を法線方向にわずかにずらして視覚的に分離する（B: ラインの重なり低減）。
+      const linkPath = d => {
+        const sx = d.source.x, sy = d.source.y, tx = d.target.x, ty = d.target.y;
+        const dx = tx - sx, dy = ty - sy;
+        const dr = Math.sqrt(dx * dx + dy * dy) || 1;
+        const off = dr * 0.12;                 // 弧の膨らみ（距離の12%）
+        const nx = -dy / dr, ny = dx / dr;     // 法線
+        const cx = (sx + tx) / 2 + nx * off, cy = (sy + ty) / 2 + ny * off;
+        return `M${sx},${sy}Q${cx},${cy} ${tx},${ty}`;
+      };
       this.simulation.on('tick', () => {
-        linkSel
-          .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
-          .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
-        linkHitSel
-          .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
-          .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+        linkSel.attr('d', linkPath);
+        linkHitSel.attr('d', linkPath);
         nodeSel.attr('transform', d => `translate(${d.x},${d.y})`);
         if (this.showHulls) this._updateHulls();
 
@@ -1061,6 +1077,52 @@
 
       this._searchMatchIds = matchIds;
       this._updateSearchFocusButton();
+    }
+
+    // 検索が単一の銘柄に絞れたら、その銘柄＋近傍だけへ自動フォーカスして飛ぶ
+    // （A: フォーカス優先。密集グラフから目的の銘柄を探す手間を消す）。
+    // _applySearch は多方面から呼ばれ再帰しうるため、フォーカス発火は
+    // 検索入力ハンドラからのみ本メソッド経由で行う。
+    _maybeAutoFocusSearch() {
+      const q = this.searchQuery;
+      if (!q) {
+        // 検索クリア：検索由来のフォーカスなら解除（手動フォーカスは触らない）
+        if (this._searchAutoFocused) {
+          this._searchAutoFocused = null;
+          if (this.focusNodeId) this._exitFocusMode();
+        }
+        return;
+      }
+      const ids = this._searchMatchIds || [];
+      if (ids.length === 1) {
+        const id = String(ids[0]);
+        if (this.focusNodeId === id) return;   // 既にその銘柄にフォーカス済み
+        this._searchAutoFocused = id;
+        this._enterFocusMode(id);
+        setTimeout(() => this._fitToView(true), 80);  // 可視ノードへズーム/センタリング
+      }
+    }
+
+    // T-B2: タグ（ハブ）ノードのうち、接続している「銘柄」が1つ以下のものを除去する。
+    // 1銘柄だけのタグは銘柄同士を橋渡ししない＝関連情報をゼロしか持たないため、
+    // 消してもグラフの関連構造（2ホップ以上の連鎖）は一切損なわれない。純粋なノイズ除去。
+    _pruneLeafTags() {
+      const isDiary = new Map(this.allNodes.map(n => [String(n.id), n.node_type === 'diary']));
+      const diaryDeg = new Map();   // hubId -> 接続している diary 数
+      this.allEdges.forEach(e => {
+        const s = String(e.source), t = String(e.target);
+        if (isDiary.get(t) === false && isDiary.get(s) === true) diaryDeg.set(t, (diaryDeg.get(t) || 0) + 1);
+        if (isDiary.get(s) === false && isDiary.get(t) === true) diaryDeg.set(s, (diaryDeg.get(s) || 0) + 1);
+      });
+      const remove = new Set();
+      this.allNodes.forEach(n => {
+        if (n.node_type !== 'diary' && (diaryDeg.get(String(n.id)) || 0) <= 1) {
+          remove.add(String(n.id));
+        }
+      });
+      if (remove.size === 0) return;
+      this.allNodes = this.allNodes.filter(n => !remove.has(String(n.id)));
+      this.allEdges = this.allEdges.filter(e => !remove.has(String(e.source)) && !remove.has(String(e.target)));
     }
 
     // ==============================

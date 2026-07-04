@@ -10,7 +10,14 @@
   gap: 0;
   align-items: stretch;
   position: relative;
+  /* 行の高さをキャンバスと同じに固定する。これが無いと、サイドパネル
+     （未接続一覧など中身が長い時）の高さに引きずられて行ごと縦に伸び、
+     兄弟の SVG まで拡大して見切れる不具合になる。パネルの長い中身は
+     .graph-side-panel-body（overflow-y:auto）が内部スクロールで吸収する。 */
+  height: clamp(520px, 74vh, 900px);
+  min-height: 0;
 }
+.graph-side-panel { min-height: 0; }
 
 /* ---- グラフキャンバス共通 ---- */
 /* 画面の縦幅に追従させて描画領域を広く取る（見やすさ向上） */
@@ -154,7 +161,15 @@
 
 /* タグ（六角形・紫） */
 .node-tag polygon {
-  transition: filter 0.2s ease;
+  transition: filter 0.2s ease, fill-opacity 0.2s ease;
+  /* T-B1: タグは背景として控えめに。銘柄ノードを主役に浮き上がらせる。
+     ハイライト/フォーカス時は下の規則で不透明に戻す。 */
+  fill-opacity: 0.55;
+}
+.graph-node.node-tag.highlighted polygon,
+.graph-node.node-tag.focus-visible polygon,
+.graph-node.node-tag:hover polygon {
+  fill-opacity: 0.95;
 }
 
 /* 業種（角丸四角・橙） */
@@ -822,7 +837,9 @@ body.dark-mode .side-panel-footer,
 
 @media (max-width: 768px) {
   .graph-canvas { height: 450px; }
-  .graph-outer-wrapper { flex-direction: column; }
+  /* モバイルはパネルがグラフの下に縦積みになるため、行の固定高さは解除する
+     （デスクトップの clamp を引き継ぐと縦積みが見切れるため auto に戻す）。 */
+  .graph-outer-wrapper { flex-direction: column; height: auto; }
 
   .graph-side-panel {
     width: 100%;
