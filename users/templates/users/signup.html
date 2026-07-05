@@ -1,139 +1,129 @@
 {% load static %}<!DOCTYPE html>
 <html lang="ja">
 <head>
+{% include 'partials/_analytics.html' %}
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>アカウント登録 | カブログ</title>
 <link rel="icon" type="image/svg+xml" href="{% static 'images/icon-192.svg' %}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Noto+Serif+JP:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 <style>
 :root{
-  --ink:#0a0f1e;--ink2:#0f1628;
-  --cyan:#06b6d4;--cyan-d:#0891b2;--blue:#3b82f6;--violet:#7c3aed;
-  --paper:#fbfaf7;--paper2:#f4f2ec;--line:#e9e6df;
-  --t1:#0f172a;--t2:#51596b;--t3:#8a91a3;
-  --grad:linear-gradient(120deg,#22d3ee 0%,#3b82f6 60%,#6366f1 100%);
-  --grad-soft:linear-gradient(135deg,#06b6d4,#3b82f6);
-  --fz-jp:'Noto Sans JP';--fz:'Inter','Noto Sans JP';
+  --paper:#fcfbf8; --paper2:#f4f2ec; --raised:#ffffff;
+  --ink:#20201d; --ink2:#3a3a36; --muted:#6b6a64; --faint:#97968f;
+  --line:#e7e4dc; --line2:#efece5;
+  --skill:#3f7a5f; --skill-d:#356650; --lucky:#b0584f; --unlucky:#9a7b3f;
+  --serif:'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',Georgia,serif;
+  --sans:'Noto Sans JP',-apple-system,system-ui,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--fz),sans-serif;color:var(--t1);background:var(--paper);-webkit-font-smoothing:antialiased;line-height:1.6}
+body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;line-height:1.7}
 a{text-decoration:none;color:inherit}
 img{display:block;max-width:100%}
-.jp{font-family:var(--fz-jp),sans-serif}
-.grad-txt{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.serif{font-family:var(--serif);font-weight:700}
 
-.page{display:grid;grid-template-columns:1.05fr .95fr;min-height:100vh;align-items:stretch}
+.page{display:grid;grid-template-columns:1.02fr .98fr;min-height:100vh;align-items:stretch}
 
-/* ---------- LEFT brand panel (sticky) ---------- */
-.brandside{position:sticky;top:0;height:100vh;background:radial-gradient(120% 120% at 25% -10%,#16213b 0%,var(--ink) 58%);color:#fff;overflow:hidden;
-  display:flex;flex-direction:column;padding:46px 54px}
-.mesh{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-.mesh i{position:absolute;border-radius:50%;filter:blur(72px);opacity:.55}
-.mesh .m1{width:520px;height:520px;top:-160px;left:-120px;background:radial-gradient(circle,rgba(6,182,212,.6),transparent 65%)}
-.mesh .m2{width:500px;height:500px;bottom:-200px;right:-130px;background:radial-gradient(circle,rgba(99,102,241,.5),transparent 65%)}
-.mesh .m3{width:320px;height:320px;top:42%;left:46%;background:radial-gradient(circle,rgba(124,58,237,.32),transparent 65%)}
-.grid-lines{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:54px 54px;mask-image:radial-gradient(120% 90% at 30% 10%,#000 30%,transparent 78%);-webkit-mask-image:radial-gradient(120% 90% at 30% 10%,#000 30%,transparent 78%)}
+/* ---------- LEFT — 墨のブランドパネル (sticky) ---------- */
+.brandside{position:sticky;top:0;height:100vh;background:radial-gradient(120% 120% at 20% -10%,#2b2b26 0%,var(--ink) 60%);color:var(--paper);
+  overflow:hidden;display:flex;flex-direction:column;padding:48px 56px}
+.paper-grain{position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:60px 60px;mask-image:radial-gradient(120% 90% at 30% 10%,#000 30%,transparent 80%);-webkit-mask-image:radial-gradient(120% 90% at 30% 10%,#000 30%,transparent 80%)}
 .brandside>*{position:relative;z-index:2}
-.bs-logo{display:flex;align-items:center;gap:11px;font-weight:800;font-size:20px;letter-spacing:-.01em;color:#fff}
-.bs-logo .mk{width:38px;height:38px;border-radius:11px;background:#fff;padding:6px;box-shadow:0 6px 18px rgba(6,182,212,.35);display:flex;align-items:center;justify-content:center}
-.bs-main{flex:1;display:flex;flex-direction:column;justify-content:center;max-width:440px;padding:30px 0}
-.bs-eyebrow{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;padding:.5rem 1rem;border-radius:999px;font-size:13px;font-weight:600;
-  background:rgba(6,182,212,.13);border:1px solid rgba(6,182,212,.32);color:#7ee8fa;margin-bottom:26px}
-.bs-eyebrow .dot{width:7px;height:7px;border-radius:50%;background:#22d3ee;box-shadow:0 0 10px #22d3ee;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.bs-main h1{font-family:var(--fz-jp);font-weight:800;font-size:clamp(32px,3.4vw,46px);line-height:1.2;letter-spacing:-.01em;margin-bottom:18px}
-.bs-main p.sub{font-size:17px;color:rgba(255,255,255,.74);line-height:1.8;margin-bottom:32px}
-.bs-list{list-style:none;display:flex;flex-direction:column;gap:15px}
-.bs-list li{display:flex;align-items:center;gap:13px;font-size:15.5px;color:rgba(255,255,255,.82)}
-.bs-list .ic{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.bs-foot{display:flex;align-items:center;gap:26px;border-top:1px solid rgba(255,255,255,.1);padding-top:24px;margin-top:6px}
-.bs-stat .n{font-size:24px;font-weight:800}
-.bs-stat .l{font-size:12.5px;color:rgba(255,255,255,.55)}
-.bs-chip{position:absolute;right:48px;top:54px;z-index:3;display:flex;align-items:center;gap:11px;background:rgba(255,255,255,.96);
-  border-radius:15px;padding:11px 15px;box-shadow:0 18px 44px rgba(3,8,22,.4);animation:float 5s ease-in-out infinite;white-space:nowrap}
-.bs-chip .ci{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:19px;background:linear-gradient(135deg,#7c3aed,#4f46e5)}
-.bs-chip .cl{display:block;font-size:11.5px;color:#8a91a3;font-weight:600;line-height:1.2}
-.bs-chip .cv{display:block;font-size:16px;font-weight:800;color:#0f172a;line-height:1.25}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.bs-logo{display:flex;align-items:center;gap:11px;font-weight:700;font-size:19px;letter-spacing:-.01em;color:var(--paper)}
+.bs-logo .mk{width:34px;height:34px;border-radius:9px;background:var(--paper);padding:5px;display:flex;align-items:center;justify-content:center}
+.bs-main{flex:1;display:flex;flex-direction:column;justify-content:center;max-width:450px;padding:34px 0}
+.bs-eyebrow{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;padding:.42rem .9rem;border-radius:999px;font-size:12.5px;font-weight:600;
+  background:rgba(252,251,248,.08);border:1px solid rgba(252,251,248,.16);color:rgba(252,251,248,.82);margin-bottom:26px}
+.bs-eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--skill)}
+.bs-main h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,3.2vw,42px);line-height:1.35;letter-spacing:.01em;margin-bottom:18px;color:var(--paper)}
+.bs-main p.sub{font-size:16px;color:rgba(252,251,248,.68);line-height:1.9;margin-bottom:32px}
+.bs-loop{list-style:none;display:flex;flex-direction:column;gap:2px}
+.bs-loop li{display:flex;gap:15px;align-items:flex-start;padding:12px 0}
+.bs-loop .n{font-family:var(--serif);font-size:13px;font-weight:700;color:var(--skill);flex:0 0 auto;width:60px;letter-spacing:.06em;padding-top:3px}
+.bs-loop .tx{font-size:14.5px;color:rgba(252,251,248,.8);line-height:1.7}
+.bs-loop .tx b{color:var(--paper);font-weight:700;font-family:var(--serif)}
+.bs-foot{border-top:1px solid rgba(252,251,248,.12);padding-top:22px;margin-top:14px;
+  font-family:var(--serif);font-size:15px;color:rgba(252,251,248,.7);letter-spacing:.02em}
 
-/* ---------- RIGHT form panel ---------- */
+/* ---------- RIGHT — フォーム ---------- */
 .formside{display:flex;align-items:center;justify-content:center;padding:48px 40px;background:var(--paper)}
-.formwrap{width:100%;max-width:430px}
-.form-logo{display:none;align-items:center;gap:10px;font-weight:800;font-size:19px;margin-bottom:26px;justify-content:center;color:var(--t1)}
-.form-logo .mk{width:34px;height:34px;border-radius:10px;background:#fff;padding:5px;box-shadow:0 4px 14px rgba(6,182,212,.2);display:flex;align-items:center;justify-content:center}
-.fh{margin-bottom:26px}
-.fh .pretitle{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--cyan-d);margin-bottom:8px}
-.fh h2{font-family:var(--fz-jp);font-size:29px;font-weight:800;letter-spacing:-.01em;margin-bottom:8px}
-.fh p{font-size:15px;color:var(--t2)}
-.alert{display:none;align-items:flex-start;gap:10px;background:#fee2e2;border:1px solid #fecaca;color:#dc2626;border-radius:14px;padding:.85rem 1rem;font-size:14px;margin-bottom:20px}
+.formwrap{width:100%;max-width:426px}
+.form-logo{display:none;align-items:center;gap:10px;font-weight:700;font-size:18px;margin-bottom:24px;justify-content:center;color:var(--ink)}
+.form-logo .mk{width:32px;height:32px;border-radius:9px;background:var(--raised);padding:5px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
+.fh{margin-bottom:24px}
+.fh .pretitle{font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:9px}
+.fh h2{font-family:var(--serif);font-size:27px;font-weight:700;letter-spacing:.01em;margin-bottom:8px}
+.fh p{font-size:14.5px;color:var(--muted)}
+.alert{display:none;align-items:flex-start;gap:10px;background:#f7ece9;border:1px solid #e6cdc7;color:var(--lucky);border-radius:12px;padding:.85rem 1rem;font-size:14px;margin-bottom:20px}
 .alert.show{display:flex}
 .alert i{flex-shrink:0;margin-top:2px}
 .alert ul{list-style:none;margin:0;padding:0}
 .field{margin-bottom:17px}
-.field>label{display:flex;align-items:center;gap:6px;font-family:var(--fz-jp);font-weight:600;font-size:14px;color:var(--t1);margin-bottom:8px}
-.field>label i{color:var(--cyan-d)}
+.field>label{display:flex;align-items:center;gap:6px;font-weight:600;font-size:13.5px;color:var(--ink2);margin-bottom:8px}
+.field>label i{color:var(--skill-d)}
 .control{position:relative}
-.control .lead-ic{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:17px;transition:color .25s;pointer-events:none;z-index:2}
-.control input,.control .form-control{width:100%;height:52px;border:1.5px solid var(--line);border-radius:14px;background:#fff;font-family:var(--fz);font-size:16px;color:var(--t1);
-  padding:0 48px 0 46px;transition:border-color .25s,box-shadow .25s;display:block}
-.control input::placeholder{color:var(--t3)}
-.control input:focus,.control .form-control:focus{outline:none;border-color:var(--cyan-d);box-shadow:0 0 0 4px rgba(8,145,178,.12)}
-.control input:focus~.lead-ic,.control .form-control:focus~.lead-ic{color:var(--cyan-d)}
-.control input.ok{border-color:#10b981}
-.control input.ok~.lead-ic{color:#10b981}
-.toggle-pw{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:none;background:transparent;color:var(--t3);
-  border-radius:10px;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:color .2s,background .2s;z-index:2}
-.toggle-pw:hover{color:var(--cyan-d);background:var(--paper2)}
-.match{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:18px;color:#10b981;opacity:0;transition:opacity .2s;z-index:2}
+.control .lead-ic{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:16px;transition:color .25s;pointer-events:none;z-index:2}
+.control input,.control .form-control{width:100%;height:52px;border:1px solid var(--line);border-radius:12px;background:var(--raised);font-family:var(--sans);font-size:16px;color:var(--ink);
+  padding:0 46px 0 44px;transition:border-color .25s,box-shadow .25s;display:block}
+.control input::placeholder{color:var(--faint)}
+.control input:focus,.control .form-control:focus{outline:none;border-color:var(--skill);box-shadow:0 0 0 3px rgba(63,122,95,.14)}
+.control input:focus~.lead-ic,.control .form-control:focus~.lead-ic{color:var(--skill-d)}
+.control input.ok{border-color:var(--skill)}
+.control input.ok~.lead-ic{color:var(--skill-d)}
+.toggle-pw{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:none;background:transparent;color:var(--faint);
+  border-radius:9px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:color .2s,background .2s;z-index:2}
+.toggle-pw:hover{color:var(--skill-d);background:var(--paper2)}
+.match{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--skill);opacity:0;transition:opacity .2s;z-index:2}
 .match.show{opacity:1}
-.fld-err{color:#dc2626;font-size:13px;margin-top:6px;display:flex;align-items:flex-start;gap:5px}
+.fld-err{color:var(--lucky);font-size:13px;margin-top:6px;display:flex;align-items:flex-start;gap:5px}
 .fld-err i{flex-shrink:0;margin-top:2px}
 
 /* strength meter */
 .strength{margin-top:10px}
 .strength-bars{display:flex;gap:6px;margin-bottom:7px}
 .strength-bars span{flex:1;height:5px;border-radius:99px;background:var(--line);transition:background .3s}
-.strength-label{font-size:12.5px;color:var(--t3);display:flex;align-items:center;gap:6px}
+.strength-label{font-size:12.5px;color:var(--faint);display:flex;align-items:center;gap:6px}
 .strength-label b{font-weight:700}
 
 /* requirements */
 .reqs{list-style:none;margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:7px 14px}
-.reqs li{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--t3);transition:color .25s}
+.reqs li{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--faint);transition:color .25s}
 .reqs li i{font-size:13px;transition:color .25s}
-.reqs li.met{color:var(--t2)}
-.reqs li.met i{color:#10b981}
+.reqs li.met{color:var(--muted)}
+.reqs li.met i{color:var(--skill)}
 
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:.55em;width:100%;height:54px;border:none;cursor:pointer;
-  font-family:var(--fz);font-weight:600;font-size:16px;border-radius:14px;transition:transform .2s,box-shadow .2s,background .2s,border-color .2s;text-decoration:none}
-.btn-primary{background:var(--grad-soft);color:#fff;box-shadow:0 10px 28px rgba(8,145,178,.34);margin-top:8px}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 38px rgba(8,145,178,.46);color:#fff}
-.btn-primary:active{transform:translateY(0) scale(.99)}
-.divider{display:flex;align-items:center;gap:16px;margin:24px 0;color:var(--t3);font-size:13.5px;font-weight:500}
-.divider::before,.divider::after{content:"";flex:1;height:1px;background:linear-gradient(to right,transparent,var(--line),transparent)}
-.btn-google{background:#fff;border:1.5px solid var(--line);color:var(--t1)}
-.btn-google:hover{border-color:#cbd2dd;transform:translateY(-2px);box-shadow:0 12px 28px rgba(15,23,42,.08);color:var(--t1)}
-.btn-google svg{width:21px;height:21px}
-.ffoot{text-align:center;margin-top:26px;font-size:14.5px;color:var(--t2)}
-.ffoot a{color:var(--cyan-d);font-weight:700}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.55em;width:100%;height:52px;border:none;cursor:pointer;
+  font-family:var(--sans);font-weight:600;font-size:15.5px;border-radius:12px;transition:transform .2s,background .2s,border-color .2s,box-shadow .2s;text-decoration:none}
+.btn-primary{background:var(--ink);color:var(--paper);margin-top:8px}
+.btn-primary:hover{background:#000;transform:translateY(-1px);color:var(--paper)}
+.btn-primary:active{transform:translateY(0)}
+.divider{display:flex;align-items:center;gap:16px;margin:22px 0;color:var(--faint);font-size:13px;font-weight:500}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.btn-line{background:var(--raised);border:1px solid var(--line);color:var(--ink)}
+.btn-line:hover{border-color:var(--muted);color:var(--ink)}
+.btn-line svg{width:20px;height:20px}
+.ffoot{text-align:center;margin-top:26px;font-size:14px;color:var(--muted)}
+.ffoot a{color:var(--skill-d);font-weight:700}
 .ffoot a:hover{text-decoration:underline}
-.legal{text-align:center;margin-top:20px;font-size:12px;color:var(--t3);line-height:1.7}
-.legal a{color:var(--t2);text-decoration:underline}
+.legal{text-align:center;margin-top:18px;font-size:12px;color:var(--faint);line-height:1.7}
+.legal a{color:var(--muted);text-decoration:underline}
 
 /* ---------- responsive ---------- */
 @media(max-width:900px){
   .page{grid-template-columns:1fr}
   .brandside{display:none}
   .form-logo{display:flex}
-  .formside{min-height:100vh;padding:40px 22px;background:radial-gradient(120% 50% at 50% -8%,#eef4f8 0%,var(--paper) 42%)}
+  .formside{min-height:100vh;padding:44px 22px;background:radial-gradient(120% 50% at 50% -8%,var(--paper2) 0%,var(--paper) 42%)}
   .fh{text-align:center}
 }
 @media(max-width:430px){
-  .fh h2{font-size:25px}
-  .formside{padding:32px 18px}
+  .fh h2{font-size:24px}
+  .formside{padding:34px 18px}
   .reqs{grid-template-columns:1fr}
 }
 </style>
@@ -143,26 +133,21 @@ img{display:block;max-width:100%}
 
   <!-- LEFT — brand -->
   <aside class="brandside">
-    <div class="mesh"><i class="m1"></i><i class="m2"></i><i class="m3"></i></div>
-    <div class="grid-lines"></div>
+    <div class="paper-grain"></div>
     <a class="bs-logo" href="{% url 'landing_page' %}"><span class="mk"><img src="{% static 'images/icon-192.svg' %}" alt="カブログ"></span>カブログ</a>
-    <div class="bs-chip"><span class="ci"><i class="bi bi-diagram-3"></i></span><span><span class="cl">投資知識グラフ</span><span class="cv jp">使うほど育つ</span></span></div>
 
     <div class="bs-main">
-      <span class="bs-eyebrow"><span class="dot"></span>30秒で登録完了・無料</span>
-      <h1 class="jp">今日から、<span class="grad-txt">記録が資産に。</span></h1>
-      <p class="sub jp">投資の「なぜ」を残す習慣を、いま始めましょう。すべての機能を無料でご利用いただけます。</p>
-      <ul class="bs-list jp">
-        <li><span class="ic" style="background:rgba(6,182,212,.18);color:#22d3ee"><i class="bi bi-journal-richtext"></i></span>投資理由をMarkdownで記録</li>
-        <li><span class="ic" style="background:rgba(167,139,250,.18);color:#a78bfa"><i class="bi bi-diagram-3"></i></span>関連グラフで知識を可視化</li>
-        <li><span class="ic" style="background:rgba(52,211,153,.18);color:#34d399"><i class="bi bi-bank"></i></span>楽天・SBIのCSVを一括取込</li>
+      <span class="bs-eyebrow"><span class="dot"></span>30秒で登録・すべて無料</span>
+      <h1 class="serif">今日から、判断を<br>記録する習慣を。</h1>
+      <p class="sub">「いくら儲けたか」ではなく「なぜ、そう判断したか」を残す。予想→結果→検証→学びのループが、静かに積み上がっていきます。</p>
+      <ul class="bs-loop">
+        <li><span class="n serif">01 予想</span><span class="tx"><b>仮説を残す。</b>なぜ買うかを一文に、検証予定日と最悪のケースも一緒に。</span></li>
+        <li><span class="n serif">03 検証</span><span class="tx"><b>答え合わせ。</b>仮説の当否と損益を分けて、判断の質を評価する。</span></li>
+        <li><span class="n serif">04 学び</span><span class="tx"><b>次に活かす。</b>得た学びが積み上がり、あなたの投資哲学になる。</span></li>
       </ul>
     </div>
 
-    <div class="bs-foot">
-      <div class="bs-stat"><div class="n">10,000+</div><div class="l">記録された投資判断</div></div>
-      <div class="bs-stat"><div class="n">¥0</div><div class="l">基本利用はずっと無料</div></div>
-    </div>
+    <div class="bs-foot">記録が、資産になる。</div>
   </aside>
 
   <!-- RIGHT — form -->
@@ -172,29 +157,29 @@ img{display:block;max-width:100%}
 
       <div class="fh">
         <div class="pretitle">Create account</div>
-        <h2 class="jp">無料アカウント作成</h2>
-        <p class="jp">すべての機能を無料でご利用いただけます</p>
+        <h2 class="serif">無料アカウント作成</h2>
+        <p>すべての機能を無料でご利用いただけます。</p>
       </div>
 
       {% if form.non_field_errors %}
-      <div class="alert show jp">
+      <div class="alert show">
         <i class="bi bi-exclamation-triangle-fill"></i>
         <ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
       </div>
       {% endif %}
 
       {% if google_oauth_enabled %}
-      <a href="/accounts/google/login/" class="btn btn-google" style="margin-bottom:6px">
+      <a href="/accounts/google/login/" class="btn btn-line" style="margin-bottom:6px">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5,16.25 5,12C5,7.9 8.2,4.73 12.2,4.73C15.29,4.73 17.1,6.7 17.1,6.7L19,4.72C19,4.72 16.56,2 12.1,2C6.42,2 2.03,6.8 2.03,12C2.03,17.05 6.16,22 12.25,22C17.6,22 21.5,18.33 21.5,12.91C21.5,11.76 21.35,11.1 21.35,11.1Z" fill="#4285F4"></path>
           <path d="M3.89,10.16L6.06,11.87C6.93,9.54 9.34,7.93 12.18,7.93C14.08,7.93 15.53,8.73 16.46,9.91L18.36,8C16.94,6.53 14.82,5.57 12.18,5.57C8.07,5.57 4.53,8.18 3.89,10.16Z" fill="#EA4335"></path>
           <path d="M12.18,18.43C9.92,18.43 7.95,17.43 6.7,15.86L4.5,17.6C6.25,19.74 9.04,21 12.18,21C15.34,21 18.12,19.5 19.67,17.04L17.5,15.39C16.46,17.14 14.68,18.43 12.18,18.43Z" fill="#FBBC05"></path>
           <path d="M20.5,12.25L21.18,11.13H12.18V13.83H18.69C18.42,15.2 17.66,16.29 16.5,17.04L18.67,18.7C20.16,17.14 21,14.83 21,12.25Z" fill="#4285F4"></path>
         </svg>
-        <span class="jp">Googleアカウントで登録</span>
+        <span>Googleアカウントで登録</span>
       </a>
 
-      <div class="divider jp">または</div>
+      <div class="divider">または</div>
       {% endif %}
 
       <form method="post" novalidate>
@@ -206,7 +191,7 @@ img{display:block;max-width:100%}
             {{ form.username }}
             <span class="lead-ic"><i class="bi bi-person"></i></span>
           </div>
-          {% if form.username.errors %}<div class="fld-err jp"><i class="bi bi-exclamation-circle"></i>{{ form.username.errors.0 }}</div>{% endif %}
+          {% if form.username.errors %}<div class="fld-err"><i class="bi bi-exclamation-circle"></i>{{ form.username.errors.0 }}</div>{% endif %}
         </div>
 
         <div class="field">
@@ -215,7 +200,7 @@ img{display:block;max-width:100%}
             {{ form.email }}
             <span class="lead-ic"><i class="bi bi-envelope"></i></span>
           </div>
-          {% if form.email.errors %}<div class="fld-err jp"><i class="bi bi-exclamation-circle"></i>{{ form.email.errors.0 }}</div>{% endif %}
+          {% if form.email.errors %}<div class="fld-err"><i class="bi bi-exclamation-circle"></i>{{ form.email.errors.0 }}</div>{% endif %}
         </div>
 
         <div class="field">
@@ -225,12 +210,12 @@ img{display:block;max-width:100%}
             <span class="lead-ic"><i class="bi bi-lock"></i></span>
             <button type="button" class="toggle-pw" id="togglePw" aria-label="パスワードを表示"><i class="bi bi-eye"></i></button>
           </div>
-          {% if form.password1.errors %}<div class="fld-err jp"><i class="bi bi-exclamation-circle"></i>{{ form.password1.errors.0 }}</div>{% endif %}
+          {% if form.password1.errors %}<div class="fld-err"><i class="bi bi-exclamation-circle"></i>{{ form.password1.errors.0 }}</div>{% endif %}
           <div class="strength" id="strength" style="display:none">
             <div class="strength-bars"><span></span><span></span><span></span><span></span></div>
             <div class="strength-label">強度: <b id="strengthText">—</b></div>
           </div>
-          <ul class="reqs jp" id="reqs">
+          <ul class="reqs" id="reqs">
             <li data-req="len"><i class="bi bi-circle"></i>8文字以上</li>
             <li data-req="alpha"><i class="bi bi-circle"></i>英字を含む</li>
             <li data-req="notnum"><i class="bi bi-circle"></i>数字のみは避ける</li>
@@ -245,14 +230,14 @@ img{display:block;max-width:100%}
             <span class="lead-ic"><i class="bi bi-shield-lock"></i></span>
             <span class="match" id="match"><i class="bi bi-check-circle-fill"></i></span>
           </div>
-          {% if form.password2.errors %}<div class="fld-err jp"><i class="bi bi-exclamation-circle"></i>{{ form.password2.errors.0 }}</div>{% endif %}
+          {% if form.password2.errors %}<div class="fld-err"><i class="bi bi-exclamation-circle"></i>{{ form.password2.errors.0 }}</div>{% endif %}
         </div>
 
         <button type="submit" class="btn btn-primary"><i class="bi bi-person-plus-fill"></i>アカウントを作成</button>
       </form>
 
-      <p class="ffoot jp">すでにアカウントをお持ちの方は <a href="{% url 'users:login' %}">ログイン</a></p>
-      <p class="legal jp">登録することで、<a href="/ads/terms/">利用規約</a>および<a href="/ads/privacy-policy/">プライバシーポリシー</a>に同意したものとみなされます。</p>
+      <p class="ffoot">すでにアカウントをお持ちの方は <a href="{% url 'users:login' %}">ログイン</a></p>
+      <p class="legal">登録することで、<a href="/ads/terms/">利用規約</a>および<a href="/ads/privacy-policy/">プライバシーポリシー</a>に同意したものとみなされます。</p>
     </div>
   </main>
 </div>
@@ -301,11 +286,11 @@ img{display:block;max-width:100%}
     setReq(reqEls.len, r.len); setReq(reqEls.alpha, r.alpha); setReq(reqEls.notnum, r.notnum); setReq(reqEls.common, r.common);
     let score = [r.len, r.alpha, r.notnum, r.common].filter(Boolean).length;
     if (v.length >= 12 && score >= 4) score = 4;
-    const colors = ['#ef4444','#f59e0b','#3b82f6','#10b981'];
+    const colors = ['#b0584f','#9a7b3f','#5b6b86','#3f7a5f'];
     const labels = ['弱い','普通','良い','強い'];
     bars.forEach((b,i)=> b.style.background = i < score ? colors[Math.min(score-1,3)] : 'var(--line)');
     strengthText.textContent = v ? labels[Math.max(0,Math.min(score-1,3))] : '—';
-    strengthText.style.color = v ? colors[Math.max(0,Math.min(score-1,3))] : 'var(--t3)';
+    strengthText.style.color = v ? colors[Math.max(0,Math.min(score-1,3))] : 'var(--faint)';
     checkMatch();
   });
 

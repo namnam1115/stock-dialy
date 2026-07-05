@@ -8,116 +8,115 @@
 <link rel="icon" type="image/svg+xml" href="{% static 'images/icon-192.svg' %}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Noto+Serif+JP:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 <style>
 :root{
-  --ink:#0a0f1e;--ink2:#0f1628;
-  --cyan:#06b6d4;--cyan-d:#0891b2;--blue:#3b82f6;--violet:#7c3aed;
-  --paper:#fbfaf7;--paper2:#f4f2ec;--line:#e9e6df;
-  --t1:#0f172a;--t2:#51596b;--t3:#8a91a3;
-  --grad:linear-gradient(120deg,#22d3ee 0%,#3b82f6 60%,#6366f1 100%);
-  --grad-soft:linear-gradient(135deg,#06b6d4,#3b82f6);
-  --fz-jp:'Noto Sans JP';--fz:'Inter','Noto Sans JP';
+  --paper:#fcfbf8; --paper2:#f4f2ec; --raised:#ffffff;
+  --ink:#20201d; --ink2:#3a3a36; --muted:#6b6a64; --faint:#97968f;
+  --line:#e7e4dc; --line2:#efece5;
+  --skill:#3f7a5f; --skill-d:#356650; --lucky:#b0584f; --unlucky:#9a7b3f;
+  --serif:'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',Georgia,serif;
+  --sans:'Noto Sans JP',-apple-system,system-ui,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--fz),sans-serif;color:var(--t1);background:var(--paper);-webkit-font-smoothing:antialiased;line-height:1.6}
+body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;line-height:1.7}
 a{text-decoration:none;color:inherit}
 img{display:block;max-width:100%}
-.jp{font-family:var(--fz-jp),sans-serif}
-.grad-txt{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.serif{font-family:var(--serif);font-weight:700}
 
-.page{display:grid;grid-template-columns:1.05fr .95fr;min-height:100vh}
+.page{display:grid;grid-template-columns:1.02fr .98fr;min-height:100vh}
 
-/* ---------- LEFT brand panel ---------- */
-.brandside{position:relative;background:radial-gradient(120% 120% at 25% -10%,#16213b 0%,var(--ink) 58%);color:#fff;overflow:hidden;
-  display:flex;flex-direction:column;padding:46px 54px}
-.mesh{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-.mesh i{position:absolute;border-radius:50%;filter:blur(72px);opacity:.55}
-.mesh .m1{width:520px;height:520px;top:-160px;left:-120px;background:radial-gradient(circle,rgba(6,182,212,.6),transparent 65%)}
-.mesh .m2{width:500px;height:500px;bottom:-200px;right:-130px;background:radial-gradient(circle,rgba(99,102,241,.5),transparent 65%)}
-.mesh .m3{width:320px;height:320px;top:42%;left:46%;background:radial-gradient(circle,rgba(124,58,237,.32),transparent 65%)}
-.grid-lines{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:54px 54px;mask-image:radial-gradient(120% 90% at 30% 10%,#000 30%,transparent 78%);-webkit-mask-image:radial-gradient(120% 90% at 30% 10%,#000 30%,transparent 78%)}
+/* ---------- LEFT — 墨のブランドパネル ---------- */
+.brandside{position:relative;background:radial-gradient(120% 120% at 20% -10%,#2b2b26 0%,var(--ink) 60%);color:var(--paper);
+  overflow:hidden;display:flex;flex-direction:column;padding:48px 56px}
+.paper-grain{position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:60px 60px;mask-image:radial-gradient(120% 90% at 30% 10%,#000 30%,transparent 80%);-webkit-mask-image:radial-gradient(120% 90% at 30% 10%,#000 30%,transparent 80%)}
 .brandside>*{position:relative;z-index:2}
-.bs-logo{display:flex;align-items:center;gap:11px;font-weight:800;font-size:20px;letter-spacing:-.01em;color:#fff}
-.bs-logo .mk{width:38px;height:38px;border-radius:11px;background:#fff;padding:6px;box-shadow:0 6px 18px rgba(6,182,212,.35);display:flex;align-items:center;justify-content:center}
-.bs-main{flex:1;display:flex;flex-direction:column;justify-content:center;max-width:440px;padding:30px 0}
-.bs-eyebrow{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;padding:.5rem 1rem;border-radius:999px;font-size:13px;font-weight:600;
-  background:rgba(6,182,212,.13);border:1px solid rgba(6,182,212,.32);color:#7ee8fa;margin-bottom:26px}
-.bs-eyebrow .dot{width:7px;height:7px;border-radius:50%;background:#22d3ee;box-shadow:0 0 10px #22d3ee;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.bs-main h1{font-family:var(--fz-jp);font-weight:800;font-size:clamp(32px,3.4vw,46px);line-height:1.2;letter-spacing:-.01em;margin-bottom:18px}
-.bs-main p.sub{font-size:17px;color:rgba(255,255,255,.74);line-height:1.8;margin-bottom:32px}
-.bs-list{list-style:none;display:flex;flex-direction:column;gap:15px}
-.bs-list li{display:flex;align-items:center;gap:13px;font-size:15.5px;color:rgba(255,255,255,.82)}
-.bs-list .ic{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.bs-foot{display:flex;align-items:center;gap:26px;border-top:1px solid rgba(255,255,255,.1);padding-top:24px;margin-top:6px}
-.bs-stat .n{font-size:24px;font-weight:800}
-.bs-stat .l{font-size:12.5px;color:rgba(255,255,255,.55)}
-.bs-chip{position:absolute;right:48px;top:54px;z-index:3;display:flex;align-items:center;gap:11px;background:rgba(255,255,255,.96);
-  border-radius:15px;padding:11px 15px;box-shadow:0 18px 44px rgba(3,8,22,.4);animation:float 5s ease-in-out infinite;white-space:nowrap}
-.bs-chip .ci{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:19px;background:linear-gradient(135deg,#10b981,#059669)}
-.bs-chip .cl{display:block;font-size:11.5px;color:#8a91a3;font-weight:600;line-height:1.2}
-.bs-chip .cv{display:block;font-size:16px;font-weight:800;color:#059669;line-height:1.25}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.bs-logo{display:flex;align-items:center;gap:11px;font-weight:700;font-size:19px;letter-spacing:-.01em;color:var(--paper)}
+.bs-logo .mk{width:34px;height:34px;border-radius:9px;background:var(--paper);padding:5px;display:flex;align-items:center;justify-content:center}
+.bs-main{flex:1;display:flex;flex-direction:column;justify-content:center;max-width:440px;padding:34px 0}
+.bs-eyebrow{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;padding:.42rem .9rem;border-radius:999px;font-size:12.5px;font-weight:600;
+  background:rgba(252,251,248,.08);border:1px solid rgba(252,251,248,.16);color:rgba(252,251,248,.82);margin-bottom:26px}
+.bs-eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--skill)}
+.bs-main h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,3.2vw,42px);line-height:1.35;letter-spacing:.01em;margin-bottom:18px;color:var(--paper)}
+.bs-main p.sub{font-size:16px;color:rgba(252,251,248,.68);line-height:1.9;margin-bottom:34px}
 
-/* ---------- RIGHT form panel ---------- */
+/* karte mini card — LPヒーローの再現 */
+.kx{background:var(--raised);border:1px solid rgba(0,0,0,.06);border-radius:16px;padding:20px 22px 18px;box-shadow:0 24px 60px rgba(0,0,0,.28);color:var(--ink)}
+.kx-name{font-weight:700;font-size:15px;letter-spacing:-.01em;margin-bottom:2px}
+.kx-name .code{font-family:var(--sans);font-size:10.5px;color:var(--muted);background:var(--paper2);border:1px solid var(--line);border-radius:6px;padding:.06rem .38rem;margin-left:7px;vertical-align:middle;letter-spacing:.04em;font-weight:600}
+.kx-row{padding:13px 0;border-top:1px solid var(--line2)}
+.kx-row:first-of-type{border-top:none;padding-top:12px}
+.kx-lab{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--faint);margin-bottom:6px}
+.kx-claim{font-family:var(--serif);font-size:14.5px;line-height:1.65;color:var(--ink)}
+.kx-verdict{border-left:3px solid var(--lucky);padding-left:13px}
+.kx-vhead{display:flex;align-items:baseline;gap:9px;margin:1px 0 5px}
+.kx-quad{font-weight:700;font-size:13.5px;color:var(--lucky)}
+.kx-stars{color:var(--muted);font-size:12px;letter-spacing:.04em}
+.kx-axes{font-size:12.5px;color:var(--ink2);display:flex;gap:6px;align-items:baseline}
+.kx-axes .k{font-size:10px;color:var(--faint);margin-right:2px}
+.kx-learn{font-family:var(--serif);font-size:14.5px;line-height:1.65;color:var(--ink);border-left:2px solid var(--ink);padding-left:13px}
+.bs-foot{border-top:1px solid rgba(252,251,248,.12);padding-top:22px;margin-top:6px;
+  font-family:var(--serif);font-size:15px;color:rgba(252,251,248,.7);letter-spacing:.02em}
+
+/* ---------- RIGHT — フォーム ---------- */
 .formside{display:flex;align-items:center;justify-content:center;padding:48px 40px;background:var(--paper)}
-.formwrap{width:100%;max-width:412px}
-.form-logo{display:none;align-items:center;gap:10px;font-weight:800;font-size:19px;margin-bottom:28px;justify-content:center;color:var(--t1)}
-.form-logo .mk{width:34px;height:34px;border-radius:10px;background:#fff;padding:5px;box-shadow:0 4px 14px rgba(6,182,212,.2);display:flex;align-items:center;justify-content:center}
-.fh{margin-bottom:30px}
-.fh h2{font-family:var(--fz-jp);font-size:30px;font-weight:800;letter-spacing:-.01em;margin-bottom:8px}
-.fh p{font-size:15px;color:var(--t2)}
-.alert{display:none;align-items:flex-start;gap:10px;background:#fee2e2;border:1px solid #fecaca;color:#dc2626;border-radius:14px;padding:.85rem 1rem;font-size:14px;margin-bottom:20px}
+.formwrap{width:100%;max-width:408px}
+.form-logo{display:none;align-items:center;gap:10px;font-weight:700;font-size:18px;margin-bottom:26px;justify-content:center;color:var(--ink)}
+.form-logo .mk{width:32px;height:32px;border-radius:9px;background:var(--raised);padding:5px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
+.fh{margin-bottom:28px}
+.fh h2{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:.01em;margin-bottom:8px}
+.fh p{font-size:14.5px;color:var(--muted)}
+.alert{display:none;align-items:flex-start;gap:10px;background:#f7ece9;border:1px solid #e6cdc7;color:var(--lucky);border-radius:12px;padding:.85rem 1rem;font-size:14px;margin-bottom:20px}
 .alert.show{display:flex}
 .alert i{flex-shrink:0;margin-top:2px}
 .alert ul{list-style:none;margin:0;padding:0}
 .field{margin-bottom:20px}
-.field>label{display:flex;align-items:center;gap:6px;font-family:var(--fz-jp);font-weight:600;font-size:14px;color:var(--t1);margin-bottom:9px}
-.field>label i{color:var(--cyan-d)}
+.field>label{display:flex;align-items:center;gap:6px;font-weight:600;font-size:13.5px;color:var(--ink2);margin-bottom:9px}
+.field>label i{color:var(--skill-d)}
 .control{position:relative}
-.control .lead-ic{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:17px;transition:color .25s;pointer-events:none;z-index:2}
-.control input,.control .form-control{width:100%;height:54px;border:1.5px solid var(--line);border-radius:14px;background:#fff;font-family:var(--fz);font-size:16px;color:var(--t1);
-  padding:0 48px 0 46px;transition:border-color .25s,box-shadow .25s;display:block}
-.control input::placeholder{color:var(--t3)}
-.control input:focus,.control .form-control:focus{outline:none;border-color:var(--cyan-d);box-shadow:0 0 0 4px rgba(8,145,178,.12)}
-.control input:focus~.lead-ic,.control .form-control:focus~.lead-ic{color:var(--cyan-d)}
-.toggle-pw{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:none;background:transparent;color:var(--t3);
-  border-radius:10px;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:color .2s,background .2s;z-index:2}
-.toggle-pw:hover{color:var(--cyan-d);background:var(--paper2)}
-.fld-err{color:#dc2626;font-size:13px;margin-top:6px;display:flex;align-items:center;gap:5px}
+.control .lead-ic{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:16px;transition:color .25s;pointer-events:none;z-index:2}
+.control input,.control .form-control{width:100%;height:52px;border:1px solid var(--line);border-radius:12px;background:var(--raised);font-family:var(--sans);font-size:16px;color:var(--ink);
+  padding:0 46px 0 44px;transition:border-color .25s,box-shadow .25s;display:block}
+.control input::placeholder{color:var(--faint)}
+.control input:focus,.control .form-control:focus{outline:none;border-color:var(--skill);box-shadow:0 0 0 3px rgba(63,122,95,.14)}
+.control input:focus~.lead-ic,.control .form-control:focus~.lead-ic{color:var(--skill-d)}
+.toggle-pw{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:none;background:transparent;color:var(--faint);
+  border-radius:9px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:color .2s,background .2s;z-index:2}
+.toggle-pw:hover{color:var(--skill-d);background:var(--paper2)}
+.fld-err{color:var(--lucky);font-size:13px;margin-top:6px;display:flex;align-items:center;gap:5px}
 .row-between{display:flex;justify-content:flex-end;margin-top:11px}
-.forgot{display:inline-flex;align-items:center;gap:5px;font-size:13.5px;font-weight:500;color:var(--cyan-d)}
-.forgot:hover{text-decoration:underline}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:.55em;width:100%;height:54px;border:none;cursor:pointer;
-  font-family:var(--fz);font-weight:600;font-size:16px;border-radius:14px;transition:transform .2s,box-shadow .2s,background .2s,border-color .2s;text-decoration:none}
-.btn-primary{background:var(--grad-soft);color:#fff;box-shadow:0 10px 28px rgba(8,145,178,.34);margin-top:6px}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 38px rgba(8,145,178,.46);color:#fff}
-.btn-primary:active{transform:translateY(0) scale(.99)}
-.divider{display:flex;align-items:center;gap:16px;margin:26px 0;color:var(--t3);font-size:13.5px;font-weight:500}
-.divider::before,.divider::after{content:"";flex:1;height:1px;background:linear-gradient(to right,transparent,var(--line),transparent)}
-.btn-google{background:#fff;border:1.5px solid var(--line);color:var(--t1)}
-.btn-google:hover{border-color:#cbd2dd;transform:translateY(-2px);box-shadow:0 12px 28px rgba(15,23,42,.08);color:var(--t1)}
-.btn-google svg{width:21px;height:21px}
-.ffoot{text-align:center;margin-top:28px;font-size:14.5px;color:var(--t2)}
-.ffoot a{color:var(--cyan-d);font-weight:700}
+.forgot{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:500;color:var(--muted)}
+.forgot:hover{color:var(--ink);text-decoration:underline}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.55em;width:100%;height:52px;border:none;cursor:pointer;
+  font-family:var(--sans);font-weight:600;font-size:15.5px;border-radius:12px;transition:transform .2s,background .2s,border-color .2s,box-shadow .2s;text-decoration:none}
+.btn-primary{background:var(--ink);color:var(--paper);margin-top:6px}
+.btn-primary:hover{background:#000;transform:translateY(-1px);color:var(--paper)}
+.btn-primary:active{transform:translateY(0)}
+.divider{display:flex;align-items:center;gap:16px;margin:24px 0;color:var(--faint);font-size:13px;font-weight:500}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.btn-line{background:var(--raised);border:1px solid var(--line);color:var(--ink)}
+.btn-line:hover{border-color:var(--muted);color:var(--ink)}
+.btn-line svg{width:20px;height:20px}
+.ffoot{text-align:center;margin-top:28px;font-size:14px;color:var(--muted)}
+.ffoot a{color:var(--skill-d);font-weight:700}
 .ffoot a:hover{text-decoration:underline}
-.legal{text-align:center;margin-top:22px;font-size:12px;color:var(--t3);line-height:1.7}
-.legal a{color:var(--t2);text-decoration:underline}
+.legal{text-align:center;margin-top:20px;font-size:12px;color:var(--faint);line-height:1.7}
+.legal a{color:var(--muted);text-decoration:underline}
 
 /* ---------- responsive ---------- */
 @media(max-width:900px){
   .page{grid-template-columns:1fr}
   .brandside{display:none}
   .form-logo{display:flex}
-  .formside{min-height:100vh;padding:40px 22px;
-    background:radial-gradient(120% 60% at 50% -10%,#eef4f8 0%,var(--paper) 46%)}
+  .formside{min-height:100vh;padding:44px 22px;background:radial-gradient(120% 55% at 50% -8%,var(--paper2) 0%,var(--paper) 46%)}
   .fh{text-align:center}
 }
 @media(max-width:420px){
-  .fh h2{font-size:26px}
-  .formside{padding:32px 18px}
+  .fh h2{font-size:25px}
+  .formside{padding:34px 18px}
 }
 </style>
 </head>
@@ -126,26 +125,33 @@ img{display:block;max-width:100%}
 
   <!-- LEFT — brand -->
   <aside class="brandside">
-    <div class="mesh"><i class="m1"></i><i class="m2"></i><i class="m3"></i></div>
-    <div class="grid-lines"></div>
+    <div class="paper-grain"></div>
     <a class="bs-logo" href="{% url 'landing_page' %}"><span class="mk"><img src="{% static 'images/icon-192.svg' %}" alt="カブログ"></span>カブログ</a>
-    <div class="bs-chip"><span class="ci"><i class="bi bi-graph-up-arrow"></i></span><span><span class="cl">保有中・損益</span><span class="cv">+400円</span></span></div>
 
     <div class="bs-main">
       <span class="bs-eyebrow"><span class="dot"></span>おかえりなさい</span>
-      <h1 class="jp">記録が、<span class="grad-txt">資産になる。</span></h1>
-      <p class="sub jp">ログインして、あなただけの投資知識ベースの続きを育てましょう。</p>
-      <ul class="bs-list jp">
-        <li><span class="ic" style="background:rgba(245,158,11,.18);color:#fbbf24"><i class="bi bi-journals"></i></span>継続記録で、考えの変化を追う</li>
-        <li><span class="ic" style="background:rgba(167,139,250,.18);color:#a78bfa"><i class="bi bi-diagram-3"></i></span>関連グラフで、知識を可視化</li>
-        <li><span class="ic" style="background:rgba(52,211,153,.18);color:#34d399"><i class="bi bi-search"></i></span>全文検索で、過去の判断を即座に</li>
-      </ul>
+      <h1 class="serif">今日の判断は、<br>過去のあなたが待っている。</h1>
+      <p class="sub">ログインして、答え合わせを待つ仮説と、忘れていた学びに再会しましょう。</p>
+
+      <div class="kx" aria-label="投資判断カルテの例">
+        <div class="kx-name">トヨタ自動車<span class="code">7203</span></div>
+        <div class="kx-row">
+          <div class="kx-lab">当時の仮説</div>
+          <div class="kx-claim">円安が続き、輸出採算の改善が利益を押し上げる。</div>
+        </div>
+        <div class="kx-row kx-verdict">
+          <div class="kx-lab">検証（答え合わせ）</div>
+          <div class="kx-vhead"><span class="kx-quad">偶然の勝ち（要注意）</span><span class="kx-stars">★★☆☆☆</span></div>
+          <div class="kx-axes"><span><span class="k">仮説</span>外れ</span><span>×</span><span><span class="k">損益</span>利益</span></div>
+        </div>
+        <div class="kx-row">
+          <div class="kx-lab">学び</div>
+          <div class="kx-learn">為替単独を根拠に投資しない。</div>
+        </div>
+      </div>
     </div>
 
-    <div class="bs-foot">
-      <div class="bs-stat"><div class="n">10,000+</div><div class="l">記録された投資判断</div></div>
-      <div class="bs-stat"><div class="n jp">記録が資産に</div><div class="l">使うほど育つ知識ベース</div></div>
-    </div>
+    <div class="bs-foot">なぜ、そう判断したか。</div>
   </aside>
 
   <!-- RIGHT — form -->
@@ -154,12 +160,12 @@ img{display:block;max-width:100%}
       <a class="form-logo" href="{% url 'landing_page' %}"><span class="mk"><img src="{% static 'images/icon-192.svg' %}" alt="カブログ"></span>カブログ</a>
 
       <div class="fh">
-        <h2 class="jp">ようこそ！</h2>
-        <p class="jp">カブログにログインして投資管理を始めましょう</p>
+        <h2 class="serif">おかえりなさい</h2>
+        <p>カブログにログインして、記録の続きを。</p>
       </div>
 
       {% if form.non_field_errors %}
-      <div class="alert show jp">
+      <div class="alert show">
         <i class="bi bi-exclamation-triangle-fill"></i>
         <ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
       </div>
@@ -174,7 +180,7 @@ img{display:block;max-width:100%}
             {{ form.username }}
             <span class="lead-ic"><i class="bi bi-person"></i></span>
           </div>
-          {% if form.username.errors %}<div class="fld-err jp"><i class="bi bi-exclamation-circle"></i>{{ form.username.errors.0 }}</div>{% endif %}
+          {% if form.username.errors %}<div class="fld-err"><i class="bi bi-exclamation-circle"></i>{{ form.username.errors.0 }}</div>{% endif %}
         </div>
 
         <div class="field">
@@ -184,7 +190,7 @@ img{display:block;max-width:100%}
             <span class="lead-ic"><i class="bi bi-lock"></i></span>
             <button type="button" class="toggle-pw" id="togglePw" aria-label="パスワードを表示"><i class="bi bi-eye"></i></button>
           </div>
-          {% if form.password.errors %}<div class="fld-err jp"><i class="bi bi-exclamation-circle"></i>{{ form.password.errors.0 }}</div>{% endif %}
+          {% if form.password.errors %}<div class="fld-err"><i class="bi bi-exclamation-circle"></i>{{ form.password.errors.0 }}</div>{% endif %}
           <div class="row-between">
             <a class="forgot" href="{% url 'users:password_reset' %}"><i class="bi bi-question-circle"></i>パスワードをお忘れですか？</a>
           </div>
@@ -194,30 +200,30 @@ img{display:block;max-width:100%}
       </form>
 
       {% if demo_enabled %}
-      <div class="divider jp">または</div>
+      <div class="divider">または</div>
       <form method="post" action="{% url 'users:demo_login' %}" novalidate data-demo-cta="login">
         {% csrf_token %}
-        <button type="submit" class="btn btn-google"><i class="bi bi-eye"></i><span class="jp">登録しないでデモを試す</span></button>
+        <button type="submit" class="btn btn-line"><i class="bi bi-eye"></i><span>登録しないでデモを試す</span></button>
       </form>
-      <p class="legal jp" style="margin-top:8px">デモは共有アカウントです。データは定期的にリセットされます。</p>
+      <p class="legal" style="margin-top:8px">デモは共有アカウントです。データは定期的にリセットされます。</p>
       {% endif %}
 
       {% if google_oauth_enabled %}
-      <div class="divider jp">または</div>
+      <div class="divider">または</div>
 
-      <a href="/accounts/google/login/" class="btn btn-google">
+      <a href="/accounts/google/login/" class="btn btn-line">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5,16.25 5,12C5,7.9 8.2,4.73 12.2,4.73C15.29,4.73 17.1,6.7 17.1,6.7L19,4.72C19,4.72 16.56,2 12.1,2C6.42,2 2.03,6.8 2.03,12C2.03,17.05 6.16,22 12.25,22C17.6,22 21.5,18.33 21.5,12.91C21.5,11.76 21.35,11.1 21.35,11.1Z" fill="#4285F4"></path>
           <path d="M3.89,10.16L6.06,11.87C6.93,9.54 9.34,7.93 12.18,7.93C14.08,7.93 15.53,8.73 16.46,9.91L18.36,8C16.94,6.53 14.82,5.57 12.18,5.57C8.07,5.57 4.53,8.18 3.89,10.16Z" fill="#EA4335"></path>
           <path d="M12.18,18.43C9.92,18.43 7.95,17.43 6.7,15.86L4.5,17.6C6.25,19.74 9.04,21 12.18,21C15.34,21 18.12,19.5 19.67,17.04L17.5,15.39C16.46,17.14 14.68,18.43 12.18,18.43Z" fill="#FBBC05"></path>
           <path d="M20.5,12.25L21.18,11.13H12.18V13.83H18.69C18.42,15.2 17.66,16.29 16.5,17.04L18.67,18.7C20.16,17.14 21,14.83 21,12.25Z" fill="#4285F4"></path>
         </svg>
-        <span class="jp">Googleでログイン</span>
+        <span>Googleでログイン</span>
       </a>
       {% endif %}
 
-      <p class="ffoot jp">アカウントをお持ちでない場合は <a href="{% url 'users:signup' %}">アカウント登録<i class="bi bi-arrow-right-short"></i></a></p>
-      <p class="legal jp">ログインすることで、<a href="/ads/terms/">利用規約</a>および<a href="/ads/privacy-policy/">プライバシーポリシー</a>に同意したものとみなされます。</p>
+      <p class="ffoot">アカウントをお持ちでない場合は <a href="{% url 'users:signup' %}">アカウント登録<i class="bi bi-arrow-right-short"></i></a></p>
+      <p class="legal">ログインすることで、<a href="/ads/terms/">利用規約</a>および<a href="/ads/privacy-policy/">プライバシーポリシー</a>に同意したものとみなされます。</p>
     </div>
   </main>
 </div>
