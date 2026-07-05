@@ -70,6 +70,10 @@ CSRF_COOKIE_HTTPONLY = False
 SESSION_COOKIE_HTTPONLY = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 3600  # 1時間でセッション切れ
+# 操作があるたびに有効期限をスライド延長する（日記＝長文入力ツールのため、
+# 「書いている最中に1時間の固定期限が来てセッション切れ」を防ぐ。
+# 放置1時間で切れる挙動は従来どおり）
+SESSION_SAVE_EVERY_REQUEST = True
 
 # ルートURL設定
 ROOT_URLCONF = 'config.urls'
@@ -845,4 +849,4 @@ Q_CLUSTER = {
     'catch_up': False,
 }
 
-STATIC_VERSION = '1.2.1006'
+STATIC_VERSION = '1.2.1009'

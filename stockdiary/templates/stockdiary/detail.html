@@ -692,6 +692,7 @@
             name="content"
             rows="6"
             placeholder="状況の変化や新たな情報を記録しましょう"
+            data-draft-key="note-{{ diary.pk }}"
           ></textarea>
           <div class="d-flex justify-content-end align-items-center mt-1">
             <div class="character-count" id="noteContentCharCount">0 / 3000文字</div>
@@ -806,4 +807,5 @@
   </div>
 </div>
 <script src="{% static 'js/diary-detail-page.js' %}?v={{ STATIC_VERSION }}"></script>
+<script src="{% static 'js/diary-draft.js' %}?v={{ STATIC_VERSION }}"></script>
 {% endblock %}

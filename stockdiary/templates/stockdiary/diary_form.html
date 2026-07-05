@@ -251,7 +251,8 @@
                     name="reason"
                     id="id_reason"
                     rows="10"
-                    maxlength="5000">{{ form.reason.value|default:'' }}</textarea>
+                    maxlength="5000"
+                    data-draft-key="reason-{{ form.instance.pk|default:'new' }}">{{ form.reason.value|default:'' }}</textarea>
           <div class="d-flex justify-content-end align-items-center mt-1">
             <div class="character-count" id="reasonCharCount">0 / 5000文字</div>
           </div>
@@ -412,4 +413,5 @@
   };
 </script>
 <script src="{% static 'js/diary-form.js' %}?v={{ STATIC_VERSION }}"></script>
+<script src="{% static 'js/diary-draft.js' %}?v={{ STATIC_VERSION }}"></script>
 {% endblock %}
