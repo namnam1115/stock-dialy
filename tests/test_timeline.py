@@ -98,3 +98,52 @@ class TestTimelineView:
         e = events[0]
         assert e['kind'] == 'transaction'
         assert e['transaction'].quantity == Decimal('100')
+
+
+class TestTimelineKeywordSearch:
+    """タイムラインのキーワード検索（TL1）のテスト。
+
+    なぜ追加したか: タイムラインは「あのとき何を考えていたか」を探す画面なのに
+    period/type/tag フィルタしかなく、言葉で探すには home へ戻って時系列文脈を
+    失うしかなかった。?q= で銘柄名・本文・トピック・取引メモを横断検索できるようにした。
+    """
+
+    def test_q_matches_note_content(self, user, sample_diary):
+        DiaryNote.objects.create(
+            diary=sample_diary, date=date.today(), content='ホルムズ海峡の地政学リスクを検討',
+        )
+        DiaryNote.objects.create(
+            diary=sample_diary, date=date.today(), content='決算メモ',
+        )
+        events = TimelineView._collect_events(user, None, 'note', None, q='ホルムズ')
+        assert len(events) == 1
+        assert 'ホルムズ' in events[0]['note'].content
+
+    def test_q_matches_stock_name_across_sources(self, user, sample_diary_with_transaction):
+        """銘柄名でのヒットは継続記録・取引・日記作成の全ソースに効く。"""
+        DiaryNote.objects.create(
+            diary=sample_diary_with_transaction, date=date.today(), content='続報メモ',
+        )
+        name = sample_diary_with_transaction.stock_name
+        events = TimelineView._collect_events(user, None, 'all', None, q=name)
+        kinds = {e['kind'] for e in events}
+        assert 'note' in kinds
+        assert 'transaction' in kinds
+        assert 'diary' in kinds
+
+    def test_q_no_match_returns_empty(self, user, sample_diary):
+        DiaryNote.objects.create(diary=sample_diary, date=date.today(), content='内容')
+        events = TimelineView._collect_events(user, None, 'all', None, q='存在しない語XYZ')
+        assert events == []
+
+    def test_q_via_http_and_input_rendered(self, authenticated_client, sample_diary):
+        """?q= はHTTP経由でも効き、検索入力欄が値を保持して描画される。"""
+        DiaryNote.objects.create(
+            diary=sample_diary, date=date.today(), content='ユニークキーワードABC',
+        )
+        url = reverse('stockdiary:timeline')
+        html = authenticated_client.get(url, {'q': 'ユニークキーワードABC'}).content.decode()
+        assert 'ユニークキーワードABC' in html
+        assert 'name="q"' in html
+        html2 = authenticated_client.get(url, {'q': 'ヒットしない語'}).content.decode()
+        assert 'ユニークキーワードABC' not in html2

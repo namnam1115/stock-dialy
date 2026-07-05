@@ -396,8 +396,7 @@
 <!-- EasyMDE Markdown Editor -->
 <script src="https://cdn.jsdelivr.net/npm/easymde@2.18.0/dist/easymde.min.js"></script>
 <script src="{% static 'js/easymde-bi-toolbar.js' %}?v={{ STATIC_VERSION }}"></script>
-{# @ハッシュタグ オートコンプリート(hashtag-autocomplete.js)は base.html が全ページで
-   読み込むため、ここでは読み込まない（二重ロードすると const 再宣言で SyntaxError になる） #}
+{# hashtag-autocomplete.js は base.html が全ページで読み込むためここでは読み込まない（二重ロードは const 再宣言で SyntaxError） #}
 <script>
   /* 外部化した diary-form.js が参照するページ固有の設定。ロジックは
      static/js/diary-form.js 側にあり、ここはデータの受け渡しのみ。 */

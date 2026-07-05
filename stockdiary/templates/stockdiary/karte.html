@@ -25,7 +25,10 @@
         <i class="bi bi-arrow-left"></i> 投資ノートへ
       </a>
       <h1 class="rp-review-title">あなたという投資家</h1>
-      <p class="rp-review-sub">成績ではなく、判断の傾向。{{ karte.total }}件の検証から。</p>
+      {# 役割ラベル＋ダッシュボードへの相互リンク（DK1） #}
+      <p class="rp-review-sub">成績ではなく、判断の傾向。{{ karte.total }}件の検証から。
+        損益・勝率などお金の成績は
+        <a href="{% url 'stockdiary:dashboard' %}">取引分析ダッシュボード <i class="bi bi-arrow-right-short"></i></a></p>
     </header>
 
     {% if not karte.has_content %}
