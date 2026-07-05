@@ -38,7 +38,6 @@
     sector:        '#fb923c',
     hashtag:       '#a78bfa',  // タグと統合（同色）
     mention:       '#f59e0b',
-    tag_hierarchy: '#7c3aed',  // 親子タグ（細分タグ）のハブ-ハブ接続
   };
 
   // タグエッジの方向色（DiaryTagDirection）。追い風(up)=緑 / 向かい風(down)=赤
@@ -1588,7 +1587,6 @@
         hashtag:       { icon: 'bi-hash',         label: '@タグ接続',    desc: '投資理由・継続記録内の @タグによる接続' },
         sector:        { icon: 'bi-building',     label: '業種接続',     desc: '同じ業種に属する銘柄の接続' },
         mention:       { icon: 'bi-upc-scan',     label: 'コード参照',   desc: '本文中で他銘柄のコードに言及した接続' },
-        tag_hierarchy: { icon: 'bi-diagram-2-fill', label: '親子タグ接続', desc: '親タグと子タグ（細分タグ）の階層関係による接続' },
       };
       const info = TYPE_INFO[edge.edge_type] || TYPE_INFO.manual;
 

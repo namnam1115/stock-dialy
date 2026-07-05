@@ -587,9 +587,10 @@ def get_tag_graph_data(diaries_qs) -> Dict[str, Any]:
     各エッジ・ハブには逆頻度の `weight`（希少な関連ほど大）と、
     他銘柄に繋がらないハブを示す `is_isolated` を付与する。
 
-    親子関係（Tag.parent）を持つタグ同士がどちらもハブとして登場する場合は、
-    ハブ間に `edge_type: 'tag_hierarchy'` のエッジを追加し、細分タグ（子）が
-    親タグのクラスタに属することをグラフ上でも表現する。
+    グラフは「銘柄↔タグ」のフラット接続に統一する。タグ間の親子（Tag.parent）は
+    タグ一覧の階層表示や tag_master の語彙整理には使うが、関連図の"接続"としては
+    描かない（ハブ↔ハブの階層エッジは接続を紛らわしくし振り返りの地図を読みにくく
+    するため。R7 の実運用摩擦で撤去）。
 
     Args:
         diaries_qs: prefetch_related('tags') 済みの StockDiary QuerySet
@@ -598,8 +599,7 @@ def get_tag_graph_data(diaries_qs) -> Dict[str, Any]:
         {
             'tag_nodes': [{'id': 'tag_<pk>', 'node_type': 'tag', 'tag_name': str,
                            'tag_pk': int, 'diary_count': int, 'weight': float, 'is_isolated': bool}],
-            'edges':     [{'source': <diary_id>, 'target': 'tag_<pk>', 'edge_type': 'tag', 'weight': float},
-                          {'source': 'tag_<parent_pk>', 'target': 'tag_<child_pk>', 'edge_type': 'tag_hierarchy'}]
+            'edges':     [{'source': <diary_id>, 'target': 'tag_<pk>', 'edge_type': 'tag', 'weight': float}]
         }
     """
     tag_diary_count: Dict[int, int] = defaultdict(int)
@@ -613,7 +613,6 @@ def get_tag_graph_data(diaries_qs) -> Dict[str, Any]:
                 tag_meta[tag.pk] = {
                     'name': tag.name,
                     'axis': getattr(tag, 'axis', 'theme'),
-                    'parent_pk': tag.parent_id,
                 }
             edges.append({
                 'source': diary.pk,
@@ -639,17 +638,6 @@ def get_tag_graph_data(diaries_qs) -> Dict[str, Any]:
         e['weight'] = hub_weight(tag_diary_count[pk])
         e['direction'] = dir_map.get((e['source'], pk), 'neutral')
 
-    # 親子タグ間のハブ-ハブエッジ（親もこのグラフ上のハブとして登場する場合のみ）
-    for pk, meta in tag_meta.items():
-        parent_pk = meta.get('parent_pk')
-        if parent_pk and parent_pk in tag_meta:
-            edges.append({
-                'source': f'tag_{parent_pk}',
-                'target': f'tag_{pk}',
-                'edge_type': 'tag_hierarchy',
-                'weight': 0.8,
-            })
-
     tag_nodes = [
         {
             'id': f'tag_{pk}',
@@ -657,7 +645,6 @@ def get_tag_graph_data(diaries_qs) -> Dict[str, Any]:
             'tag_name': meta['name'],
             'tag_pk': pk,
             'axis': meta.get('axis', 'theme'),
-            'parent_pk': meta.get('parent_pk'),
             'diary_count': tag_diary_count[pk],
             'weight': hub_weight(tag_diary_count[pk]),
             'is_isolated': tag_diary_count[pk] <= 1,

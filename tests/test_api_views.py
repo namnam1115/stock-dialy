@@ -294,8 +294,12 @@ class TestDiaryGraphData:
         resp = authed_client.get(url)
         assert resp.status_code == 200
 
-    def test_tag_hierarchy_edge_surfaced_through_api(self, authed_client, user):
-        """親子タグが両方ハブとして生き残る場合、tag_hierarchy エッジが返る。"""
+    def test_no_tag_hierarchy_edge_through_api(self, authed_client, user):
+        """親子タグを両方使っても、API はタグ間の親子エッジ(tag_hierarchy)を返さない。
+
+        R7（TP1）でグラフを「銘柄↔タグ」のフラット接続に統一し、ハブ↔ハブの
+        親子エッジを撤去した。語彙の親子は残るが、関連図の接続としては描かない。
+        """
         from tags.models import Tag
         parent = Tag.objects.create(user=user, name='エネルギー', axis='theme')
         child = Tag.objects.create(user=user, name='LNG', axis='theme', parent=parent)
@@ -312,10 +316,9 @@ class TestDiaryGraphData:
         resp = authed_client.get(url, {'edge_modes': 'tag'})
         assert resp.status_code == 200
         data = resp.json()
-        hierarchy_edges = [e for e in data['edges'] if e.get('edge_type') == 'tag_hierarchy']
-        assert len(hierarchy_edges) == 1
-        assert hierarchy_edges[0]['source'] == f'tag_{parent.pk}'
-        assert hierarchy_edges[0]['target'] == f'tag_{child.pk}'
+        assert not any(e.get('edge_type') == 'tag_hierarchy' for e in data['edges'])
+        # フラットな銘柄↔タグ接続は従来どおり返る
+        assert any(e.get('edge_type') == 'tag' for e in data['edges'])
 
 
 # ---------------------------------------------------------------------------

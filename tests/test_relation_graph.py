@@ -64,10 +64,17 @@ class TestTagGraphWeights:
 
 
 @pytest.mark.django_db
-class TestTagHierarchyEdges:
-    """親子タグ（Tag.parent）を持つハブ同士のハブ-ハブエッジ生成。"""
+class TestTagGraphIsFlat:
+    """関連グラフは「銘柄↔タグ」のフラット接続に統一する（TP1／R7）。
 
-    def test_hierarchy_edge_when_parent_and_child_both_used(self, user):
+    タグ間の親子（Tag.parent）は語彙整理（タグ一覧の階層・tag_master 細分）には
+    使うが、関連図の"接続"としては描かない。ハブ↔ハブの階層エッジ（tag_hierarchy）は
+    接続を紛らわしくし振り返りの地図を読みにくくするため、実運用摩擦を起点に撤去した。
+    このテストは「親子タグを両方使っても tag_hierarchy エッジが復活しない」ことを守る。
+    """
+
+    def test_no_hierarchy_edge_even_when_parent_and_child_both_used(self, user):
+        """親タグ・子タグを両方の銘柄に付けても、ハブ↔ハブの親子エッジは出ない。"""
         parent = Tag.objects.create(user=user, name='エネルギー', axis='theme')
         child = Tag.objects.create(user=user, name='LNG', axis='theme', parent=parent)
         d1 = _diary(user, '1605', 'INPEX')
@@ -78,22 +85,16 @@ class TestTagHierarchyEdges:
         qs = StockDiary.objects.filter(user=user).prefetch_related('tags')
         res = get_tag_graph_data(qs)
 
-        hierarchy_edges = [e for e in res['edges'] if e['edge_type'] == 'tag_hierarchy']
-        assert len(hierarchy_edges) == 1
-        assert hierarchy_edges[0]['source'] == f'tag_{parent.pk}'
-        assert hierarchy_edges[0]['target'] == f'tag_{child.pk}'
-
-    def test_no_hierarchy_edge_when_parent_unused(self, user):
-        """親タグがこのグラフ上のハブとして登場しない場合はエッジを作らない。"""
-        parent = Tag.objects.create(user=user, name='エネルギー', axis='theme')
-        child = Tag.objects.create(user=user, name='LNG', axis='theme', parent=parent)
-        d = _diary(user, '1605', 'INPEX')
-        d.tags.add(child)  # 親タグはどの日記にも付いていない
-
-        qs = StockDiary.objects.filter(user=user).prefetch_related('tags')
-        res = get_tag_graph_data(qs)
-
+        # 親子エッジは一切生成しない
         assert not any(e['edge_type'] == 'tag_hierarchy' for e in res['edges'])
+        # 一方で銘柄↔タグのフラット接続は従来どおり張られる
+        tag_edges = [e for e in res['edges'] if e['edge_type'] == 'tag']
+        assert {(e['source'], e['target']) for e in tag_edges} == {
+            (d1.pk, f'tag_{parent.pk}'),
+            (d2.pk, f'tag_{child.pk}'),
+        }
+        # ノードに親子の痕跡（parent_pk）も残さない
+        assert all('parent_pk' not in n for n in res['tag_nodes'])
 
     def test_no_hierarchy_edge_between_unrelated_tags(self, user):
         t1 = Tag.objects.create(user=user, name='半導体', axis='theme')

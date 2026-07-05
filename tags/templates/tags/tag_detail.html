@@ -421,14 +421,12 @@
       .data(simEdges).join('line')
         .attr('stroke', d => {
           if (d.edge_type === 'tag' && DIR_STROKE[d.direction]) return DIR_STROKE[d.direction];
-          if (d.edge_type === 'tag_hierarchy') return '#7c3aed';
           return d.edge_type === 'tag' ? '#a78bfa' : '#94a3b8';
         })
         .attr('stroke-opacity', 0.6)
         .attr('stroke-width', 1.4)
         .attr('stroke-dasharray', d => {
           if (d.edge_type === 'tag' && d.direction === 'down') return '5,4';
-          if (d.edge_type === 'tag_hierarchy') return '1,2';
           return null;
         });
 
