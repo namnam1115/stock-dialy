@@ -804,3 +804,67 @@ class TestHashtagAutocompleteSingleLoad:
     def test_diary_form_loads_hashtag_autocomplete_once(self, authenticated_client):
         html = authenticated_client.get(reverse('stockdiary:create')).content.decode()
         assert html.count('js/hashtag-autocomplete.js') == 1
+
+
+@pytest.mark.django_db
+class TestNavigationSlimdown:
+    """ナビ整理（NV1/FB2/LB1・2026-07 ゲート承認）の回帰テスト。
+
+    なぜこの変更をしたか: 決定10「主要5項目」に対しナビが14項目へ再肥大し、
+    スマホメニューが1画面に収まらなくなっていた。承認された整理:
+    - 「関連グラフ」（全体マップ）はナビから撤去し「要素で探索」内リンクに一本化
+    - 「決算カレンダー」は主要ナビ→「設定・その他」へ降格
+    - 「投資判断サポート」はユーザー判断で存続（IH1 見送り）
+    - 「データ移行」→「エクスポート / インポート」に改名（発見性）
+    - home FAB は記録動線（クイック記録/新規登録）のみに純化
+    """
+
+    def test_nav_has_no_diary_graph_link(self, authenticated_client, sample_diary):
+        # 文言でなくリンク先URLで判定する（本文プロースに「関連グラフ」の語は残るため）
+        html = authenticated_client.get(reverse('stockdiary:home')).content.decode()
+        assert f'href="{reverse("stockdiary:diary_graph")}"' not in html
+        # 全体マップ自体は explore 内リンクから到達可能（URLは生きている）
+        assert authenticated_client.get(reverse('stockdiary:diary_graph')).status_code == 200
+        # 複数行 {# #} 事故の回帰防止（コメントが本文へ漏れていないこと）
+        assert 'ナビから外し「要素で探索」に一本化' not in html
+
+    def test_earnings_calendar_demoted_but_reachable(self, authenticated_client, sample_diary):
+        html = authenticated_client.get(reverse('stockdiary:home')).content.decode()
+        # 設定・その他セクション（menu-divider 以降）にのみ出現する
+        assert html.count('決算カレンダー') == 1
+        assert html.index('設定・その他') < html.index('決算カレンダー')
+        assert authenticated_client.get(reverse('stockdiary:earnings_calendar')).status_code == 200
+
+    def test_investment_hub_link_kept(self, authenticated_client, sample_diary):
+        """投資判断サポートはユーザー判断で存続（IH1 見送り）。"""
+        html = authenticated_client.get(reverse('stockdiary:home')).content.decode()
+        assert '投資判断サポート' in html
+
+    def test_migration_menu_renamed(self, authenticated_client, sample_diary):
+        html = authenticated_client.get(reverse('stockdiary:home')).content.decode()
+        assert 'エクスポート / インポート' in html
+        assert 'データ移行' not in html
+
+    def test_home_fab_is_recording_only(self, authenticated_client, sample_diary):
+        resp = authenticated_client.get(reverse('stockdiary:home'))
+        labels = [a['label'] for a in resp.context['form_actions']]
+        assert labels == ['クイック記録', '新規登録']
+
+
+@pytest.mark.django_db
+class TestDashboardKarteBridge:
+    """dashboard⇔投資家カルテの相互導線（DK1）の回帰テスト。
+
+    なぜこの変更をしたか: dashboard＝お金の成績、カルテ＝判断の質と役割が
+    分裂しているのに相互リンクがなく「成績を見る場所が2つ」という迷いを
+    生んでいた。両ページ冒頭に役割ラベル＋相互リンクを置いた。
+    """
+
+    def test_dashboard_links_to_karte(self, authenticated_client, sample_diary):
+        html = authenticated_client.get(reverse('stockdiary:dashboard')).content.decode()
+        assert reverse('stockdiary:investor_karte') in html
+        assert 'お金の成績' in html
+
+    def test_karte_links_to_dashboard(self, authenticated_client, sample_diary):
+        html = authenticated_client.get(reverse('stockdiary:investor_karte')).content.decode()
+        assert reverse('stockdiary:dashboard') in html

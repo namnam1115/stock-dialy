@@ -160,7 +160,10 @@
   <div class="phead">
     <div>
       <h1><i class="bi bi-bar-chart-line-fill"></i><span class="grad-txt">取引分析ダッシュボード</span></h1>
-      <p class="psub">株式取引履歴の詳細分析と、業種別・タグ別パフォーマンスの追跡。</p>
+      {# 役割ラベル＋カルテへの相互リンク（DK1: 「成績を見る場所が2つ」の迷いを橋渡し） #}
+      <p class="psub">ここは<strong>お金の成績</strong>（損益・勝率・業種/タグ別）。
+        判断そのものの質（仮説の的中・得意/苦手の傾向）は
+        <a href="{% url 'stockdiary:investor_karte' %}">投資家カルテ <i class="bi bi-arrow-right-short"></i></a></p>
     </div>
     <div class="period">
       <a href="?period=1m" class="pbtn {% if current_period == '1m' %}active{% endif %}">1ヶ月</a>
