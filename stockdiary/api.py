@@ -196,8 +196,10 @@ def get_stock_info(request, stock_code):
 @login_required
 @require_GET
 def get_stock_price(request, stock_code):
-    """銘柄コードから現在株価を取得するAPIエンドポイント"""
-    try:
+    """銘柄コードから現在株価を取得するAPIエンドポイント（10分キャッシュ）"""
+    from common.services.yahoo_finance_service import YahooFinanceService
+
+    def _fetch():
         # 日本株と米国株で分岐
         is_us_stock = not is_japanese_stock(stock_code)
         ticker_symbol = stock_code if is_us_stock else f"{stock_code}.T"
@@ -207,34 +209,27 @@ def get_stock_price(request, stock_code):
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
-        
+
         response = requests.get(url, headers=headers, timeout=5)
         data = response.json()
-        
+
         # 現在株価を取得
         if 'chart' in data and 'result' in data['chart'] and len(data['chart']['result']) > 0:
             meta = data['chart']['result'][0]['meta']
-            
-            # 現在価格を取得
-            price = meta.get('regularMarketPrice', 0)
-            
-            return JsonResponse({
+            return {
                 'success': True,
-                'price': price,
-                'currency': meta.get('currency', 'JPY')
-            })
-        else:
-            return JsonResponse({
-                'success': False,
-                'error': '株価情報が見つかりませんでした'
-            }, status=404)
-            
-    except Exception as e:
-        logger.error("Exception occurred: %s", e, exc_info=True)
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
+                'price': meta.get('regularMarketPrice', 0),
+                'currency': meta.get('currency', 'JPY'),
+            }
+        return None
+
+    payload = YahooFinanceService.cached_fetch('price', f"chart:{stock_code}", _fetch)
+    if payload:
+        return JsonResponse(payload)
+    return JsonResponse({
+        'success': False,
+        'error': '株価情報が見つかりませんでした'
+    }, status=404)
 
 
 # APIエンドポイントでの制限チェック機能を追加
@@ -387,376 +382,394 @@ def api_create_diary(request):
 @require_GET
 def get_stock_metrics(request, stock_code):
     """
-    銘柄コードからリアルタイム株価・PER・PBR・配当利回りを返す
+    銘柄コードからリアルタイム株価・PER・PBR・配当利回りを返す（10分キャッシュ）
     日本株4桁コードは自動的に .T サフィックスを付与
     """
+    from common.services.yahoo_finance_service import YahooFinanceService
+
+    payload = YahooFinanceService.cached_fetch(
+        'price', f"metrics:{stock_code}", lambda: _build_stock_metrics(stock_code)
+    )
+    if payload:
+        return JsonResponse(payload)
+    return JsonResponse({'success': False, 'error': '指標を取得できませんでした'}, status=500)
+
+
+def _build_stock_metrics(stock_code):
+    """get_stock_metrics の実体。成功時は success ペイロードを返し、失敗時は例外を送出する
+    （cached_fetch が例外を握って stale フォールバックする前提）。"""
     import yfinance as yf
     import pandas as pd
     from datetime import datetime
 
+    ticker_symbol = f"{stock_code}.T" if is_japanese_stock(stock_code) else stock_code
+    ticker = yf.Ticker(ticker_symbol)
+
+    # --- 株価・時価総額: fast_info を優先（ticker.info より高速・正確）
+    fi = ticker.fast_info
+    price      = getattr(fi, 'last_price',   None) or getattr(fi, 'lastPrice',   None)
+    market_cap = getattr(fi, 'market_cap',   None) or getattr(fi, 'marketCap',   None)
+    shares     = getattr(fi, 'shares',       None) or getattr(fi, 'sharesOutstanding', None)
+
+    per = pbr = dividend_yield = None
+
+    # --- PER / PBR: 年次損益計算書 + 直近四半期BSから計算
+    # quarterly_income_stmt は日本企業で累計値になることがあるため年次を使用
     try:
-        ticker_symbol = f"{stock_code}.T" if is_japanese_stock(stock_code) else stock_code
-        ticker = yf.Ticker(ticker_symbol)
+        income_stmt   = ticker.income_stmt            # 年次
+        balance_sheet = ticker.quarterly_balance_sheet
 
-        # --- 株価・時価総額: fast_info を優先（ticker.info より高速・正確）
-        fi = ticker.fast_info
-        price      = getattr(fi, 'last_price',   None) or getattr(fi, 'lastPrice',   None)
-        market_cap = getattr(fi, 'market_cap',   None) or getattr(fi, 'marketCap',   None)
-        shares     = getattr(fi, 'shares',       None) or getattr(fi, 'sharesOutstanding', None)
+        latest_i_col = sorted(income_stmt.columns,   reverse=True)[0]
+        b_col        = sorted(balance_sheet.columns, reverse=True)[0]
 
-        per = pbr = dividend_yield = None
+        def annual_val(label):
+            if label not in income_stmt.index:
+                return None
+            v = income_stmt.loc[label, latest_i_col]
+            return float(v) if not pd.isna(v) else None
 
-        # --- PER / PBR: 年次損益計算書 + 直近四半期BSから計算
-        # quarterly_income_stmt は日本企業で累計値になることがあるため年次を使用
+        def bs(label):
+            if label not in balance_sheet.index:
+                return None
+            v = balance_sheet.loc[label, b_col]
+            return float(v) if not pd.isna(v) else None
+
+        annual_net = annual_val('Net Income')
+        equity     = bs('Stockholders Equity')
+
+        if price and shares and shares > 0:
+            if annual_net and annual_net > 0:
+                per = round(price / (annual_net / shares), 2)
+            if equity and equity > 0:
+                pbr = round(price / (equity / shares), 2)
+    except Exception:
+        pass
+
+    # 財務諸表で取得できなかった場合は ticker.info にフォールバック
+    if per is None or pbr is None:
         try:
-            income_stmt   = ticker.income_stmt            # 年次
-            balance_sheet = ticker.quarterly_balance_sheet
-
-            latest_i_col = sorted(income_stmt.columns,   reverse=True)[0]
-            b_col        = sorted(balance_sheet.columns, reverse=True)[0]
-
-            def annual_val(label):
-                if label not in income_stmt.index:
-                    return None
-                v = income_stmt.loc[label, latest_i_col]
-                return float(v) if not pd.isna(v) else None
-
-            def bs(label):
-                if label not in balance_sheet.index:
-                    return None
-                v = balance_sheet.loc[label, b_col]
-                return float(v) if not pd.isna(v) else None
-
-            annual_net = annual_val('Net Income')
-            equity     = bs('Stockholders Equity')
-
-            if price and shares and shares > 0:
-                if annual_net and annual_net > 0:
-                    per = round(price / (annual_net / shares), 2)
-                if equity and equity > 0:
-                    pbr = round(price / (equity / shares), 2)
+            info = ticker.info
+            if per is None:
+                raw = info.get('trailingPE') or info.get('forwardPE')
+                per = round(raw, 2) if raw else None
+            if pbr is None:
+                raw = info.get('priceToBook')
+                pbr = round(raw, 2) if raw else None
         except Exception:
             pass
 
-        # 財務諸表で取得できなかった場合は ticker.info にフォールバック
-        if per is None or pbr is None:
-            try:
-                info = ticker.info
-                if per is None:
-                    raw = info.get('trailingPE') or info.get('forwardPE')
-                    per = round(raw, 2) if raw else None
-                if pbr is None:
-                    raw = info.get('priceToBook')
-                    pbr = round(raw, 2) if raw else None
-            except Exception:
-                pass
+    # --- 配当利回り: ticker.info の dividendYield を優先（Yahoo Finance 表示値と一致）
+    # yfinance の dividendYield は小数（0.054=5.4%）またはパーセント（5.4=5.4%）で返る
+    # 現実的な配当利回りは 0〜30% なので、raw > 0.3 はパーセント形式と判断
+    # raw <= 0.3 は小数形式（0.054 など）なので ×100 する
+    try:
+        raw = ticker.info.get('dividendYield')
+        if raw:
+            dividend_yield = round(raw if raw > 0.3 else raw * 100, 2)
+    except Exception:
+        pass
 
-        # --- 配当利回り: ticker.info の dividendYield を優先（Yahoo Finance 表示値と一致）
-        # yfinance の dividendYield は小数（0.054=5.4%）またはパーセント（5.4=5.4%）で返る
-        # 現実的な配当利回りは 0〜30% なので、raw > 0.3 はパーセント形式と判断
-        # raw <= 0.3 は小数形式（0.054 など）なので ×100 する
+    # ticker.info が取得できない場合は ticker.dividends から直近1年合計で計算
+    if dividend_yield is None:
         try:
-            raw = ticker.info.get('dividendYield')
-            if raw:
-                dividend_yield = round(raw if raw > 0.3 else raw * 100, 2)
+            divs = ticker.dividends
+            if divs is not None and len(divs) > 0:
+                one_year_ago = pd.Timestamp.now(tz=divs.index.tz) - pd.DateOffset(years=1)
+                annual_div   = float(divs[divs.index >= one_year_ago].sum())
+                if annual_div > 0 and price and price > 0:
+                    dividend_yield = round(annual_div / price * 100, 2)
         except Exception:
             pass
 
-        # ticker.info が取得できない場合は ticker.dividends から直近1年合計で計算
-        if dividend_yield is None:
-            try:
-                divs = ticker.dividends
-                if divs is not None and len(divs) > 0:
-                    one_year_ago = pd.Timestamp.now(tz=divs.index.tz) - pd.DateOffset(years=1)
-                    annual_div   = float(divs[divs.index >= one_year_ago].sum())
-                    if annual_div > 0 and price and price > 0:
-                        dividend_yield = round(annual_div / price * 100, 2)
-            except Exception:
-                pass
-
-        return JsonResponse({
-            'success': True,
-            'price': price,
-            'per': per,
-            'pbr': pbr,
-            'dividend_yield': dividend_yield,
-            'market_cap_oku': round(market_cap / 100_000_000, 0) if market_cap else None,
-            'fetched_at': datetime.now().strftime('%Y/%m/%d %H:%M'),
-        })
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    return {
+        'success': True,
+        'price': price,
+        'per': per,
+        'pbr': pbr,
+        'dividend_yield': dividend_yield,
+        'market_cap_oku': round(market_cap / 100_000_000, 0) if market_cap else None,
+        'fetched_at': datetime.now().strftime('%Y/%m/%d %H:%M'),
+    }
 
 
 @login_required
 @require_GET
 def get_stock_historical(request, stock_code):
     """
-    銘柄コードから5年分の財務履歴データを返す（株比較機能用）
+    銘柄コードから5年分の財務履歴データを返す（株比較機能用・24時間キャッシュ）
     売上高・営業利益・EPS・営業CF・自己資本比率・ROEを年次で取得
     """
+    from common.services.yahoo_finance_service import YahooFinanceService
+
+    payload = YahooFinanceService.cached_fetch(
+        'financial', f"historical:{stock_code}", lambda: _build_stock_historical(stock_code)
+    )
+    if payload:
+        return JsonResponse(payload)
+    return JsonResponse({'success': False, 'error': '財務履歴を取得できませんでした'}, status=500)
+
+
+def _build_stock_historical(stock_code):
+    """get_stock_historical の実体。成功時は success ペイロードを返し、失敗時は例外を送出する
+    （cached_fetch が例外を握って stale フォールバックする前提）。"""
     import yfinance as yf
     import pandas as pd
     from datetime import datetime
 
+    ticker_symbol = f"{stock_code}.T" if is_japanese_stock(stock_code) else stock_code
+    ticker = yf.Ticker(ticker_symbol)
+
+    # 会社名取得
+    stock_dict = load_stock_data()
+    stock_info = stock_dict.get(stock_code, {})
+    stock_name = stock_info.get('name') if stock_info else None
+
+    def safe_float(val):
+        try:
+            f = float(val)
+            return None if pd.isna(f) else f
+        except Exception:
+            return None
+
+    def to_oku(val):
+        """円 → 億円"""
+        v = safe_float(val)
+        return round(v / 1e8, 1) if v is not None else None
+
+    years = []
+    revenue_list = []
+    operating_income_list = []
+    eps_list = []
+    operating_cf_list = []
+    fcf_list = []
+    equity_ratio_list = []
+    roe_list = []
+    dividend_yield_history = []
+
     try:
-        ticker_symbol = f"{stock_code}.T" if is_japanese_stock(stock_code) else stock_code
-        ticker = yf.Ticker(ticker_symbol)
+        income_stmt = ticker.income_stmt      # 年次: columns=決算年(降順)
+        balance_sheet = ticker.balance_sheet  # 年次
+        cash_flow = ticker.cash_flow          # 年次
 
-        # 会社名取得
-        stock_dict = load_stock_data()
-        stock_info = stock_dict.get(stock_code, {})
-        stock_name = stock_info.get('name') if stock_info else None
+        # 利用可能な年を古い順に並べる（最大4年）
+        cols = sorted(income_stmt.columns, reverse=False)[-4:]
 
-        def safe_float(val):
-            try:
-                f = float(val)
-                return None if pd.isna(f) else f
-            except Exception:
-                return None
+        for col in cols:
+            year_str = str(col.year)
+            years.append(year_str)
 
-        def to_oku(val):
-            """円 → 億円"""
-            v = safe_float(val)
-            return round(v / 1e8, 1) if v is not None else None
+            # 売上高
+            rev = to_oku(income_stmt.loc['Total Revenue', col]) if 'Total Revenue' in income_stmt.index else None
+            revenue_list.append(rev)
 
-        years = []
-        revenue_list = []
-        operating_income_list = []
-        eps_list = []
-        operating_cf_list = []
-        fcf_list = []
-        equity_ratio_list = []
-        roe_list = []
-        dividend_yield_history = []
+            # 営業利益
+            oi = to_oku(income_stmt.loc['Operating Income', col]) if 'Operating Income' in income_stmt.index else None
+            operating_income_list.append(oi)
 
-        try:
-            income_stmt = ticker.income_stmt      # 年次: columns=決算年(降順)
-            balance_sheet = ticker.balance_sheet  # 年次
-            cash_flow = ticker.cash_flow          # 年次
+            # EPS
+            eps_val = safe_float(income_stmt.loc['Basic EPS', col]) if 'Basic EPS' in income_stmt.index else None
+            eps_list.append(round(eps_val, 1) if eps_val is not None else None)
 
-            # 利用可能な年を古い順に並べる（最大4年）
-            cols = sorted(income_stmt.columns, reverse=False)[-4:]
+            # 営業CF
+            if cash_flow is not None and not cash_flow.empty and col in cash_flow.columns:
+                ocf = to_oku(cash_flow.loc['Operating Cash Flow', col]) if 'Operating Cash Flow' in cash_flow.index else None
+            else:
+                ocf = None
+            operating_cf_list.append(ocf)
 
-            for col in cols:
-                year_str = str(col.year)
-                years.append(year_str)
+            # FCF = 営業CF + 設備投資（CapEx は yfinance でマイナス値のため加算）
+            capex = None
+            if cash_flow is not None and not cash_flow.empty and col in cash_flow.columns:
+                for capex_key in ['Capital Expenditure', 'Capital Expenditures']:
+                    if capex_key in cash_flow.index:
+                        capex = to_oku(cash_flow.loc[capex_key, col])
+                        break
+            fcf = round(ocf + capex, 1) if ocf is not None and capex is not None else None
+            fcf_list.append(fcf)
 
-                # 売上高
-                rev = to_oku(income_stmt.loc['Total Revenue', col]) if 'Total Revenue' in income_stmt.index else None
-                revenue_list.append(rev)
+            # 自己資本比率・ROE（バランスシート）
+            eq_ratio = None
+            roe_val = None
+            if balance_sheet is not None and not balance_sheet.empty and col in balance_sheet.columns:
+                equity = safe_float(balance_sheet.loc['Stockholders Equity', col]) if 'Stockholders Equity' in balance_sheet.index else None
+                total_assets = safe_float(balance_sheet.loc['Total Assets', col]) if 'Total Assets' in balance_sheet.index else None
+                if equity and total_assets and total_assets > 0:
+                    eq_ratio = round(equity / total_assets * 100, 1)
 
-                # 営業利益
-                oi = to_oku(income_stmt.loc['Operating Income', col]) if 'Operating Income' in income_stmt.index else None
-                operating_income_list.append(oi)
+                net_income = safe_float(income_stmt.loc['Net Income', col]) if 'Net Income' in income_stmt.index else None
+                if net_income and equity and equity > 0:
+                    roe_val = round(net_income / equity * 100, 1)
 
-                # EPS
-                eps_val = safe_float(income_stmt.loc['Basic EPS', col]) if 'Basic EPS' in income_stmt.index else None
-                eps_list.append(round(eps_val, 1) if eps_val is not None else None)
-
-                # 営業CF
-                if cash_flow is not None and not cash_flow.empty and col in cash_flow.columns:
-                    ocf = to_oku(cash_flow.loc['Operating Cash Flow', col]) if 'Operating Cash Flow' in cash_flow.index else None
-                else:
-                    ocf = None
-                operating_cf_list.append(ocf)
-
-                # FCF = 営業CF + 設備投資（CapEx は yfinance でマイナス値のため加算）
-                capex = None
-                if cash_flow is not None and not cash_flow.empty and col in cash_flow.columns:
-                    for capex_key in ['Capital Expenditure', 'Capital Expenditures']:
-                        if capex_key in cash_flow.index:
-                            capex = to_oku(cash_flow.loc[capex_key, col])
-                            break
-                fcf = round(ocf + capex, 1) if ocf is not None and capex is not None else None
-                fcf_list.append(fcf)
-
-                # 自己資本比率・ROE（バランスシート）
-                eq_ratio = None
-                roe_val = None
-                if balance_sheet is not None and not balance_sheet.empty and col in balance_sheet.columns:
-                    equity = safe_float(balance_sheet.loc['Stockholders Equity', col]) if 'Stockholders Equity' in balance_sheet.index else None
-                    total_assets = safe_float(balance_sheet.loc['Total Assets', col]) if 'Total Assets' in balance_sheet.index else None
-                    if equity and total_assets and total_assets > 0:
-                        eq_ratio = round(equity / total_assets * 100, 1)
-
-                    net_income = safe_float(income_stmt.loc['Net Income', col]) if 'Net Income' in income_stmt.index else None
-                    if net_income and equity and equity > 0:
-                        roe_val = round(net_income / equity * 100, 1)
-
-                equity_ratio_list.append(eq_ratio)
-                roe_list.append(roe_val)
-
-        except Exception as e:
-            logger.error("Historical data error for %s: %s", stock_code, e, exc_info=True)
-
-        # 年別配当利回り計算
-        try:
-            divs = ticker.dividends
-            price_hist = ticker.history(period="5y", interval="1mo")
-            for year_str in years:
-                year_int = int(year_str)
-                try:
-                    annual_div = float(divs[divs.index.year == year_int].sum()) if divs is not None and len(divs) > 0 else 0.0
-                    year_prices = price_hist[price_hist.index.year == year_int]['Close']
-                    year_end_price = float(year_prices.iloc[-1]) if len(year_prices) > 0 else None
-                    dy = round(annual_div / year_end_price * 100, 2) if annual_div > 0 and year_end_price and year_end_price > 0 else None
-                except Exception:
-                    dy = None
-                dividend_yield_history.append(dy)
-        except Exception:
-            dividend_yield_history = [None] * len(years)
-
-        # 最新指標（PER/PBR/配当利回り）は既存 get_stock_metrics と同じロジック
-        fi = ticker.fast_info
-        price = getattr(fi, 'last_price', None) or getattr(fi, 'lastPrice', None)
-        shares = getattr(fi, 'shares', None) or getattr(fi, 'sharesOutstanding', None)
-        per = pbr = dividend_yield = None
-
-        # 時価総額・規模分類
-        market_cap = getattr(fi, 'market_cap', None) or getattr(fi, 'marketCap', None)
-        market_cap_oku = round(market_cap / 100_000_000, 0) if market_cap else None
-        market_cap_size = (
-            '大型' if market_cap_oku and market_cap_oku >= 10000 else
-            '中型' if market_cap_oku and market_cap_oku >= 1000 else
-            '小型' if market_cap_oku else None
-        )
-
-        # FCF利回り（最新年のFCF / 時価総額）
-        latest_fcf = next((f for f in reversed(fcf_list) if f is not None), None)
-        fcf_yield = round(latest_fcf * 1e8 / market_cap * 100, 2) \
-            if latest_fcf and market_cap and market_cap > 0 else None
-
-        # 52週高値/安値（fast_info から取得）
-        week52_high = getattr(fi, 'year_high', None) or getattr(fi, 'yearHigh', None)
-        week52_low  = getattr(fi, 'year_low',  None) or getattr(fi, 'yearLow',  None)
-        pct_from_52w_high = round((price - week52_high) / week52_high * 100, 1) \
-            if price and week52_high and week52_high > 0 else None
-
-        # 移動平均（25/75/200日）— 1年間の日次データから計算
-        ma25 = ma75 = ma200 = None
-        try:
-            daily_hist = ticker.history(period="1y")
-            if not daily_hist.empty:
-                closes = daily_hist['Close'].dropna()
-                def _ma(n):
-                    return round(float(closes.rolling(n).mean().iloc[-1]), 0) if len(closes) >= n else None
-                ma25  = _ma(25)
-                ma75  = _ma(75)
-                ma200 = _ma(200)
-        except Exception:
-            pass
-
-        # 業種コード・業種名（CompanyMaster DB）と業種ベンチマーク（IndustryBenchmark DB）
-        industry_code = industry_name = None
-        industry_benchmarks = {}
-        try:
-            cm = CompanyMaster.objects.filter(code=stock_code) \
-                .values('industry_code_33', 'industry_name_33').first()
-            if cm:
-                industry_code = cm['industry_code_33']
-                industry_name = cm['industry_name_33']
-            if industry_code:
-                from analysis_template.models import IndustryBenchmark
-                for ib in IndustryBenchmark.objects.filter(
-                    industry_code=industry_code
-                ).select_related('metric_definition'):
-                    industry_benchmarks[ib.metric_definition.name] = {
-                        'median':  float(ib.median_value)  if ib.median_value  is not None else None,
-                        'average': float(ib.average_value) if ib.average_value is not None else None,
-                    }
-        except Exception:
-            pass
-
-        try:
-            inc = ticker.income_stmt
-            bs_q = ticker.quarterly_balance_sheet
-            if inc is not None and not inc.empty and bs_q is not None and not bs_q.empty:
-                latest_i = sorted(inc.columns, reverse=True)[0]
-                latest_b = sorted(bs_q.columns, reverse=True)[0]
-                annual_net = safe_float(inc.loc['Net Income', latest_i]) if 'Net Income' in inc.index else None
-                equity_latest = safe_float(bs_q.loc['Stockholders Equity', latest_b]) if 'Stockholders Equity' in bs_q.index else None
-                if price and shares and shares > 0:
-                    if annual_net and annual_net > 0:
-                        per = round(price / (annual_net / shares), 2)
-                    if equity_latest and equity_latest > 0:
-                        pbr = round(price / (equity_latest / shares), 2)
-        except Exception:
-            pass
-
-        if per is None or pbr is None:
-            try:
-                info = ticker.info
-                if per is None:
-                    raw = info.get('trailingPE') or info.get('forwardPE')
-                    per = round(raw, 2) if raw else None
-                if pbr is None:
-                    raw = info.get('priceToBook')
-                    pbr = round(raw, 2) if raw else None
-            except Exception:
-                pass
-
-        # 配当利回り: ticker.info の dividendYield を優先（Yahoo Finance 表示値と一致）
-        # yfinance の dividendYield は小数（0.054=5.4%）またはパーセント（5.4=5.4%）で返る
-        # 現実的な配当利回りは 0〜30% なので、raw > 0.3 はパーセント形式と判断
-        # raw <= 0.3 は小数形式（0.054 など）なので ×100 する
-        try:
-            raw = ticker.info.get('dividendYield')
-            if raw:
-                dividend_yield = round(raw if raw > 0.3 else raw * 100, 2)
-        except Exception:
-            pass
-
-        if dividend_yield is None:
-            try:
-                divs = ticker.dividends
-                if divs is not None and len(divs) > 0:
-                    one_year_ago = pd.Timestamp.now(tz=divs.index.tz) - pd.DateOffset(years=1)
-                    annual_div = float(divs[divs.index >= one_year_ago].sum())
-                    if annual_div > 0 and price and price > 0:
-                        dividend_yield = round(annual_div / price * 100, 2)
-            except Exception:
-                pass
-
-        if not stock_name:
-            try:
-                stock_name = ticker.info.get('shortName') or ticker.info.get('longName') or stock_code
-            except Exception:
-                stock_name = stock_code
-
-        return JsonResponse({
-            'success': True,
-            'stock_code': stock_code,
-            'stock_name': stock_name,
-            'years': years,
-            'revenue': revenue_list,
-            'operating_income': operating_income_list,
-            'eps': eps_list,
-            'operating_cf': operating_cf_list,
-            'fcf': fcf_list,
-            'equity_ratio': equity_ratio_list,
-            'roe': roe_list,
-            'per': per,
-            'pbr': pbr,
-            'dividend_yield': dividend_yield,
-            'dividend_yield_history': dividend_yield_history,
-            'price': price,
-            'market_cap_oku':      market_cap_oku,
-            'market_cap_size':     market_cap_size,
-            'fcf_yield':           fcf_yield,
-            'week52_high':         week52_high,
-            'week52_low':          week52_low,
-            'pct_from_52w_high':   pct_from_52w_high,
-            'ma25':                ma25,
-            'ma75':                ma75,
-            'ma200':               ma200,
-            'industry_code':       industry_code,
-            'industry_name':       industry_name,
-            'industry_benchmarks': industry_benchmarks,
-        })
+            equity_ratio_list.append(eq_ratio)
+            roe_list.append(roe_val)
 
     except Exception as e:
-        logger.error("get_stock_historical error: %s", e, exc_info=True)
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        logger.error("Historical data error for %s: %s", stock_code, e, exc_info=True)
+
+    # 年別配当利回り計算
+    try:
+        divs = ticker.dividends
+        price_hist = ticker.history(period="5y", interval="1mo")
+        for year_str in years:
+            year_int = int(year_str)
+            try:
+                annual_div = float(divs[divs.index.year == year_int].sum()) if divs is not None and len(divs) > 0 else 0.0
+                year_prices = price_hist[price_hist.index.year == year_int]['Close']
+                year_end_price = float(year_prices.iloc[-1]) if len(year_prices) > 0 else None
+                dy = round(annual_div / year_end_price * 100, 2) if annual_div > 0 and year_end_price and year_end_price > 0 else None
+            except Exception:
+                dy = None
+            dividend_yield_history.append(dy)
+    except Exception:
+        dividend_yield_history = [None] * len(years)
+
+    # 最新指標（PER/PBR/配当利回り）は既存 get_stock_metrics と同じロジック
+    fi = ticker.fast_info
+    price = getattr(fi, 'last_price', None) or getattr(fi, 'lastPrice', None)
+    shares = getattr(fi, 'shares', None) or getattr(fi, 'sharesOutstanding', None)
+    per = pbr = dividend_yield = None
+
+    # 時価総額・規模分類
+    market_cap = getattr(fi, 'market_cap', None) or getattr(fi, 'marketCap', None)
+    market_cap_oku = round(market_cap / 100_000_000, 0) if market_cap else None
+    market_cap_size = (
+        '大型' if market_cap_oku and market_cap_oku >= 10000 else
+        '中型' if market_cap_oku and market_cap_oku >= 1000 else
+        '小型' if market_cap_oku else None
+    )
+
+    # FCF利回り（最新年のFCF / 時価総額）
+    latest_fcf = next((f for f in reversed(fcf_list) if f is not None), None)
+    fcf_yield = round(latest_fcf * 1e8 / market_cap * 100, 2) \
+        if latest_fcf and market_cap and market_cap > 0 else None
+
+    # 52週高値/安値（fast_info から取得）
+    week52_high = getattr(fi, 'year_high', None) or getattr(fi, 'yearHigh', None)
+    week52_low  = getattr(fi, 'year_low',  None) or getattr(fi, 'yearLow',  None)
+    pct_from_52w_high = round((price - week52_high) / week52_high * 100, 1) \
+        if price and week52_high and week52_high > 0 else None
+
+    # 移動平均（25/75/200日）— 1年間の日次データから計算
+    ma25 = ma75 = ma200 = None
+    try:
+        daily_hist = ticker.history(period="1y")
+        if not daily_hist.empty:
+            closes = daily_hist['Close'].dropna()
+            def _ma(n):
+                return round(float(closes.rolling(n).mean().iloc[-1]), 0) if len(closes) >= n else None
+            ma25  = _ma(25)
+            ma75  = _ma(75)
+            ma200 = _ma(200)
+    except Exception:
+        pass
+
+    # 業種コード・業種名（CompanyMaster DB）と業種ベンチマーク（IndustryBenchmark DB）
+    industry_code = industry_name = None
+    industry_benchmarks = {}
+    try:
+        cm = CompanyMaster.objects.filter(code=stock_code) \
+            .values('industry_code_33', 'industry_name_33').first()
+        if cm:
+            industry_code = cm['industry_code_33']
+            industry_name = cm['industry_name_33']
+        if industry_code:
+            from analysis_template.models import IndustryBenchmark
+            for ib in IndustryBenchmark.objects.filter(
+                industry_code=industry_code
+            ).select_related('metric_definition'):
+                industry_benchmarks[ib.metric_definition.name] = {
+                    'median':  float(ib.median_value)  if ib.median_value  is not None else None,
+                    'average': float(ib.average_value) if ib.average_value is not None else None,
+                }
+    except Exception:
+        pass
+
+    try:
+        inc = ticker.income_stmt
+        bs_q = ticker.quarterly_balance_sheet
+        if inc is not None and not inc.empty and bs_q is not None and not bs_q.empty:
+            latest_i = sorted(inc.columns, reverse=True)[0]
+            latest_b = sorted(bs_q.columns, reverse=True)[0]
+            annual_net = safe_float(inc.loc['Net Income', latest_i]) if 'Net Income' in inc.index else None
+            equity_latest = safe_float(bs_q.loc['Stockholders Equity', latest_b]) if 'Stockholders Equity' in bs_q.index else None
+            if price and shares and shares > 0:
+                if annual_net and annual_net > 0:
+                    per = round(price / (annual_net / shares), 2)
+                if equity_latest and equity_latest > 0:
+                    pbr = round(price / (equity_latest / shares), 2)
+    except Exception:
+        pass
+
+    if per is None or pbr is None:
+        try:
+            info = ticker.info
+            if per is None:
+                raw = info.get('trailingPE') or info.get('forwardPE')
+                per = round(raw, 2) if raw else None
+            if pbr is None:
+                raw = info.get('priceToBook')
+                pbr = round(raw, 2) if raw else None
+        except Exception:
+            pass
+
+    # 配当利回り: ticker.info の dividendYield を優先（Yahoo Finance 表示値と一致）
+    # yfinance の dividendYield は小数（0.054=5.4%）またはパーセント（5.4=5.4%）で返る
+    # 現実的な配当利回りは 0〜30% なので、raw > 0.3 はパーセント形式と判断
+    # raw <= 0.3 は小数形式（0.054 など）なので ×100 する
+    try:
+        raw = ticker.info.get('dividendYield')
+        if raw:
+            dividend_yield = round(raw if raw > 0.3 else raw * 100, 2)
+    except Exception:
+        pass
+
+    if dividend_yield is None:
+        try:
+            divs = ticker.dividends
+            if divs is not None and len(divs) > 0:
+                one_year_ago = pd.Timestamp.now(tz=divs.index.tz) - pd.DateOffset(years=1)
+                annual_div = float(divs[divs.index >= one_year_ago].sum())
+                if annual_div > 0 and price and price > 0:
+                    dividend_yield = round(annual_div / price * 100, 2)
+        except Exception:
+            pass
+
+    if not stock_name:
+        try:
+            stock_name = ticker.info.get('shortName') or ticker.info.get('longName') or stock_code
+        except Exception:
+            stock_name = stock_code
+
+    return {
+        'success': True,
+        'stock_code': stock_code,
+        'stock_name': stock_name,
+        'years': years,
+        'revenue': revenue_list,
+        'operating_income': operating_income_list,
+        'eps': eps_list,
+        'operating_cf': operating_cf_list,
+        'fcf': fcf_list,
+        'equity_ratio': equity_ratio_list,
+        'roe': roe_list,
+        'per': per,
+        'pbr': pbr,
+        'dividend_yield': dividend_yield,
+        'dividend_yield_history': dividend_yield_history,
+        'price': price,
+        'market_cap_oku':      market_cap_oku,
+        'market_cap_size':     market_cap_size,
+        'fcf_yield':           fcf_yield,
+        'week52_high':         week52_high,
+        'week52_low':          week52_low,
+        'pct_from_52w_high':   pct_from_52w_high,
+        'ma25':                ma25,
+        'ma75':                ma75,
+        'ma200':               ma200,
+        'industry_code':       industry_code,
+        'industry_name':       industry_name,
+        'industry_benchmarks': industry_benchmarks,
+    }
 
 
 @login_required
