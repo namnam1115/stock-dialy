@@ -151,6 +151,14 @@ a{text-decoration:none;color:inherit}
 .rc-item .nm{font-weight:700;font-size:13.5px}
 .rc-item .sn{font-family:var(--serif);font-size:13px;color:var(--muted);line-height:1.6}
 .rc-cap{text-align:center;color:var(--faint);font-size:12px;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:6px}
+/* Explore（要素で探索）フォールバックmock — アプリの +/− バッジを再現 */
+.exp-seed{font-family:var(--serif);font-size:18px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.exp-badge{margin-left:auto;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--ink);color:var(--ink);font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1}
+.exp-branch{display:flex;flex-direction:column;gap:9px;padding-left:16px;border-left:2px solid var(--line)}
+.exp-chip{align-self:flex-start;display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--ink2);background:var(--paper2);border:1px solid var(--line);border-radius:999px;padding:.34rem .8rem}
+.exp-plus{color:var(--faint);font-weight:800}
+.exp-code{font-family:var(--sans);font-size:11px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:.05rem .35rem;letter-spacing:.03em}
+.exp-hint{font-family:var(--serif);font-size:13px;color:var(--muted);line-height:1.65;margin-top:16px}
 
 /* thesis evolution (見立ての変遷) mockup */
 .ev{background:var(--raised);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 24px 60px rgba(32,32,29,.07);max-width:430px;width:100%;margin:0 auto}
@@ -349,6 +357,7 @@ a{text-decoration:none;color:inherit}
       <a href="#evolution">見立ての変遷</a>
       <a href="#quality">判断の質</a>
       <a href="#recall">想起</a>
+      <a href="#explore">探索</a>
       <a href="#karte">カルテ</a>
       <a href="#how">使い方</a>
     </div>
@@ -563,6 +572,47 @@ a{text-decoration:none;color:inherit}
   </div>
 </section>
 
+<!-- EXPLORE -->
+<section class="sec" id="explore">
+  <div class="wrap split">
+    <div class="rv vis">
+      <div class="shot">
+        <div class="shot-frame frame-phone">
+          <picture>
+            <source
+              srcset="{% static 'images/lp/explore-400.webp' %} 400w,
+                      {% static 'images/lp/explore.webp' %} 775w"
+              sizes="(max-width: 600px) 400px, 476px"
+              type="image/webp">
+            <img src="{% static 'images/lp/explore.webp' %}" alt="要素で探索 — テーマから関連銘柄へドリルダウン"
+                 loading="lazy" width="775" height="1345"
+                 onerror="this.closest('.shot').classList.add('shot-missing')">
+          </picture>
+        </div>
+        <div class="shot-fallback">
+          <div class="rcard" aria-label="要素で探索の例">
+            <div class="exp-seed">半導体<span class="exp-badge">−</span></div>
+            <div class="exp-branch">
+              <span class="exp-chip">@AI半導体 <span class="exp-plus">+</span></span>
+              <span class="exp-chip">@半導体装置 <span class="exp-plus">+</span></span>
+              <span class="exp-chip"><span class="exp-code">6758</span>ソニーG <span class="exp-plus">+</span></span>
+              <span class="exp-chip"><span class="exp-code">8035</span>東エレ <span class="exp-plus">+</span></span>
+            </div>
+            <div class="exp-hint">銘柄をタップ → その銘柄が関わる別のテーマへ、どこまでも辿れる。</div>
+          </div>
+        </div>
+      </div>
+      <p class="rc-cap"><svg class="bi bi-diagram-3" aria-hidden="true"><use href="#i-diagram-3"></use></svg>要素で探索 — タップで1段ずつ深掘り</p>
+    </div>
+    <div class="rv">
+      <span class="stag">Explore</span>
+      <h2>テーマひとつから、<br>関連する銘柄へ辿っていく。</h2>
+      <p class="p">「半導体」を選ぶと、<strong>AI半導体・半導体装置</strong>といった小さな要素と、そのテーマで書いた<strong>銘柄</strong>が広がる。銘柄をタップすれば、その銘柄が関わる<strong>別のテーマ</strong>へ。全部を一度に見せず、<strong>タップで1段ずつ</strong>掘り下げる探索。</p>
+      <p class="p" style="margin-bottom:0">過去に書いた判断は、探しにいける。だから記録が死蔵しない。</p>
+    </div>
+  </div>
+</section>
+
 <!-- FEATURES TRIO -->
 <section class="sec" id="features">
   <div class="wrap">
@@ -574,7 +624,7 @@ a{text-decoration:none;color:inherit}
     <div class="fgrid">
       <div class="fcard rv"><div class="fi"><svg class="bi bi-feather" aria-hidden="true"><use href="#i-feather"></use></svg></div><h3>没入できる執筆</h3><p>空白ページではなく問いから書き始め、自動保存。<strong>完全フルスクリーン</strong>で思考に集中できる執筆空間。</p></div>
       <div class="fcard rv"><div class="fi"><svg class="bi bi-book" aria-hidden="true"><use href="#i-book"></use></svg></div><h3>年間レビュー</h3><p>その年に書いた記録・学び・勝ち筋タグを一本の読み物に。<strong>蓄積を実感</strong>できる年次の振り返り。</p></div>
-      <div class="fcard rv"><div class="fi"><svg class="bi bi-diagram-3" aria-hidden="true"><use href="#i-diagram-3"></use></svg></div><h3>関連グラフ・CSV</h3><p>タグ・業種で銘柄の繋がりを可視化。楽天証券・SBI証券の<strong>CSVを一括取込</strong>で、すぐ始められる。</p></div>
+      <div class="fcard rv"><div class="fi"><svg class="bi bi-file-earmark-arrow-up" aria-hidden="true"><use href="#i-file-earmark-arrow-up"></use></svg></div><h3>CSV取込・開示連携</h3><p>楽天証券・SBI証券の<strong>CSVを一括取込</strong>ですぐ始められ、保有銘柄の<strong>最新の開示</strong>を自動で追いかけます。</p></div>
     </div>
   </div>
 </section>
