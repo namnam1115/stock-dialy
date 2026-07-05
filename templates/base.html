@@ -958,13 +958,13 @@
                           </a>
                       </li>
                       <li class="nav-item">
-                          <a class="nav-link" href="{% url 'stockdiary:diary_graph' %}">
-                              <i class="bi bi-diagram-3"></i> 関連グラフ
+                          <a class="nav-link" href="{% url 'stockdiary:explore_graph' %}">
+                              <i class="bi bi-diagram-3-fill"></i> 要素で探索
                           </a>
                       </li>
                       <li class="nav-item">
-                          <a class="nav-link" href="{% url 'stockdiary:explore_graph' %}">
-                              <i class="bi bi-diagram-3-fill"></i> 要素で探索
+                          <a class="nav-link" href="{% url 'stockdiary:diary_graph' %}">
+                              <i class="bi bi-diagram-3"></i> 関連グラフ
                           </a>
                       </li>
                       <li class="nav-item">
@@ -1148,18 +1148,18 @@
                 <div class="menu-item-label">タイムライン</div>
             </a>
 
-            <a href="{% url 'stockdiary:diary_graph' %}" class="menu-item primary">
-                <div class="menu-item-icon">
-                    <i class="bi bi-diagram-3"></i>
-                </div>
-                <div class="menu-item-label">関連グラフ</div>
-            </a>
-
             <a href="{% url 'stockdiary:explore_graph' %}" class="menu-item primary">
                 <div class="menu-item-icon">
                     <i class="bi bi-diagram-3-fill"></i>
                 </div>
                 <div class="menu-item-label">要素で探索</div>
+            </a>
+
+            <a href="{% url 'stockdiary:diary_graph' %}" class="menu-item primary">
+                <div class="menu-item-icon">
+                    <i class="bi bi-diagram-3"></i>
+                </div>
+                <div class="menu-item-label">関連グラフ</div>
             </a>
 
             <a href="{% url 'stockdiary:dashboard' %}" class="menu-item primary">

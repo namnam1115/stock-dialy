@@ -188,9 +188,23 @@
     const w = svgEl.clientWidth || 800;
     const h = svgEl.clientHeight || 560;
 
-    // 既存座標を保つ（増分描画）
+    // 既存座標は保つ（増分描画）。既存は静止させ、新規ノードは展開元の近くに置いて
+    // 原点から飛んでこないようにする（リンク張力による激しい揺れを防ぐ）。
+    const cx = w / 2, cy = h / 2;
     const prev = new Map((simulation ? simulation.nodes() : []).map((n) => [n.id, n]));
-    nodes.forEach((n) => { const p = prev.get(n.id); if (p) { n.x = p.x; n.y = p.y; n.vx = p.vx; n.vy = p.vy; } });
+    nodes.forEach((n) => {
+      const p = prev.get(n.id);
+      if (p) {
+        n.x = p.x; n.y = p.y; n.vx = 0; n.vy = 0;
+      } else {
+        const src = prev.get(revealedBy.get(n.id));
+        const bx = src ? src.x : cx;
+        const by = src ? src.y : cy;
+        const ang = Math.random() * Math.PI * 2, rad = 45 + Math.random() * 35;
+        n.x = bx + Math.cos(ang) * rad;
+        n.y = by + Math.sin(ang) * rad;
+      }
+    });
 
     const link = linkG.selectAll('line.exg-link').data(links, (d) => (d.source.id || d.source) + '|' + (d.target.id || d.target));
     link.exit().remove();
@@ -224,9 +238,13 @@
 
     if (!simulation) {
       simulation = d3.forceSimulation()
-        .force('charge', d3.forceManyBody().strength(-260))
-        .force('center', d3.forceCenter(w / 2, h / 2))
-        .force('collide', d3.forceCollide().radius(28))
+        // velocityDecay（摩擦）を高めに取り、重心を毎tick動かす forceCenter ではなく
+        // 弱い forceX/forceY で中央に寄せる → 全体が左右に振れるのを防ぐ。
+        .velocityDecay(0.55)
+        .force('charge', d3.forceManyBody().strength(-240))
+        .force('collide', d3.forceCollide().radius(30))
+        .force('x', d3.forceX(cx).strength(0.06))
+        .force('y', d3.forceY(cy).strength(0.06))
         .on('tick', () => {
           linkG.selectAll('line.exg-link')
             .attr('x1', (d) => d.source.x).attr('y1', (d) => d.source.y)
@@ -234,9 +252,12 @@
           nodeG.selectAll('g.exg-node').attr('transform', (d) => `translate(${d.x},${d.y})`);
         });
     }
+    simulation.force('x').x(cx);
+    simulation.force('y').y(cy);
     simulation.nodes(nodes);
-    simulation.force('link', d3.forceLink(links).id((d) => d.id).distance(90).strength(0.5));
-    simulation.alpha(0.6).restart();
+    simulation.force('link', d3.forceLink(links).id((d) => d.id).distance(90).strength(0.4));
+    // 弱めのリヒート（既存ノードは静止済み・新規は展開元近くにあるので大きく暴れない）
+    simulation.alpha(0.35).restart();
   }
 
   svg.on('click', hidePanel);
@@ -301,4 +322,12 @@
   resetBtn.addEventListener('click', reset);
 
   window.addEventListener('resize', () => { if (simulation) render(); });
+
+  // URL の ?start=<node id> があれば、その要素/銘柄を起点に自動で開く
+  // （タグ詳細等からの「この要素で探索 →」導線用）。
+  const startId = new URLSearchParams(location.search).get('start');
+  if (startId) {
+    const item = EXPLORE_ITEMS.find((it) => it.id === startId);
+    if (item) seed(item);
+  }
 })();

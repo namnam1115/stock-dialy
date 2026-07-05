@@ -20,6 +20,8 @@
 .exg-title{font-size:1.4rem;font-weight:800;display:flex;align-items:center;gap:10px}
 .exg-title i{color:var(--accent)}
 .exg-sub{font-size:13.5px;color:var(--t2);margin-top:4px}
+.exg-xlink{display:inline-flex;align-items:center;gap:5px;margin-left:8px;font-size:12.5px;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap}
+.exg-xlink:hover{text-decoration:underline}
 
 /* 検索入口 */
 .exg-search{position:relative;max-width:520px;margin:0 auto 12px}
@@ -72,7 +74,9 @@
 <div class="exg">
   <div class="exg-head">
     <div class="exg-title"><i class="bi bi-diagram-3-fill"></i>要素で探索</div>
-    <div class="exg-sub">要素（タグ）を1つ選び、タップで関連する小要素・銘柄へ深掘りします。もう一度タップで畳みます。</div>
+    <div class="exg-sub">要素（タグ）や銘柄を1つ選び、タップで関連する小要素・銘柄へ深掘りします。もう一度タップで畳みます。
+      <a href="{% url 'stockdiary:diary_graph' %}" class="exg-xlink"><i class="bi bi-diagram-3"></i>全体マップで見る →</a>
+    </div>
   </div>
 
   <div class="exg-search">
