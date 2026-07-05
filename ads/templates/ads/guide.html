@@ -1,746 +1,124 @@
-{% extends 'base.html' %}
+{% extends 'public_base.html' %}
 
-{% load static %}
+{% block doc_title %}投資記録ガイド | カブログ{% endblock %}
 
-{% block title %}投資記録ガイド | カブログ{% endblock %}
-
-{% block head %}
-{{ block.super }}
-<style>
-
-  /* Hero Section */
-  .guide-hero {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color) 100%);
-    color: var(--text-inverse);
-    padding: 4rem 0;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .guide-hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: 
-      radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
-  }
-
-  .guide-hero-content {
-    position: relative;
-    z-index: 2;
-    text-align: center;
-    max-width: 48rem;
-    margin: 0 auto;
-  }
-
-  .guide-hero h1 {
-    color: var(--text-inverse);
-    font-size: clamp(2rem, 4vw, 3rem);
-    font-weight: 800;
-    margin-bottom: 1rem;
-    letter-spacing: -0.02em;
-  }
-
-  .guide-hero p {
-    font-size: 1.125rem;
-    opacity: 0.9;
-    line-height: 1.6;
-  }
-
-  /* Container */
-  .guide-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 3rem 1rem;
-  }
-  
-  /* Sections */
-  .guide-section {
-    margin-bottom: 4rem;
-    background: var(--surface-elevated);
-    border-radius: var(--radius-2xl);
-    padding: 2.5rem;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-primary);
-    transition: all var(--duration-300) var(--ease-out);
-  }
-
-  .guide-section:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
-  }
-  
-  .guide-section h2 {
-    color: var(--primary-600);
-    font-weight: 700;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 2px solid var(--primary-100);
-    font-size: 1.75rem;
-  }
-  
-  .guide-section h3 {
-    color: var(--text-primary);
-    font-weight: 600;
-    margin: 2rem 0 1rem;
-    font-size: 1.25rem;
-  }
-
-  .guide-section h4 {
-    color: var(--text-primary);
-    font-weight: 600;
-    margin: 1.5rem 0 0.75rem;
-    font-size: 1.125rem;
-  }
-
-  .guide-section p {
-    line-height: 1.7;
-    margin-bottom: 1rem;
-    color: var(--text-secondary);
-  }
-
-  .guide-section ul, .guide-section ol {
-    margin-bottom: 1.5rem;
-    padding-left: 1.5rem;
-  }
-
-  .guide-section li {
-    margin-bottom: 0.5rem;
-    line-height: 1.6;
-    color: var(--text-secondary);
-  }
-  
-  /* Tips and Examples */
-  .guide-tips {
-    background: linear-gradient(135deg, rgba(8, 145, 178, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
-    border-left: 4px solid var(--primary-color);
-    padding: 1.5rem;
-    border-radius: var(--radius-lg);
-    margin: 1.5rem 0;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .guide-tips::before {
-    content: '';
-    position: absolute;
-    top: -20px;
-    right: -20px;
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: rgba(8, 145, 178, 0.1);
-  }
-  
-  .guide-tips h4 {
-    color: var(--primary-600);
-    font-weight: 600;
-    margin-bottom: 0.75rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .guide-tips h4::before {
-    content: '💡';
-    font-size: 1.25rem;
-  }
-
-  .guide-tips p {
-    margin-bottom: 0;
-    color: var(--text-primary);
-  }
-  
-  /* Step List */
-  .step-list {
-    counter-reset: steps;
-    list-style: none;
-    padding-left: 0;
-    margin: 2rem 0;
-  }
-  
-  .step-list li {
-    position: relative;
-    margin-bottom: 2rem;
-    padding-left: 4rem;
-    counter-increment: steps;
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem 1.5rem 1.5rem 4rem;
-    border: 1px solid var(--border-primary);
-    transition: all var(--duration-300) var(--ease-out);
-  }
-
-  .step-list li:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
-  }
-  
-  .step-list li::before {
-    content: counter(steps);
-    position: absolute;
-    left: 1rem;
-    top: 1.5rem;
-    width: 2.5rem;
-    height: 2.5rem;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color) 100%);
-    color: var(--text-inverse);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 1.125rem;
-  }
-
-  .step-list li h4 {
-    margin-top: 0;
-    margin-bottom: 0.75rem;
-    color: var(--text-primary);
-  }
-
-  .step-list li p {
-    margin-bottom: 0;
-    color: var(--text-secondary);
-  }
-  
-  /* Examples */
-  .guide-example {
-    background: var(--surface);
-    border: 1px solid var(--border-primary);
-    padding: 1.5rem;
-    border-radius: var(--radius-lg);
-    margin: 1.5rem 0;
-  }
-  
-  .guide-example h4 {
-    margin-bottom: 1rem;
-    color: var(--text-primary);
-    font-weight: 600;
-  }
-  
-  .example-item {
-    margin-bottom: 1.5rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--border-primary);
-  }
-  
-  .example-item:last-child {
-    margin-bottom: 0;
-    padding-bottom: 0;
-    border-bottom: none;
-  }
-  
-  .example-label {
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .example-label.good::before {
-    content: '✅';
-  }
-
-  .example-label.bad::before {
-    content: '❌';
-  }
-
-  .example-item p {
-    margin-bottom: 0.5rem;
-  }
-
-  .example-item small {
-    font-style: italic;
-    color: var(--text-tertiary);
-    display: block;
-    margin-top: 0.5rem;
-  }
-
-  /* Feature Cards */
-  .feature-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin: 2rem 0;
-  }
-
-  .feature-card {
-    background: var(--surface-elevated);
-    border: 1px solid var(--border-primary);
-    border-radius: var(--radius-xl);
-    padding: 1.5rem;
-    transition: all var(--duration-300) var(--ease-out);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .feature-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-color) 100%);
-  }
-
-  .feature-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-xl);
-  }
-
-  .feature-card h5 {
-    color: var(--text-primary);
-    font-weight: 600;
-    margin-bottom: 0.75rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .feature-card p {
-    color: var(--text-secondary);
-    margin-bottom: 0;
-    line-height: 1.6;
-  }
-  
-  /* CTA Section */
-  .conclusion {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color) 100%);
-    color: var(--text-inverse);
-    padding: 3rem 2rem;
-    border-radius: var(--radius-2xl);
-    text-align: center;
-    margin-top: 3rem;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .conclusion::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: 
-      radial-gradient(circle at 30% 70%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
-  }
-
-  .conclusion-content {
-    position: relative;
-    z-index: 2;
-  }
-  
-  .conclusion h3 {
-    color: var(--text-inverse);
-    margin-bottom: 1rem;
-    font-weight: 700;
-    font-size: 1.75rem;
-  }
-
-  .conclusion p {
-    margin-bottom: 1.5rem;
-    opacity: 0.9;
-    font-size: 1.125rem;
-  }
-  
-  .guide-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.875rem 2rem;
-    background: var(--text-inverse);
-    border-radius: var(--radius-xl);
-    font-weight: 600;
-    transition: all var(--duration-300) var(--ease-out);
-    text-decoration: none;
-    box-shadow: var(--shadow-lg);
-    font-size: 1rem;
-  }
-  
-  .guide-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-xl);
-    color: var(--primary-600);
-  }
-
-  /* Animations */
-  .fade-in {
-    opacity: 0;
-    transform: translateY(2rem);
-    transition: all 0.6s var(--ease-out);
-  }
-
-  .fade-in.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* ========== ダークモード ========== */
-  .dark-mode .guide-section,
-  [data-theme="dark"] .guide-section {
-    background-color: var(--dm-card) !important;
-    border-color: var(--dm-border) !important;
-  }
-
-  .dark-mode .guide-section h2,
-  [data-theme="dark"] .guide-section h2 {
-    color: var(--dm-primary-200) !important;
-    border-bottom-color: rgba(89, 142, 243, 0.3) !important;
-  }
-
-  .dark-mode .guide-section h3,
-  [data-theme="dark"] .guide-section h3,
-  .dark-mode .guide-section h4,
-  [data-theme="dark"] .guide-section h4 {
-    color: var(--dm-text-100) !important;
-  }
-
-  .dark-mode .guide-section p,
-  [data-theme="dark"] .guide-section p,
-  .dark-mode .guide-section li,
-  [data-theme="dark"] .guide-section li {
-    color: var(--dm-text-200) !important;
-  }
-
-  .dark-mode .guide-tips,
-  [data-theme="dark"] .guide-tips {
-    background: linear-gradient(135deg, rgba(89, 142, 243, 0.1), rgba(37, 99, 235, 0.08)) !important;
-    border-left-color: var(--dm-primary-100) !important;
-  }
-
-  .dark-mode .guide-tips h4,
-  [data-theme="dark"] .guide-tips h4 {
-    color: var(--dm-primary-200) !important;
-  }
-
-  .dark-mode .guide-tips p,
-  [data-theme="dark"] .guide-tips p {
-    color: var(--dm-text-100) !important;
-  }
-
-  .dark-mode .step-list li,
-  [data-theme="dark"] .step-list li {
-    background-color: rgba(71, 85, 105, 0.2) !important;
-    border-color: var(--dm-border) !important;
-  }
-
-  .dark-mode .step-list li h4,
-  [data-theme="dark"] .step-list li h4 {
-    color: var(--dm-text-100) !important;
-  }
-
-  .dark-mode .step-list li p,
-  [data-theme="dark"] .step-list li p {
-    color: var(--dm-text-200) !important;
-  }
-
-  .dark-mode .guide-example,
-  [data-theme="dark"] .guide-example {
-    background-color: rgba(71, 85, 105, 0.2) !important;
-    border-color: var(--dm-border) !important;
-  }
-
-  .dark-mode .guide-example h4,
-  [data-theme="dark"] .guide-example h4,
-  .dark-mode .example-label,
-  [data-theme="dark"] .example-label {
-    color: var(--dm-text-100) !important;
-  }
-
-  .dark-mode .example-item,
-  [data-theme="dark"] .example-item {
-    border-bottom-color: var(--dm-border) !important;
-  }
-
-  .dark-mode .example-item small,
-  [data-theme="dark"] .example-item small {
-    color: var(--dm-text-200) !important;
-  }
-
-  .dark-mode .feature-card,
-  [data-theme="dark"] .feature-card {
-    background-color: var(--dm-card) !important;
-    border-color: var(--dm-border) !important;
-  }
-
-  .dark-mode .feature-card h5,
-  [data-theme="dark"] .feature-card h5 {
-    color: var(--dm-text-100) !important;
-  }
-
-  .dark-mode .feature-card p,
-  [data-theme="dark"] .feature-card p {
-    color: var(--dm-text-200) !important;
-  }
-
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .guide-hero {
-      padding: 3rem 0;
-    }
-
-    .guide-container {
-      padding: 2rem 1rem;
-    }
-
-    .guide-section {
-      padding: 1.5rem;
-    }
-
-    .step-list li {
-      padding: 1rem 1rem 1rem 3rem;
-    }
-
-    .step-list li::before {
-      width: 2rem;
-      height: 2rem;
-      font-size: 1rem;
-      left: 0.75rem;
-      top: 1rem;
-    }
-
-    .feature-cards {
-      grid-template-columns: 1fr;
-    }
-
-    .conclusion {
-      padding: 2rem 1rem;
-    }
-  }
-</style>
-{% endblock %}
-
-{% block content %}
-<!-- Hero Section -->
-<section class="guide-hero">
-  <div class="container">
-    <div class="guide-hero-content">
-      <h1>効果的な投資記録の付け方</h1>
-      <p>カブログを活用して投資判断を振り返り、成長する投資家になるためのガイド</p>
-    </div>
+{% block doc_hero %}
+<section class="doc-hero">
+  <div class="wrap">
+    <h1 class="serif">判断を記録し、答え合わせする</h1>
+    <p>カブログで「予想 → 結果 → 検証 → 学び」のループを回し、意思決定の質を磨くためのガイド</p>
   </div>
 </section>
+{% endblock %}
 
-<div class="container guide-container">
-  <div class="guide-section fade-in">
-    <h2>なぜ投資記録が重要なのか</h2>
-    <p>投資の世界では、「何を買ったか」だけでなく「なぜ買ったか」を記録することが非常に重要です。その理由は次のとおりです：</p>
-    
+{% block doc_body %}
+  <div class="doc-section fade-in">
+    <h2>なぜ「損益」ではなく「判断」を記録するのか</h2>
+    <p>多くの投資家は「何を買ったか」は覚えていても、「なぜ買い、その仮説は正しかったか」を忘れてしまいます。損益だけを見ていると、偶然の勝ちを実力と勘違いし、同じ失敗を繰り返してしまいます。カブログが記録するのは、その手前にある<strong>判断そのもの</strong>です。</p>
     <div class="feature-cards">
       <div class="feature-card">
-        <h5>
-          <i class="bi bi-graph-up" style="color: var(--primary-color);"></i>
-          パターンの発見
-        </h5>
-        <p>成功した投資と失敗した投資のパターンを見つけることで、自分の強みと弱みを把握できます。</p>
+        <h5><i class="bi bi-crosshair"></i>偶然と実力を分ける</h5>
+        <p>仮説の当否と損益を分けて記録することで、「再現できる勝ち」と「危険な勝ち」を見分けられます。</p>
       </div>
-      
       <div class="feature-card">
-        <h5>
-          <i class="bi bi-lightbulb" style="color: var(--warning);"></i>
-          感情バイアスの軽減
-        </h5>
-        <p>記録を残すことで、後から振り返った際に感情ではなく事実に基づいた分析ができます。</p>
+        <h5><i class="bi bi-lightbulb"></i>感情バイアスの軽減</h5>
+        <p>判断を言葉にして残すと、後から感情ではなく事実に基づいて振り返れます。</p>
       </div>
-      
       <div class="feature-card">
-        <h5>
-          <i class="bi bi-arrow-repeat" style="color: var(--success);"></i>
-          一貫性の維持
-        </h5>
-        <p>投資基準を明確にして記録することで、投資判断の一貫性を保てます。</p>
+        <h5><i class="bi bi-arrow-repeat"></i>一貫性の維持</h5>
+        <p>投資の根拠を明文化して記録することで、判断の基準がぶれにくくなります。</p>
       </div>
-      
       <div class="feature-card">
-        <h5>
-          <i class="bi bi-clock-history" style="color: var(--info);"></i>
-          時間経過による変化の追跡
-        </h5>
-        <p>投資家としての成長過程や考え方の変化を追跡できます。</p>
+        <h5><i class="bi bi-clock-history"></i>変化の追跡</h5>
+        <p>見立てが書き換わっていく過程を残すことで、投資家としての成長を辿れます。</p>
       </div>
     </div>
-    
-    <div class="guide-tips">
-      <h4>重要ポイント</h4>
-      <p>投資記録は、単なる取引履歴ではありません。それは、あなたの投資判断プロセスを整理し、改善するための貴重な資料です。</p>
+    <div class="callout tip">
+      <h4>この道具の考え方</h4>
+      <p>損益計算は証券会社アプリに任せて構いません。カブログは「なぜ、そう判断したか」を残し、<strong>意思決定の質</strong>を損益と分けて磨くことに集中します。</p>
     </div>
   </div>
-  
-  <div class="guide-section fade-in">
-    <h2>効果的な投資記録の要素</h2>
-    
-    <h3>1. 基本情報の記録</h3>
-    <p>まずは投資の基本情報を正確に記録しましょう：</p>
+
+  <div class="doc-section fade-in">
+    <h2>1. 買う理由を「仮説」にする</h2>
+    <p>投資の記録は、まず<strong>一文の主張（仮説）</strong>から始めます。良い仮説には、後から答え合わせできる要素が含まれています。</p>
     <ul>
-      <li>銘柄名とコード</li>
-      <li>購入日と購入価格</li>
-      <li>購入数量</li>
-      <li>売却日と売却価格（売却時）</li>
+      <li><strong>主張：</strong> なぜ上がる（下がる）と考えるのか、一文で</li>
+      <li><strong>確認の目印：</strong> 何がどうなれば「正解」と言えるのか（例：次の決算で営業利益率が改善）</li>
+      <li><strong>最悪のケース：</strong> どうなったら間違いだったと認めるか</li>
+      <li><strong>検証予定日：</strong> いつ答え合わせをするか（例：次の四半期決算後）</li>
     </ul>
-    
-    <h3>2. 投資理由の詳細な記録</h3>
-    <p>「なぜ買ったのか」という投資理由を詳細に記録することが重要です。以下の点を考慮しましょう：</p>
-    <ul>
-      <li>企業の強みや成長性</li>
-      <li>財務状況の評価</li>
-      <li>業界動向や市場環境</li>
-      <li>リスク要因とその対策</li>
-      <li>期待するリターンと時間軸</li>
-    </ul>
-    
     <div class="guide-example">
-      <h4>投資理由の記録例</h4>
+      <h4>仮説の書き方の例</h4>
       <div class="example-item">
-        <div class="example-label bad">悪い例：</div>
-        <p>"株価が上がりそうだから購入した。"</p>
-        <small>（具体性がなく、後で振り返っても意味がない）</small>
+        <div class="example-label bad">弱い仮説</div>
+        <p>"株価が上がりそうだから買う。"</p>
+        <small>（根拠も、答え合わせの目印も、いつ検証するかもない。後で振り返っても学びにならない）</small>
       </div>
-      
       <div class="example-item">
-        <div class="example-label good">良い例：</div>
-        <p>"この企業は新製品の発表により今後2年間で売上が30%増加すると予想される。PER20倍で業界平均より割安。財務体質も健全で無借金経営。主なリスクは競合他社の類似製品だが、特許による参入障壁がある。3年保有を予定し、株価30%上昇を期待。"</p>
-        <small>（具体的な根拠、数値、時間軸、リスク認識が含まれている）</small>
+        <div class="example-label good">良い仮説</div>
+        <p>"データセンター向けの光部材の需要は本物で、値上げが通れば利益率が一段上がる。<strong>確認の目印：</strong>次の決算で営業利益率が改善。<strong>最悪のケース：</strong>競合参入で価格競争になり値上げが通らない。<strong>検証予定日：</strong>次回決算の翌日。"</p>
+        <small>（主張・目印・最悪のケース・検証日がそろい、答え合わせができる）</small>
       </div>
     </div>
-    
-    <h3>3. 分析テンプレートの活用</h3>
-    <p>カブログの分析テンプレート機能を使用して、投資判断の基準を体系化しましょう。テンプレートを作成する際のポイント：</p>
-    <ul>
-      <li>自分の投資スタイルに合った項目を設定</li>
-      <li>数値化できる項目を含める（例：PERの評価を1〜5で点数化）</li>
-      <li>チェックリスト形式の項目と詳細記述の項目をバランスよく配置</li>
-    </ul>
-    
-    <h3>4. タグの効果的な使用</h3>
-    <p>タグ機能を活用して、投資記録を整理しましょう：</p>
-    <ul>
-      <li>業種タグ（例：テクノロジー、金融、ヘルスケア）</li>
-      <li>投資テーマタグ（例：高配当、成長株、バリュー）</li>
-      <li>投資判断タグ（例：強気、弱気、様子見）</li>
-    </ul>
-    
-    <div class="guide-tips">
-      <h4>タグ活用のコツ</h4>
-      <p>一貫性のあるタグ付けを心がけましょう。あまりに多くのタグを作りすぎると混乱の原因になります。10〜15個程度の主要タグを決めて使い回すのがおすすめです。</p>
+    <div class="callout tip">
+      <h4>ヒント</h4>
+      <p>企業そのものの説明（ビジネスモデルや稼ぐ力）は投資理由の本文に、買い/売りの「判断」は仮説に分けて書くと、後の検証がしやすくなります。</p>
     </div>
   </div>
-  
-  <div class="guide-section fade-in">
-    <h2>継続的な記録と振り返り</h2>
-    
-    <h3>1. 継続記録の活用</h3>
-    <p>カブログの継続記録機能を使って、投資後の考え方の変化や新たな情報を記録しましょう：</p>
-    <ul>
-      <li>定期的（例：四半期ごと）に投資判断を再評価</li>
-      <li>重要なニュースや決算情報を記録</li>
-      <li>当初の投資理由が現在も有効かを検証</li>
-    </ul>
-    
-    <h3>2. 売却時の振り返り</h3>
-    <p>投資を売却する際には、以下の点を記録しましょう：</p>
-    <ul>
-      <li>売却理由（目標達成、損切り、資金需要など）</li>
-      <li>当初の投資理由と実際の結果の比較</li>
-      <li>学んだ教訓や次回に活かすべきポイント</li>
-    </ul>
-    
+
+  <div class="doc-section fade-in">
+    <h2>2. 答え合わせをする（損益と判断の質を分ける）</h2>
+    <p>検証予定日が来たら、仮説の答え合わせをします。ここで大切なのは、<strong>損益とは別に「仮説が当たったか」を評価する</strong>ことです。結果は次の2×2で捉えます。</p>
+    <div class="feature-cards">
+      <div class="feature-card"><h5><i class="bi bi-check-circle"></i>再現すべき勝ち</h5><p>仮説◯ × 利益。狙いどおり。何が効いたかを言語化して再現へ。</p></div>
+      <div class="feature-card"><h5><i class="bi bi-emoji-neutral"></i>正しいが報われず</h5><p>仮説◯ × 損失。判断は良かった。運やタイミングの問題かを検討。</p></div>
+      <div class="feature-card"><h5><i class="bi bi-exclamation-triangle"></i>偶然の勝ち（要注意）</h5><p>仮説× × 利益。儲かったが再現性なし。実力と勘違いしないこと。</p></div>
+      <div class="feature-card"><h5><i class="bi bi-shield-check"></i>想定通りの負け</h5><p>仮説× × 損失。最悪のケースどおり。規律を守れたかを確認。</p></div>
+    </div>
+    <p>答え合わせのたびに、<strong>学び（教訓）を一文</strong>で残しましょう。その一文が、あとで効いてきます。</p>
+  </div>
+
+  <div class="doc-section fade-in">
+    <h2>3. 見立ての変化を残す</h2>
+    <p>投資の見立ては一度書いて終わりではありません。決算で確信が深まり、相場で揺らぎ、言葉は静かに書き換わっていきます。</p>
+    <h3>継続記録で考えの変化を追う</h3>
+    <p>保有中に気づいたこと・決算・重要ニュースは、継続記録として時系列で足していきます。購入時点だけでなく、その後の判断プロセスも残るので、考えの変化を追えます。</p>
+    <h3>見立ての変遷は自動で残る</h3>
+    <p>投資理由を上書き保存するたび、<strong>前の版が自動でスナップショット</strong>として残ります（操作は不要）。過去の版は時系列で並び、全文検索もできます。今日の判断が、どんな思考の積み重ねで生まれたかを後から正確に辿れます。</p>
     <div class="guide-example">
-      <h4>売却時の振り返り例</h4>
-      <p><strong>購入時の予想：</strong> 新製品により2年で売上30%増加と予想</p>
-      <p><strong>実際の結果：</strong> 新製品は好評だったが、売上増加は15%に留まった</p>
-      <p><strong>学んだ教訓：</strong> 成長予測は保守的に見積もるべき。競合の反応をもっと考慮する必要がある。</p>
+      <h4>答え合わせ・学びの例</h4>
+      <p><strong>当時の仮説：</strong> 円安が続き、輸出採算の改善が利益を押し上げる</p>
+      <p><strong>結果：</strong> 利益は出たが、円安以外の要因が大きく、仮説の筋は外れていた（偶然の勝ち）</p>
+      <p><strong>学び：</strong> 為替単独を根拠に投資しない。</p>
     </div>
-    
-    <h3>3. 定期的なポートフォリオ分析</h3>
-    <p>カブログのスナップショット機能を使って、定期的（例：四半期または半年ごと）にポートフォリオ全体を分析しましょう：</p>
-    <ul>
-      <li>業種別の配分バランスの確認</li>
-      <li>リスク分散の状況チェック</li>
-      <li>パフォーマンスの良い/悪い銘柄の傾向分析</li>
-    </ul>
   </div>
-  
-  <div class="guide-section fade-in">
-    <h2>効果的な記録のステップバイステップガイド</h2>
-    
+
+  <div class="doc-section fade-in">
+    <h2>4. 蓄積を振り返りに活かす</h2>
+    <p>記録が貯まるほど、カブログはそれを読み返しやすい形で返してくれます。</p>
+    <h3>想起 — ホームで過去の自分と再会する</h3>
+    <p>ホームには、変動する評価損益ではなく「答え合わせを待つ仮説」「1年前の今日」「最近の学び」が並びます。毎日ひらくたび、忘れていた思考と再会でき、記録が死蔵しません。</p>
+    <h3>投資家カルテ・知識ライブラリ</h3>
+    <p>検証の蓄積から、あなたの得意・苦手なテーマ、繰り返す失敗、再現したい勝ち筋が言葉になって立ち上がります。学びは象限タグ付きで知識ライブラリに貯まります。</p>
+    <h3>探索・年間レビュー</h3>
+    <p>テーマから関連銘柄へタップで辿る「探索」で過去の判断を探しにいけます。年に一度は「年間レビュー」で、その年の記録・学び・勝ち筋を一本の読み物として振り返りましょう。</p>
+  </div>
+
+  <div class="doc-section fade-in">
+    <h2>はじめ方 — ステップバイステップ</h2>
     <ol class="step-list">
-      <li>
-        <h4>新規投資記録の作成</h4>
-        <p>投資を行ったら、できるだけ早く（理想的には当日中に）記録を作成しましょう。感情や判断が鮮明なうちに記録することが重要です。</p>
-      </li>
-      
-      <li>
-        <h4>基本情報の入力</h4>
-        <p>銘柄コード、銘柄名、購入日、購入価格、購入数量などの基本情報を正確に入力します。</p>
-      </li>
-      
-      <li>
-        <h4>投資理由の詳細記述</h4>
-        <p>なぜこの銘柄を選んだのか、どのような将来性を期待しているのか、考えられるリスクは何かなどを詳細に記述します。</p>
-      </li>
-      
-      <li>
-        <h4>分析テンプレートの適用</h4>
-        <p>事前に作成した分析テンプレートを使用して、投資判断を体系的に評価します。</p>
-      </li>
-      
-      <li>
-        <h4>タグ付け</h4>
-        <p>関連するタグを付けて、後から検索や分析がしやすいようにします。</p>
-      </li>
-      
-      <li>
-        <h4>継続的な記録の追加</h4>
-        <p>四半期決算や重要ニュースがあるたびに、継続記録を追加して考え方の変化を記録します。</p>
-      </li>
-      
-      <li>
-        <h4>売却時の振り返り</h4>
-        <p>投資を売却する際には、結果と当初の予想を比較し、学んだ教訓を記録します。</p>
-      </li>
-      
-      <li>
-        <h4>定期的な分析</h4>
-        <p>カブログの分析ダッシュボードを使って、定期的に投資パターンや傾向を分析します。</p>
-      </li>
+      <li><h4>まず1銘柄、記録してみる</h4><p>「無料で始める」または「登録なしでデモを試す」から入り、気になる1銘柄について書いてみましょう。既存の取引は楽天・SBIのCSVから一括で取り込めます。</p></li>
+      <li><h4>買う理由を仮説にする</h4><p>主張を一文にし、確認の目印・最悪のケース・検証予定日を添えます。</p></li>
+      <li><h4>継続記録で変化を追う</h4><p>決算や重要ニュースがあるたびに継続記録を足し、見立ての変化を残します。</p></li>
+      <li><h4>検証予定日に答え合わせ</h4><p>想起に現れた仮説を、損益とは分けて評価。2×2のどこかを選び、学びを一文で残します。</p></li>
+      <li><h4>カルテと年間レビューで振り返る</h4><p>蓄積された検証から、自分の傾向と成長を読み返します。</p></li>
     </ol>
   </div>
-  
+
   <div class="conclusion fade-in">
-    <div class="conclusion-content">
-      <h3>あなたの投資の旅を記録しましょう</h3>
-      <p>投資記録は、単なる取引履歴ではなく、投資家としての成長を促す貴重なツールです。一貫性を持って記録を続けることで、時間の経過とともに投資判断が洗練されていくでしょう。</p>
-      <a href="/users/login/" class="guide-btn">
-        <i class="bi bi-pencil-square"></i>投資記録を始める
-      </a>
-    </div>
+    <h3>今日の判断を、未来の自分に残そう</h3>
+    <p>記録は単なる取引履歴ではなく、投資家としての成長を促す資産です。仮説を立て、答え合わせを続けることで、あなたの判断は少しずつ洗練されていきます。</p>
+    <a href="/users/signup/" class="doc-btn"><i class="bi bi-pencil-square"></i>無料で記録を始める</a>
   </div>
-</div>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Intersection Observer for animations
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, observerOptions);
-
-    document.querySelectorAll('.fade-in').forEach(el => {
-      observer.observe(el);
-    });
-  });
-</script>
 {% endblock %}

@@ -1,0 +1,100 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ja">
+<head>
+{% include 'partials/_analytics.html' %}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block auth_title %}カブログ{% endblock %}</title>
+<link rel="icon" type="image/svg+xml" href="{% static 'images/icon-192.svg' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Noto+Serif+JP:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<style>
+:root{
+  --paper:#fcfbf8; --paper2:#f4f2ec; --raised:#ffffff;
+  --ink:#20201d; --ink2:#3a3a36; --muted:#6b6a64; --faint:#97968f;
+  --line:#e7e4dc; --line2:#efece5;
+  --skill:#3f7a5f; --skill-d:#356650; --lucky:#b0584f; --unlucky:#9a7b3f;
+  --serif:'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',Georgia,serif;
+  --sans:'Noto Sans JP',-apple-system,system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.7;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 22px;
+  background:radial-gradient(120% 60% at 50% -8%,var(--paper2) 0%,var(--paper) 46%)}
+a{text-decoration:none;color:inherit}
+img{display:block;max-width:100%}
+.serif{font-family:var(--serif);font-weight:700}
+
+.auth-shell{width:100%;max-width:436px}
+.auth-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;margin-bottom:22px;justify-content:center;color:var(--ink)}
+.auth-logo .mk{width:32px;height:32px;border-radius:9px;background:var(--raised);padding:5px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
+.auth-card{background:var(--raised);border:1px solid var(--line);border-radius:18px;padding:34px 32px;box-shadow:0 24px 60px rgba(32,32,29,.07)}
+.auth-head{margin-bottom:22px}
+.auth-head.center{text-align:center}
+.auth-head h1{font-family:var(--serif);font-size:24px;font-weight:700;letter-spacing:.01em;margin-bottom:8px}
+.auth-head p{font-size:14px;color:var(--muted);line-height:1.8}
+
+/* info / note */
+.note{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--skill);border-radius:12px;padding:15px 17px;margin-bottom:22px}
+.note h5{font-size:13.5px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.note h5 i{color:var(--skill-d)}
+.note p{font-size:13px;color:var(--muted);line-height:1.75}
+.note p+p{margin-top:8px}
+.note a{color:var(--skill-d);font-weight:600;text-decoration:underline}
+.note ol{margin:2px 0 0;padding-left:1.25rem;font-size:13px;color:var(--muted)}
+.note ol li{margin-bottom:5px}
+.note.plain{border-left-color:var(--line)}
+
+/* fields */
+.alert{display:flex;align-items:flex-start;gap:10px;background:#f7ece9;border:1px solid #e6cdc7;color:var(--lucky);border-radius:12px;padding:.85rem 1rem;font-size:14px;margin-bottom:18px}
+.alert i{flex-shrink:0;margin-top:2px}
+.field{margin-bottom:18px}
+.field>label{display:flex;align-items:center;gap:6px;font-weight:600;font-size:13.5px;color:var(--ink2);margin-bottom:9px}
+.field>label i{color:var(--skill-d)}
+.control{position:relative}
+.control .lead-ic{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:16px;transition:color .25s;pointer-events:none;z-index:2}
+.control input,.control .form-control{width:100%;height:52px;border:1px solid var(--line);border-radius:12px;background:var(--raised);font-family:var(--sans);font-size:16px;color:var(--ink);
+  padding:0 46px 0 44px;transition:border-color .25s,box-shadow .25s;display:block}
+.control.no-ic input,.control.no-ic .form-control{padding-left:16px}
+.control input::placeholder{color:var(--faint)}
+.control input:focus,.control .form-control:focus{outline:none;border-color:var(--skill);box-shadow:0 0 0 3px rgba(63,122,95,.14)}
+.control input:focus~.lead-ic,.control .form-control:focus~.lead-ic{color:var(--skill-d)}
+.toggle-pw{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:none;background:transparent;color:var(--faint);
+  border-radius:9px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:color .2s,background .2s;z-index:2}
+.toggle-pw:hover{color:var(--skill-d);background:var(--paper2)}
+.fld-err{color:var(--lucky);font-size:13px;margin-top:6px;display:flex;align-items:flex-start;gap:5px}
+.fld-err i{flex-shrink:0;margin-top:2px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.55em;width:100%;height:52px;border:none;cursor:pointer;
+  font-family:var(--sans);font-weight:600;font-size:15.5px;border-radius:12px;transition:transform .2s,background .2s,border-color .2s;text-decoration:none}
+.btn-primary{background:var(--ink);color:var(--paper)}
+.btn-primary:hover{background:#000;transform:translateY(-1px);color:var(--paper)}
+.btn-primary:active{transform:translateY(0)}
+.btn-line{background:var(--raised);border:1px solid var(--line);color:var(--ink)}
+.btn-line:hover{border-color:var(--muted);color:var(--ink)}
+
+/* success badge */
+.icon-badge{width:60px;height:60px;border-radius:16px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:28px}
+.icon-badge.ok{background:rgba(63,122,95,.12);color:var(--skill)}
+.icon-badge.warn{background:rgba(176,88,79,.12);color:var(--lucky)}
+
+.backlink{display:inline-flex;align-items:center;gap:6px;justify-content:center;width:100%;margin-top:18px;font-size:13.5px;font-weight:500;color:var(--muted)}
+.backlink:hover{color:var(--ink);text-decoration:underline}
+.legal{text-align:center;margin-top:18px;font-size:12px;color:var(--faint);line-height:1.7}
+.legal a{color:var(--muted);text-decoration:underline}
+</style>
+{% block auth_extra_head %}{% endblock %}
+</head>
+<body>
+<main class="auth-shell">
+  <a class="auth-logo" href="{% url 'landing_page' %}"><span class="mk"><img src="{% static 'images/icon-192.svg' %}" alt="カブログ"></span>カブログ</a>
+  <div class="auth-card">
+    {% block auth_body %}{% endblock %}
+  </div>
+  {% block auth_below %}{% endblock %}
+</main>
+{% block auth_scripts %}{% endblock %}
+</body>
+</html>

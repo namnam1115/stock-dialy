@@ -1,685 +1,247 @@
-{% extends 'base.html' %}
+{% extends 'public_base.html' %}
 
-{% block title %}よくある質問 | カブログ{% endblock %}
+{% block doc_title %}よくある質問 | カブログ{% endblock %}
 
-{% block head %}
-{{ block.super }}
-<style>
-
-  /* Hero Section */
-  .faq-hero {
-    background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%);
-    color: var(--text-inverse);
-    padding: 4rem 0;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .faq-hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: 
-      radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
-  }
-
-  .faq-hero-content {
-    position: relative;
-    z-index: 2;
-    text-align: center;
-    max-width: 48rem;
-    margin: 0 auto;
-  }
-
-  .faq-hero h1 {
-    color: var(--text-inverse);
-    font-size: clamp(2rem, 4vw, 3rem);
-    font-weight: 800;
-    margin-bottom: 1rem;
-    letter-spacing: -0.02em;
-  }
-
-  .faq-hero p {
-    font-size: 1.125rem;
-    opacity: 0.9;
-    line-height: 1.6;
-  }
-
-  /* Container */
-  .faq-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 3rem 1rem;
-  }
-  
-  /* Categories */
-  .faq-categories {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 3rem;
-    justify-content: center;
-  }
-  
-  .faq-category {
-    padding: 0.75rem 1.5rem;
-    background-color: var(--surface-elevated);
-    border: 1px solid var(--border-primary);
-    border-radius: var(--radius-2xl);
-    font-weight: 500;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all var(--duration-200) var(--ease-in-out);
-    box-shadow: var(--shadow-sm);
-  }
-  
-  .faq-category:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-    border-color: var(--border-secondary);
-  }
-
-  .faq-category.active {
-    background: var(--primary-color);
-    color: var(--text-inverse);
-    border-color: transparent;
-    box-shadow: var(--shadow-lg);
-  }
-
-  .faq-hero-content h1,
-  .faq-hero-content p {
-    background-color: transparent;
-    color: var(--text-inverse);
-  }
-
-  /* FAQ List */
-  .faq-list {
-    margin-bottom: 3rem;
-  }
-  
-  .faq-item {
-    margin-bottom: 1rem;
-    background: var(--surface-elevated);
-    border: 1px solid var(--border-primary);
-    border-radius: var(--radius-xl);
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-    transition: all var(--duration-300) var(--ease-out);
-  }
-
-  .faq-item:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
-  }
-  
-  .faq-question {
-    padding: 1.5rem;
-    background-color: var(--surface-elevated);
-    cursor: pointer;
-    font-weight: 600;
-    color: var(--text-primary);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: all var(--duration-200) var(--ease-in-out);
-    font-size: 1.125rem;
-  }
-
-  .faq-question:hover {
-    background-color: var(--surface);
-  }
-  
-  .faq-question i {
-    transition: transform var(--duration-300) var(--ease-in-out);
-    color: var(--primary-500);
-    font-size: 1.25rem;
-  }
-  
-  .faq-question.open i {
-    transform: rotate(180deg);
-  }
-  
-  .faq-answer {
-    padding: 0;
-    max-height: 0;
-    overflow: hidden;
-    transition: all var(--duration-300) var(--ease-in-out);
-    background-color: var(--surface);
-  }
-  
-  .faq-answer.open {
-    padding: 1.5rem;
-    max-height: 1000px;
-  }
-  
-  .faq-answer p {
-    margin-bottom: 1rem;
-    line-height: 1.6;
-    color: var(--text-secondary);
-  }
-  
-  .faq-answer p:last-child {
-    margin-bottom: 0;
-  }
-
-  .faq-answer ul, .faq-answer ol {
-    margin-bottom: 1rem;
-    padding-left: 1.5rem;
-  }
-
-  .faq-answer li {
-    margin-bottom: 0.5rem;
-    line-height: 1.6;
-    color: var(--text-secondary);
-  }
-  
-  .faq-highlight {
-    background: linear-gradient(135deg, rgba(8, 145, 178, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
-    border-left: 4px solid var(--primary-500);
-    padding: 1.25rem;
-    border-radius: var(--radius-md);
-    margin: 1rem 0;
-  }
-
-  .faq-highlight p {
-    margin-bottom: 0;
-    color: var(--text-primary);
-    font-weight: 500;
-  }
-  
-  /* CTA Section */
-  .still-have-questions {
-    text-align: center;
-    padding: 3rem 2rem;
-    background: linear-gradient(135deg, var(--surface) 0%, var(--neutral-100) 100%);
-    border-radius: var(--radius-2xl);
-    border: 1px solid var(--border-primary);
-    box-shadow: var(--shadow-lg);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .still-have-questions::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: 
-      radial-gradient(circle at 30% 70%, rgba(8, 145, 178, 0.05) 0%, transparent 50%),
-      radial-gradient(circle at 70% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
-  }
-
-  .still-have-questions-content {
-    position: relative;
-    z-index: 2;
-  }
-  
-  .still-have-questions h3 {
-    margin-bottom: 1rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    font-size: 1.5rem;
-  }
-
-  .still-have-questions p {
-    color: var(--text-secondary);
-    margin-bottom: 1.5rem;
-    font-size: 1.125rem;
-  }
-  
-  .contact-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.875rem 2rem;
-    background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%);
-    border-radius: var(--radius-xl);
-    font-weight: 600;
-    transition: all var(--duration-300) var(--ease-out);
-    text-decoration: none;
-    box-shadow: var(--shadow-md);
-    font-size: 1rem;
-  }
-  
-  .contact-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-xl);
-    color: var(--text-inverse);
-  }
-
-  /* Animations */
-  .fade-in {
-    opacity: 0;
-    transform: translateY(2rem);
-    transition: all 0.6s var(--ease-out);
-  }
-
-  .fade-in.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* ========== ダークモード ========== */
-  .dark-mode .faq-category,
-  [data-theme="dark"] .faq-category {
-    background-color: var(--dm-card) !important;
-    border-color: var(--dm-border) !important;
-    color: var(--dm-text-200) !important;
-  }
-
-  .dark-mode .faq-category:hover,
-  [data-theme="dark"] .faq-category:hover {
-    border-color: var(--dm-text-200) !important;
-  }
-
-  .dark-mode .faq-category.active,
-  [data-theme="dark"] .faq-category.active {
-    background-color: var(--dm-primary-100) !important;
-    color: white !important;
-    border-color: var(--dm-primary-100) !important;
-  }
-
-  .dark-mode .faq-item,
-  [data-theme="dark"] .faq-item {
-    background-color: var(--dm-card) !important;
-    border-color: var(--dm-border) !important;
-  }
-
-  .dark-mode .faq-question,
-  [data-theme="dark"] .faq-question {
-    background-color: var(--dm-card) !important;
-    color: var(--dm-text-100) !important;
-  }
-
-  .dark-mode .faq-question:hover,
-  [data-theme="dark"] .faq-question:hover {
-    background-color: rgba(71, 85, 105, 0.3) !important;
-  }
-
-  .dark-mode .faq-question i,
-  [data-theme="dark"] .faq-question i {
-    color: var(--dm-primary-200) !important;
-  }
-
-  .dark-mode .faq-answer,
-  [data-theme="dark"] .faq-answer {
-    background-color: rgba(71, 85, 105, 0.15) !important;
-  }
-
-  .dark-mode .faq-answer p,
-  [data-theme="dark"] .faq-answer p,
-  .dark-mode .faq-answer li,
-  [data-theme="dark"] .faq-answer li {
-    color: var(--dm-text-200) !important;
-  }
-
-  .dark-mode .faq-highlight,
-  [data-theme="dark"] .faq-highlight {
-    background: linear-gradient(135deg, rgba(89, 142, 243, 0.1), rgba(37, 99, 235, 0.08)) !important;
-    border-left-color: var(--dm-primary-100) !important;
-  }
-
-  .dark-mode .faq-highlight p,
-  [data-theme="dark"] .faq-highlight p {
-    color: var(--dm-text-100) !important;
-  }
-
-  .dark-mode .still-have-questions,
-  [data-theme="dark"] .still-have-questions {
-    background: linear-gradient(135deg, var(--dm-card) 0%, rgba(71, 85, 105, 0.3) 100%) !important;
-    border-color: var(--dm-border) !important;
-  }
-
-  .dark-mode .still-have-questions h3,
-  [data-theme="dark"] .still-have-questions h3 {
-    color: var(--dm-text-100) !important;
-  }
-
-  .dark-mode .still-have-questions p,
-  [data-theme="dark"] .still-have-questions p {
-    color: var(--dm-text-200) !important;
-  }
-
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .faq-hero {
-      padding: 3rem 0;
-    }
-
-    .faq-container {
-      padding: 2rem 1rem;
-    }
-    
-    .faq-categories {
-      gap: 0.75rem;
-    }
-    
-    .faq-category {
-      padding: 0.5rem 1rem;
-      font-size: 0.875rem;
-    }
-    
-    .faq-question {
-      padding: 1rem;
-      font-size: 1rem;
-    }
-    
-    .faq-answer.open {
-      padding: 1rem;
-    }
-
-    .still-have-questions {
-      padding: 2rem 1rem;
-    }
-
-    .contact-btn {
-      padding: 0.75rem 1.5rem;
-      font-size: 0.9rem;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .faq-categories {
-      flex-direction: column;
-      align-items: center;
-    }
-    
-    .faq-category {
-      width: 100%;
-      max-width: 250px;
-      text-align: center;
-    }
-  }
-</style>
-{% endblock %}
-
-{% block content %}
-<!-- Hero Section -->
-<section class="faq-hero">
-  <div class="container">
-    <div class="faq-hero-content">
-      <h1>よくある質問</h1>
-      <p>カブログの利用方法や機能について、よくいただく質問をまとめました。</p>
-    </div>
+{% block doc_hero %}
+<section class="doc-hero">
+  <div class="wrap">
+    <h1 class="serif">よくある質問</h1>
+    <p>カブログの考え方や機能について、よくいただく質問をまとめました。</p>
   </div>
 </section>
+{% endblock %}
 
-<div class="container faq-container">
-  <div class="faq-categories fade-in">
-    <div class="faq-category active" data-category="general">一般的な質問</div>
-    <div class="faq-category" data-category="features">機能について</div>
-    <div class="faq-category" data-category="data">データと分析</div>
-    <div class="faq-category" data-category="account">アカウント管理</div>
+{% block doc_body %}
+  <div class="faq-cats fade-in">
+    <div class="faq-cat active" data-category="general">サービスについて</div>
+    <div class="faq-cat" data-category="features">記録と検証</div>
+    <div class="faq-cat" data-category="data">振り返りと機能</div>
+    <div class="faq-cat" data-category="account">はじめ方・アカウント</div>
   </div>
-  
+
+  <!-- サービスについて -->
   <div class="faq-list fade-in" id="general">
     <div class="faq-item">
-      <div class="faq-question">
-        カブログとは何ですか？
-        <i class="bi bi-chevron-down"></i>
-      </div>
-      <div class="faq-answer">
-        <p>カブログは、投資家のための日記アプリです。株式投資の記録・分析・改善を支援するプラットフォームとして、投資判断のプロセスを整理し、より良い投資家になるための振り返りをサポートします。</p>
-        
-        <div class="faq-highlight">
-          <p><strong>重要:</strong> カブログは投資判断の記録と分析に特化したツールであり、投資アドバイスを提供したり、特定の銘柄を推奨するサービスではありません。</p>
-        </div>
+      <div class="faq-q">カブログとは何ですか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>カブログは、投資の「売買」ではなく「判断」を記録するための投資ノートです。「いくら儲けたか」ではなく「なぜ買い、なぜ売り、その判断は正しかったか」を残し、<strong>予想 → 結果 → 検証 → 学び</strong>のループで意思決定の質を磨いていく——いわば投資家のための「成長OS」です。</p>
+        <div class="callout info"><p><strong>重要:</strong> カブログは投資判断の記録と検証に特化したツールであり、投資アドバイスを提供したり、特定の銘柄を推奨するサービスではありません。</p></div>
       </div>
     </div>
-    
     <div class="faq-item">
-      <div class="faq-question">
-        カブログは無料で利用できますか？
-        <i class="bi bi-chevron-down"></i>
-      </div>
-      <div class="faq-answer">
-        <p>はい、カブログの基本機能は無料でご利用いただけます。アカウント作成後、投資記録の管理、基本的な分析機能、分析テンプレートの利用など、主要な機能をすべて無料でお使いいただけます。</p>
-      </div>
-    </div>
-    
-    <div class="faq-item">
-      <div class="faq-question">
-        カブログは投資のアドバイスをしてくれますか？
-        <i class="bi bi-chevron-down"></i>
-      </div>
-      <div class="faq-answer">
-        <p>いいえ、カブログは投資アドバイスを提供するサービスではありません。カブログは、ユーザー自身の投資判断を記録し、そのプロセスを振り返るためのツールです。</p>
-        
-        <p>カブログでは、以下のことを行います：</p>
+      <div class="faq-q">証券口座アプリと何が違いますか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>証券口座アプリは「損益」を正確に記録するのが得意です。カブログが記録するのは、その手前にある<strong>「なぜ、そう判断したか」</strong>です。</p>
         <ul>
-          <li>投資判断の記録と整理</li>
-          <li>過去の投資パターンの分析</li>
-          <li>投資プロセスの改善サポート</li>
+          <li>買った理由（仮説）とその後の見立ての変化</li>
+          <li>仮説が当たったかどうかの答え合わせ（損益とは別に評価）</li>
+          <li>そこから得た学びの蓄積</li>
         </ul>
-        
-        <p>カブログでは、以下のことは行いません：</p>
+        <p>損益計算は証券会社アプリに任せ、カブログは「判断の質」を磨くことに集中します。両方を併用するのがおすすめです。</p>
+      </div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">カブログは無料で利用できますか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>はい、基本機能はすべて無料でご利用いただけます。記録・仮説と検証・見立ての変遷・想起・投資家カルテ・年間レビュー・CSV取込など、主要な機能をクレジットカード登録なしでお使いいただけます。</p>
+      </div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">カブログは投資のアドバイスをしてくれますか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>いいえ。カブログは投資助言を行うサービスではありません。あなた自身の判断を記録し、そのプロセスを振り返るためのツールです。</p>
+        <p>カブログが行うこと：</p>
+        <ul>
+          <li>投資判断（仮説）の記録と整理</li>
+          <li>仮説の当否と損益を分けた検証</li>
+          <li>過去のパターンや傾向の可視化</li>
+        </ul>
+        <p>カブログが行わないこと：</p>
         <ul>
           <li>特定の銘柄の推奨</li>
-          <li>投資タイミングのアドバイス</li>
+          <li>売買タイミングの助言</li>
           <li>将来の株価予測</li>
         </ul>
-        
-        <div class="faq-highlight">
-          <p>投資判断はすべてユーザー自身の責任で行ってください。カブログの利用による投資結果について、運営者は一切の責任を負いません。</p>
-        </div>
+        <div class="callout info"><p>投資判断はすべてユーザー自身の責任で行ってください。カブログの利用による投資結果について、運営者は一切の責任を負いません。</p></div>
       </div>
     </div>
   </div>
-  
-  <div class="faq-list fade-in" id="features" style="display: none;">
+
+  <!-- 記録と検証（コア） -->
+  <div class="faq-list fade-in" id="features" style="display:none">
     <div class="faq-item">
-      <div class="faq-question">
-        分析テンプレートとは何ですか？
-        <i class="bi bi-chevron-down"></i>
-      </div>
-      <div class="faq-answer">
-        <p>分析テンプレートは、投資判断の際に考慮すべき項目を整理するためのフレームワークです。自分だけの投資基準や分析項目をカスタマイズして作成できます。</p>
-        
-        <p>例えば、以下のような項目を設定できます：</p>
-        <ul>
-          <li>企業の財務状況に関するチェック項目</li>
-          <li>業界動向の評価</li>
-          <li>リスク要因の分析</li>
-          <li>将来性の評価基準</li>
-        </ul>
-        
-        <p>テンプレートを使用することで、投資判断の一貫性を保ち、感情に左右されない投資を実現できます。</p>
+      <div class="faq-q">「仮説」と「検証予定日」とは何ですか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>仮説とは、「なぜ買うか」を一文の主張にしたものです。カブログでは仮説に、答え合わせのための<strong>確認の目印</strong>（何がどうなれば正解か）と<strong>最悪のケース</strong>、そして<strong>検証予定日</strong>を添えて記録できます。</p>
+        <p>予定日が来ると、その仮説は「答え合わせを待つ仮説」としてホームに現れ、判断しっぱなしを防ぎます。</p>
       </div>
     </div>
-    
     <div class="faq-item">
-      <div class="faq-question">
-        継続記録機能とは何ですか？
-        <i class="bi bi-chevron-down"></i>
-      </div>
-      <div class="faq-answer">
-        <p>継続記録機能は、投資後の状況変化や考え方の変化を時系列で記録する機能です。購入時点だけでなく、その後の判断プロセスも記録することで、投資判断の変化を追跡できます。</p>
-        
-        <p>継続記録では以下の情報を記録できます：</p>
+      <div class="faq-q">「判断の質」と損益を分けて検証するとはどういうことですか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>仮説は正しかったのに株価が下がることもあれば、仮説は外れたのに偶然儲かることもあります。カブログは<strong>仮説の当否</strong>と<strong>損益</strong>を分けて記録し、結果を次の2×2で捉えます。</p>
         <ul>
-          <li>記録時点の株価</li>
-          <li>新たな気づきや情報</li>
-          <li>判断の変化とその理由</li>
-          <li>重要度（高/中/低）とタイプ（分析更新/ニュース/決算情報など）</li>
+          <li><strong>再現すべき勝ち</strong>（仮説◯ × 利益）</li>
+          <li><strong>正しいが報われず</strong>（仮説◯ × 損失）</li>
+          <li><strong>偶然の勝ち・要注意</strong>（仮説× × 利益）</li>
+          <li><strong>想定通りの負け</strong>（仮説× × 損失）</li>
         </ul>
+        <div class="callout tip"><h4>ねらい</h4><p>「偶然の勝ち」を実力と勘違いしないこと。これが長く勝ち続けるための最初の一歩です。</p></div>
       </div>
     </div>
-    
     <div class="faq-item">
-      <div class="faq-question">
-        ポートフォリオスナップショットとは何ですか？
-        <i class="bi bi-chevron-down"></i>
+      <div class="faq-q">「見立ての変遷」とは何ですか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>投資理由や仮説は、決算や相場を経て静かに書き換わっていきます。カブログは投資理由を上書き保存するたびに、<strong>前の版を自動でスナップショット</strong>として残します。操作は不要です。</p>
+        <p>過去の版は時系列で「見立ての変遷」に並び、全文検索もできます。今日の判断が、どんな思考の積み重ねで生まれたかを後から正確に辿れます。</p>
       </div>
-      <div class="faq-answer">
-        <p>ポートフォリオスナップショットは、特定時点のポートフォリオ状況を記録する機能です。保有銘柄の構成や配分を記録し、時間経過による変化を追跡できます。</p>
-        
-        <p>スナップショット機能では、以下のことが可能です：</p>
-        <ul>
-          <li>特定時点の資産配分の可視化</li>
-          <li>セクター（業種）別の投資比率の分析</li>
-          <li>過去のスナップショットとの比較</li>
-        </ul>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">投資家カルテ・知識ライブラリとは何ですか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>検証の蓄積から、あなたが「どういう投資家か」を言葉で返す自己診断が<strong>投資家カルテ</strong>です。得意なテーマ・苦手なテーマ、繰り返す失敗、再現したい勝ち筋などが立ち上がります。</p>
+        <p>各検証で得た学び（教訓）は<strong>知識ライブラリ</strong>に、2×2の象限タグ付きで貯まっていきます。「勝率」より「あなたは仮説は当てるが利確が早い」といった、成長に効く言葉が得られます。</p>
+      </div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">分析テンプレートとは何ですか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>分析テンプレートは、投資判断の際に考慮すべき項目を整理するためのフレームワークです。自分の投資スタイルに合ったチェック項目や評価軸をカスタマイズして作成し、記録時に使い回せます。</p>
+        <p>テンプレートを使うことで判断の一貫性を保ち、感情に左右されにくい記録ができます。</p>
       </div>
     </div>
   </div>
-  
-  <div class="faq-list fade-in" id="data" style="display: none;">
+
+  <!-- 振り返りと機能 -->
+  <div class="faq-list fade-in" id="data" style="display:none">
     <div class="faq-item">
-      <div class="faq-question">
-        分析ダッシュボードではどのような情報が見られますか？
-        <i class="bi bi-chevron-down"></i>
-      </div>
-      <div class="faq-answer">
-        <p>分析ダッシュボードでは、あなたの投資パターンや傾向を様々な角度から分析できます。</p>
-        
-        <p>主な分析項目：</p>
+      <div class="faq-q">ホームに出る「想起」とは何ですか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>ホームを開くと、変動する評価損益ではなく、<strong>過去のあなた</strong>が現れます。</p>
         <ul>
-          <li>投資タイミングの傾向</li>
-          <li>保有期間の分布</li>
-          <li>売買パターンの可視化</li>
-          <li>よく使用するタグの分析</li>
-          <li>テンプレート使用状況と完了率</li>
-          <li>利益率の分布</li>
+          <li>答え合わせを待つ仮説（検証予定日が来たもの）</li>
+          <li>1年前の今日に書いた記録</li>
+          <li>最近の学び</li>
         </ul>
-        
-        <p>これらの分析を通じて、自分の投資プロセスの強みと改善点を客観的に把握できます。</p>
+        <p>毎日ひらくたびに、忘れていた思考と再会できます。過去の記録を死蔵させないための仕組みです。</p>
       </div>
     </div>
-    
     <div class="faq-item">
-      <div class="faq-question">
-        株価データは自動で更新されますか？
-        <i class="bi bi-chevron-down"></i>
+      <div class="faq-q">「探索」ではどんなことができますか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>テーマ（例：半導体）を起点に、関連する小さな要素（@AI半導体・@半導体装置など）と、そのテーマで書いた銘柄が広がります。銘柄をタップすれば、その銘柄が関わる別のテーマへ——と、タップで1段ずつ深掘りしていけます。</p>
+        <p>過去に書いた判断を探しにいけるので、記録が死蔵しません。</p>
       </div>
-      <div class="faq-answer">
-        <p>カブログでは、株価データの自動更新機能は提供していません。投資記録の主な目的は、ユーザー自身の判断プロセスを記録することにあるため、株価は手動で入力する設計になっています。</p>
-        
-        <p>継続記録機能を使用する際に、その時点の株価を入力することで、購入時からの変動率は自動計算されます。</p>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">年間レビューとは何ですか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>その年に書いた記録・学び・勝ち筋タグを一本の読み物にまとめる、年次の振り返りです。1年分の判断と成長を通して読み返すことで、蓄積を実感できます。</p>
+      </div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">株価は自動で取得されますか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>はい。カブログは現在値・含み損益・時価に加え、PER・PBR・ROE・配当利回りといったバリュエーションを自動で取得して表示します。</p>
+        <p>ただし取得はベストエフォートです（外部データを利用しているため、銘柄・時間帯・市場によっては遅延したり取得できない場合があります）。記録の主役はあくまで「あなたの判断」であり、株価はその答え合わせを助ける補助情報として扱います。</p>
+      </div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">通知は届きますか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>検証予定日が近づいた仮説などを、アプリ内のお知らせや、対応ブラウザへのプッシュ通知でお届けします。カブログはPWAに対応しており、スマートフォンのホーム画面に追加してアプリのように使うこともできます。</p>
       </div>
     </div>
   </div>
-  
-  <div class="faq-list fade-in" id="account" style="display: none;">
+
+  <!-- はじめ方・アカウント -->
+  <div class="faq-list fade-in" id="account" style="display:none">
     <div class="faq-item">
-      <div class="faq-question">
-        アカウントの作成方法を教えてください
-        <i class="bi bi-chevron-down"></i>
+      <div class="faq-q">登録しないで試せますか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>はい。トップページの「登録なしでデモを試す」から、アカウント作成なしで共有のデモアカウントに入り、実際の画面を触っていただけます。</p>
+        <div class="callout tip"><h4>ご注意</h4><p>デモは共有アカウントです。入力したデータは定期的にリセットされます。本格的に使う場合は無料登録がおすすめです。</p></div>
       </div>
-      <div class="faq-answer">
-        <p>アカウント作成は簡単です。以下の手順で登録できます：</p>
-        
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">アカウントの作成方法を教えてください<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>以下の手順で登録できます：</p>
         <ol>
-          <li>トップページの「無料で始める」ボタンをクリック</li>
-          <li>「Google」でのログインを選択、またはメールアドレスで登録</li>
-          <li>Google認証の場合は、Googleアカウントでのログインを完了</li>
-          <li>メールアドレス登録の場合は、必要情報を入力して「登録」をクリック</li>
-          <li>登録完了後、自動的にダッシュボードに移動します</li>
+          <li>トップページの「無料で始める」をクリック</li>
+          <li>Googleアカウントでの登録、またはメールアドレスで登録を選択</li>
+          <li>メール登録の場合は、ユーザー名・メールアドレス・パスワードを入力</li>
+          <li>登録が完了すると、そのままホーム画面に移動します</li>
         </ol>
       </div>
     </div>
-    
     <div class="faq-item">
-      <div class="faq-question">
-        パスワードを忘れた場合はどうすればよいですか？
-        <i class="bi bi-chevron-down"></i>
+      <div class="faq-q">証券会社のデータを取り込めますか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>はい。楽天証券・SBI証券の取引履歴CSVを一括で取り込めるので、これまでの取引をまとめて記録の土台にできます。</p>
+        <p>また保有銘柄については、EDINET（金融庁の開示システム）から最新の開示書類を自動で追いかけ、日記に表示します。</p>
       </div>
-      <div class="faq-answer">
-        <p>パスワードをお忘れの場合は、以下の手順でリセットできます：</p>
-        
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">パスワードを忘れた場合はどうすればよいですか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>以下の手順でリセットできます：</p>
         <ol>
-          <li>ログインページの「パスワードを忘れた方」をクリック</li>
+          <li>ログインページの「パスワードをお忘れですか？」をクリック</li>
           <li>登録したメールアドレスを入力</li>
-          <li>メールに記載されたリンクからパスワードリセット画面に移動</li>
-          <li>新しいパスワードを設定</li>
+          <li>メールに届いたリンクから、新しいパスワードを設定</li>
         </ol>
-        
-        <p>なお、Googleアカウントでログインしている場合は、パスワードリセットは不要です。通常通りGoogleアカウントでログインしてください。</p>
+        <p>Googleアカウントでログインしている場合は、パスワードリセットは不要です。通常どおりGoogleでログインしてください。</p>
       </div>
     </div>
-    
     <div class="faq-item">
-      <div class="faq-question">
-        アカウントを削除することはできますか？
-        <i class="bi bi-chevron-down"></i>
-      </div>
-      <div class="faq-answer">
-        <p>はい、アカウントの削除は可能です。</p>
-        
+      <div class="faq-q">アカウントを削除することはできますか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>はい、可能です。</p>
         <ol>
           <li>ログイン後、右上のユーザーメニューから「プロフィール」を選択</li>
-          <li>プロフィールページ下部の「アカウント設定」セクションにある「アカウント削除」をクリック</li>
-          <li>確認画面で「削除する」ボタンをクリック</li>
+          <li>プロフィールページの「アカウント設定」から「アカウント削除」をクリック</li>
+          <li>確認画面で削除を実行</li>
         </ol>
-        
-        <div class="faq-highlight">
-          <p><strong>注意:</strong> アカウント削除を行うと、すべての投資記録や分析データが完全に削除され、復元できなくなります。</p>
-        </div>
+        <div class="callout warn"><p><strong>注意:</strong> アカウントを削除すると、すべての記録・仮説・検証・学びのデータが完全に削除され、復元できなくなります。</p></div>
+      </div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">記録したデータは安全ですか？<i class="bi bi-chevron-down"></i></div>
+      <div class="faq-a">
+        <p>あなたの記録は、あなただけのものです。他のユーザーに公開されることはなく、サービス提供以外の目的では利用しません。データの取り扱いの詳細は<a href="{% url 'ads:privacy_policy' %}">プライバシーポリシー</a>をご確認ください。</p>
       </div>
     </div>
   </div>
-  
-  <div class="still-have-questions fade-in">
-    <div class="still-have-questions-content">
-      <h3>まだ質問がありますか？</h3>
-      <p>お探しの情報が見つからない場合は、お気軽にお問い合わせください。</p>
-      <a href="{% url 'contact:contact' %}" class="contact-btn">
-        <i class="bi bei-envlope"></i>お問い合わせ
-      </a>
-    </div>
+
+  <div class="still-questions fade-in">
+    <h3>まだ質問がありますか？</h3>
+    <p>お探しの情報が見つからない場合は、お気軽にお問い合わせください。</p>
+    <a href="{% url 'contact:contact' %}" class="doc-btn"><i class="bi bi-envelope"></i>お問い合わせ</a>
   </div>
-</div>
+{% endblock %}
 
+{% block doc_scripts %}
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Intersection Observer for animations
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, observerOptions);
-
-    document.querySelectorAll('.fade-in').forEach(el => {
-      observer.observe(el);
+  // FAQ accordion
+  document.querySelectorAll('.faq-q').forEach(q => {
+    q.addEventListener('click', function(){
+      this.classList.toggle('open');
+      this.nextElementSibling.classList.toggle('open');
     });
-
-    // FAQの開閉処理
-    const questions = document.querySelectorAll('.faq-question');
-    
-    questions.forEach(question => {
-      question.addEventListener('click', function() {
-        const answer = this.nextElementSibling;
-        const isOpen = this.classList.contains('open');
-        
-        // 現在のFAQを開閉
-        this.classList.toggle('open');
-        answer.classList.toggle('open');
-      });
-    });
-    
-    // カテゴリー切り替え処理
-    const categories = document.querySelectorAll('.faq-category');
-    const faqLists = document.querySelectorAll('.faq-list');
-    
-    categories.forEach(category => {
-      category.addEventListener('click', function() {
-        const targetCategory = this.getAttribute('data-category');
-        
-        // アクティブなカテゴリーを切り替え
-        categories.forEach(c => c.classList.remove('active'));
-        this.classList.add('active');
-        
-        // 対応するFAQリストを表示
-        faqLists.forEach(list => {
-          list.style.display = list.id === targetCategory ? 'block' : 'none';
-        });
+  });
+  // category switch
+  const cats = document.querySelectorAll('.faq-cat');
+  const lists = document.querySelectorAll('.faq-list');
+  cats.forEach(cat => {
+    cat.addEventListener('click', function(){
+      const target = this.getAttribute('data-category');
+      cats.forEach(c => c.classList.remove('active'));
+      this.classList.add('active');
+      lists.forEach(list => {
+        const show = list.id === target;
+        list.style.display = show ? 'block' : 'none';
+        if (show) list.classList.add('visible');
       });
     });
   });

@@ -1,422 +1,17 @@
-{% extends 'base.html' %}
+{% extends 'public_base.html' %}
 
-{% block title %}プライバシーポリシー | カブログ{% endblock %}
+{% block doc_title %}プライバシーポリシー | カブログ{% endblock %}
 
-{% block head %}
-{{ block.super }}
-<style>
-
-
-  /* Hero Section */
-  .privacy-hero {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color) 100%);
-    color: var(--text-inverse);
-    padding: 4rem 0;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .privacy-hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: 
-      radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
-  }
-
-  .privacy-hero-content {
-    position: relative;
-    z-index: 2;
-    text-align: center;
-    max-width: 48rem;
-    margin: 0 auto;
-  }
-
-  .privacy-hero h1 {
-    color: var(--text-inverse);
-    font-size: clamp(2rem, 4vw, 3rem);
-    font-weight: 800;
-    margin-bottom: 1rem;
-    letter-spacing: -0.02em;
-  }
-
-  .privacy-hero p {
-    font-size: 1.125rem;
-    opacity: 0.9;
-    line-height: 1.6;
-  }
-
-  /* Container */
-  .terms-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 3rem 1rem;
-  }
-  
-  /* Table of Contents */
-  .toc {
-    background: var(--surface-elevated);
-    border: 1px solid var(--border-primary);
-    border-radius: var(--radius-xl);
-    padding: 2rem;
-    margin-bottom: 3rem;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .toc h3 {
-    color: var(--primary-600);
-    font-weight: 700;
-    margin-bottom: 1rem;
-    font-size: 1.25rem;
-  }
-
-  .toc ol {
-    list-style: none;
-    counter-reset: toc-counter;
-    padding-left: 0;
-  }
-
-  .toc li {
-    counter-increment: toc-counter;
-    margin-bottom: 0.5rem;
-  }
-
-  .toc a {
-    color: var(--text-secondary);
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    padding: 0.5rem;
-    border-radius: var(--radius-md);
-    transition: all var(--duration-200) var(--ease-in-out);
-  }
-
-  .toc a::before {
-    content: counter(toc-counter) ".";
-    margin-right: 0.75rem;
-    font-weight: 600;
-    color: var(--primary-color);
-    min-width: 1.5rem;
-  }
-
-  .toc a:hover {
-    background: var(--surface);
-    color: var(--primary-600);
-    transform: translateX(4px);
-  }
-
-  /* Sections */
-  .terms-section {
-    margin-bottom: 3rem;
-    background: var(--surface-elevated);
-    border-radius: var(--radius-xl);
-    padding: 2rem;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-primary);
-    transition: all var(--duration-300) var(--ease-out);
-    scroll-margin-top: 2rem;
-  }
-
-  .terms-section:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
-  }
-  
-  .terms-section h2 {
-    color: var(--primary-600);
-    font-weight: 700;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 2px solid var(--primary-100);
-    font-size: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  
-  .terms-section h3 {
-    color: var(--text-primary);
-    font-weight: 600;
-    margin: 1.5rem 0 0.75rem;
-    font-size: 1.25rem;
-  }
-
-  .terms-section p {
-    line-height: 1.7;
-    margin-bottom: 1rem;
-    color: var(--text-secondary);
-  }
-
-  .terms-section ul, .terms-section ol {
-    margin-bottom: 1.5rem;
-    padding-left: 1.5rem;
-  }
-
-  .terms-section li {
-    margin-bottom: 0.5rem;
-    line-height: 1.6;
-    color: var(--text-secondary);
-  }
-  
-  .terms-list {
-    padding-left: 1.5rem;
-  }
-  
-  .terms-list li {
-    margin-bottom: 0.75rem;
-    line-height: 1.6;
-  }
-  
-  /* Highlight Boxes */
-  .highlight-box {
-    background: linear-gradient(135deg, rgba(8, 145, 178, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
-    border-left: 4px solid var(--primary-color);
-    padding: 1.5rem;
-    border-radius: var(--radius-lg);
-    margin: 1.5rem 0;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .highlight-box::before {
-    content: '';
-    position: absolute;
-    top: -20px;
-    right: -20px;
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: rgba(8, 145, 178, 0.1);
-  }
-
-  .highlight-box p {
-    margin-bottom: 0;
-    color: var(--text-primary);
-    font-weight: 500;
-  }
-  
-  .warning-box {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
-    border-left: 4px solid var(--error);
-    padding: 1.5rem;
-    border-radius: var(--radius-lg);
-    margin: 1.5rem 0;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .warning-box::before {
-    content: '';
-    position: absolute;
-    top: -20px;
-    right: -20px;
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: rgba(239, 68, 68, 0.1);
-  }
-
-  .warning-box p {
-    margin-bottom: 0;
-    color: var(--text-primary);
-    font-weight: 500;
-  }
-
-  /* Icon mappings for sections */
-  .terms-section[data-section="introduction"] h2::before {
-    content: '🛡️';
-    margin-right: 0.5rem;
-  }
-
-  .terms-section[data-section="collection"] h2::before {
-    content: '📊';
-    margin-right: 0.5rem;
-  }
-
-  .terms-section[data-section="usage"] h2::before {
-    content: '🎯';
-    margin-right: 0.5rem;
-  }
-
-  .terms-section[data-section="sharing"] h2::before {
-    content: '🤝';
-    margin-right: 0.5rem;
-  }
-
-  .terms-section[data-section="ads"] h2::before {
-    content: '📢';
-    margin-right: 0.5rem;
-  }
-
-  .terms-section[data-section="security"] h2::before {
-    content: '🔒';
-    margin-right: 0.5rem;
-  }
-
-  .terms-section[data-section="rights"] h2::before {
-    content: '⚖️';
-    margin-right: 0.5rem;
-  }
-
-  .terms-section[data-section="cookies"] h2::before {
-    content: '🍪';
-    margin-right: 0.5rem;
-  }
-
-  .terms-section[data-section="changes"] h2::before {
-    content: '🔄';
-    margin-right: 0.5rem;
-  }
-  
-  /* Disclaimer */
-  .disclaimer-note {
-    background: var(--surface);
-    border: 1px solid var(--border-primary);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    margin-top: 2rem;
-    font-style: italic;
-    color: var(--text-tertiary);
-  }
-
-  /* Animations */
-  .fade-in {
-    opacity: 0;
-    transform: translateY(2rem);
-    transition: all 0.6s var(--ease-out);
-  }
-
-  .fade-in.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* ========== ダークモード ========== */
-  .dark-mode .toc,
-  [data-theme="dark"] .toc {
-    background-color: var(--dm-card) !important;
-    border-color: var(--dm-border) !important;
-  }
-
-  .dark-mode .toc h3,
-  [data-theme="dark"] .toc h3 {
-    color: var(--dm-primary-200) !important;
-  }
-
-  .dark-mode .toc a,
-  [data-theme="dark"] .toc a {
-    color: var(--dm-text-200) !important;
-  }
-
-  .dark-mode .toc a::before,
-  [data-theme="dark"] .toc a::before {
-    color: var(--dm-primary-200) !important;
-  }
-
-  .dark-mode .toc a:hover,
-  [data-theme="dark"] .toc a:hover {
-    background-color: rgba(71, 85, 105, 0.3) !important;
-    color: var(--dm-primary-200) !important;
-  }
-
-  .dark-mode .terms-section,
-  [data-theme="dark"] .terms-section {
-    background-color: var(--dm-card) !important;
-    border-color: var(--dm-border) !important;
-  }
-
-  .dark-mode .terms-section h2,
-  [data-theme="dark"] .terms-section h2 {
-    color: var(--dm-primary-200) !important;
-    border-bottom-color: rgba(89, 142, 243, 0.3) !important;
-  }
-
-  .dark-mode .terms-section h3,
-  [data-theme="dark"] .terms-section h3 {
-    color: var(--dm-text-100) !important;
-  }
-
-  .dark-mode .terms-section p,
-  [data-theme="dark"] .terms-section p,
-  .dark-mode .terms-section li,
-  [data-theme="dark"] .terms-section li {
-    color: var(--dm-text-200) !important;
-  }
-
-  .dark-mode .terms-section a,
-  [data-theme="dark"] .terms-section a {
-    color: var(--dm-primary-200) !important;
-  }
-
-  .dark-mode .highlight-box,
-  [data-theme="dark"] .highlight-box {
-    background: linear-gradient(135deg, rgba(89, 142, 243, 0.1), rgba(37, 99, 235, 0.08)) !important;
-    border-left-color: var(--dm-primary-100) !important;
-  }
-
-  .dark-mode .highlight-box p,
-  [data-theme="dark"] .highlight-box p {
-    color: var(--dm-text-100) !important;
-  }
-
-  .dark-mode .warning-box,
-  [data-theme="dark"] .warning-box {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.08)) !important;
-    border-left-color: #ef4444 !important;
-  }
-
-  .dark-mode .warning-box p,
-  [data-theme="dark"] .warning-box p {
-    color: var(--dm-text-100) !important;
-  }
-
-  .dark-mode .disclaimer-note,
-  [data-theme="dark"] .disclaimer-note {
-    background-color: rgba(71, 85, 105, 0.2) !important;
-    border-color: var(--dm-border) !important;
-    color: var(--dm-text-200) !important;
-  }
-
-  .dark-mode .disclaimer-note a,
-  [data-theme="dark"] .disclaimer-note a {
-    color: var(--dm-primary-200) !important;
-  }
-
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .privacy-hero {
-      padding: 3rem 0;
-    }
-
-    .terms-container {
-      padding: 2rem 1rem;
-    }
-
-    .terms-section {
-      padding: 1.5rem;
-    }
-
-    .toc {
-      padding: 1.5rem;
-    }
-  }
-</style>
-{% endblock %}
-
-{% block content %}
-<!-- Hero Section -->
-<section class="privacy-hero">
-  <div class="container">
-    <div class="privacy-hero-content">
-      <h1>プライバシーポリシー</h1>
-      <p>最終更新日: 2025年3月29日</p>
-    </div>
+{% block doc_hero %}
+<section class="doc-hero">
+  <div class="wrap">
+    <h1 class="serif">プライバシーポリシー</h1>
+    <p class="updated">最終更新日: 2025年3月29日</p>
   </div>
 </section>
+{% endblock %}
 
-<div class="container terms-container">
-  <!-- Table of Contents -->
+{% block doc_body %}
   <div class="toc fade-in">
     <h3>目次</h3>
     <ol>
@@ -431,48 +26,45 @@
       <li><a href="#changes">プライバシーポリシーの変更</a></li>
     </ol>
   </div>
-  
-  <div class="terms-section fade-in" id="introduction" data-section="introduction">
+
+  <div class="doc-section fade-in" id="introduction">
     <h2>はじめに</h2>
     <p>カブログ（以下「当サービス」）は、ユーザーのプライバシーを尊重し、個人情報の保護に努めています。本プライバシーポリシーでは、当サービスがどのような情報を収集し、どのように利用・保護するかについて説明します。</p>
-    
-    <div class="highlight-box">
+    <div class="callout info">
       <p><strong>重要:</strong> 当サービスを利用することにより、本プライバシーポリシーに記載された情報の収集と利用に同意したものとみなされます。</p>
     </div>
   </div>
-  
-  <div class="terms-section fade-in" id="collection" data-section="collection">
+
+  <div class="doc-section fade-in" id="collection">
     <h2>収集する情報</h2>
     <h3>アカウント情報</h3>
     <p>当サービスを利用するために、以下の情報を収集します：</p>
-    <ul class="terms-list">
+    <ul>
       <li>ユーザー名</li>
       <li>メールアドレス</li>
       <li>Google認証を利用する場合の認証情報</li>
     </ul>
-    
     <h3>投資記録情報</h3>
     <p>ユーザーが当サービスに入力する投資記録情報：</p>
-    <ul class="terms-list">
+    <ul>
       <li>銘柄情報（銘柄名、コード）</li>
       <li>取引情報（購入日、購入価格、購入数量、売却日、売却価格など）</li>
       <li>投資理由や分析情報</li>
       <li>タグやカテゴリー情報</li>
     </ul>
-    
     <h3>利用状況の情報</h3>
     <p>サービス改善を目的として、以下の情報を収集することがあります：</p>
-    <ul class="terms-list">
+    <ul>
       <li>アクセスログ（IPアドレス、ブラウザの種類、アクセス日時など）</li>
       <li>機能の使用状況</li>
       <li>サービス内の行動パターン</li>
     </ul>
   </div>
-  
-  <div class="terms-section fade-in" id="usage" data-section="usage">
+
+  <div class="doc-section fade-in" id="usage">
     <h2>情報の利用目的</h2>
     <p>収集した情報は、以下の目的で利用します：</p>
-    <ul class="terms-list">
+    <ul>
       <li>ユーザーへのサービス提供</li>
       <li>アカウント管理と認証</li>
       <li>サービスの改善と新機能の開発</li>
@@ -481,136 +73,89 @@
       <li>不正利用の防止とセキュリティの確保</li>
     </ul>
   </div>
-  
-  <div class="terms-section fade-in" id="sharing" data-section="sharing">
+
+  <div class="doc-section fade-in" id="sharing">
     <h2>情報の共有</h2>
     <p>当サービスは、ユーザーの個人情報を以下の場合を除き、第三者と共有することはありません：</p>
-    <ul class="terms-list">
+    <ul>
       <li>ユーザーの明示的な同意がある場合</li>
       <li>法的な要請や規制に従う必要がある場合</li>
       <li>当サービスの権利や財産を保護する必要がある場合</li>
       <li>緊急事態でユーザーや他者の安全を確保する必要がある場合</li>
     </ul>
-    
     <h3>サービス提供事業者との共有</h3>
     <p>当サービスは、以下のサービス提供のために必要な範囲で情報を共有することがあります：</p>
-    <ul class="terms-list">
+    <ul>
       <li>ホスティングサービス提供者</li>
       <li>メール配信サービス</li>
       <li>分析サービス（Google Analyticsなど）</li>
       <li>広告配信サービス（Google AdSenseなど）</li>
     </ul>
-    
-    <div class="highlight-box">
+    <div class="callout info">
       <p><strong>注意:</strong> サービス提供事業者との情報共有は、当サービスの機能提供に必要な範囲に限定されます。これらの事業者は、当社と同等の情報保護義務を負っています。</p>
     </div>
   </div>
-  
-  <div class="terms-section fade-in" id="ads" data-section="ads">
+
+  <div class="doc-section fade-in" id="ads">
     <h2>広告について</h2>
     <p>当サービスでは、サービス維持のためにGoogle AdSenseなどの広告を掲載しています。これらの広告サービスはCookieを使用し、ユーザーの興味に基づいた広告を表示することがあります。</p>
-    
     <h3>広告オプトアウト</h3>
     <p>広告のパーソナライズをオプトアウトするには、以下の方法があります：</p>
-    <ul class="terms-list">
+    <ul>
       <li>当サービスの広告設定ページで設定を変更する</li>
-      <li>Google広告設定ページ（<a href="https://www.google.com/settings/ads" target="_blank">https://www.google.com/settings/ads</a>）で設定を変更する</li>
+      <li>Google広告設定ページ（<a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">https://www.google.com/settings/ads</a>）で設定を変更する</li>
       <li>ブラウザの設定でCookieを無効にする</li>
     </ul>
   </div>
-  
-  <div class="terms-section fade-in" id="security" data-section="security">
+
+  <div class="doc-section fade-in" id="security">
     <h2>データの保存と保護</h2>
     <p>当サービスは、ユーザーの個人情報を安全に保管するために適切なセキュリティ対策を講じています。具体的には以下の対策を実施しています：</p>
-    <ul class="terms-list">
+    <ul>
       <li>データの暗号化</li>
       <li>安全な認証システムの利用</li>
       <li>アクセス制限と権限管理</li>
       <li>定期的なセキュリティレビュー</li>
     </ul>
-    
     <h3>データの保存期間</h3>
     <p>ユーザーのデータは、サービス提供に必要な期間、または法的義務を遵守するために必要な期間保存されます。アカウントを削除した場合、個人情報は速やかに削除されますが、一部の情報は法的要件のために一定期間保持される場合があります。</p>
   </div>
-  
-  <div class="terms-section fade-in" id="rights" data-section="rights">
+
+  <div class="doc-section fade-in" id="rights">
     <h2>ユーザーの権利</h2>
     <p>ユーザーは以下の権利を有しています：</p>
-    <ul class="terms-list">
+    <ul>
       <li>個人情報へのアクセス権</li>
       <li>個人情報の訂正権</li>
       <li>個人情報の削除権（法的要件により制限される場合があります）</li>
       <li>データの処理に対する異議申し立て権</li>
       <li>データポータビリティの権利</li>
     </ul>
-    
     <p>これらの権利を行使するには、下記のお問い合わせ先までご連絡ください。</p>
   </div>
-  
-  <div class="terms-section fade-in" id="cookies" data-section="cookies">
+
+  <div class="doc-section fade-in" id="cookies">
     <h2>Cookieの使用</h2>
     <p>当サービスでは、ユーザー体験の向上や機能提供のためにCookieを使用しています。Cookieは以下の目的で使用されます：</p>
-    <ul class="terms-list">
+    <ul>
       <li>ログイン状態の維持</li>
       <li>ユーザー設定の保存</li>
       <li>アクセス分析</li>
       <li>広告のパーソナライズ</li>
     </ul>
-    
     <p>ブラウザの設定でCookieを無効にすることも可能ですが、一部の機能が正常に動作しなくなる場合があります。</p>
-    
-    <div class="warning-box">
+    <div class="callout warn">
       <p><strong>注意:</strong> Cookieを無効にすると、ログイン状態の維持などの基本機能が利用できなくなる場合があります。</p>
     </div>
   </div>
-  
-  <div class="terms-section fade-in" id="changes" data-section="changes">
+
+  <div class="doc-section fade-in" id="changes">
     <h2>プライバシーポリシーの変更</h2>
     <p>当サービスは、必要に応じて本プライバシーポリシーを変更することがあります。変更があった場合は、当ページで通知するとともに、重要な変更については電子メールでユーザーに通知します。</p>
   </div>
-  
+
   <div class="disclaimer-note fade-in">
     <p>本プライバシーポリシーは、法律の変更やサービスの変更に応じて、予告なく変更されることがあります。定期的に確認することをお勧めします。</p>
     <p>プライバシーポリシーに関するご質問やご意見がある場合は、<a href="{% url 'contact:contact' %}">お問い合わせ</a>よりご連絡ください。</p>
   </div>
-</div>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Intersection Observer for animations
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, observerOptions);
-
-    document.querySelectorAll('.fade-in').forEach(el => {
-      observer.observe(el);
-    });
-
-    // Smooth scrolling for TOC links
-    document.querySelectorAll('.toc a').forEach(link => {
-      link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const targetId = this.getAttribute('href').substring(1);
-        const targetElement = document.getElementById(targetId);
-        
-        if (targetElement) {
-          targetElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-          });
-        }
-      });
-    });
-  });
-</script>
 {% endblock %}
