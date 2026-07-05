@@ -226,6 +226,11 @@
         g.append('circle').attr('stroke', '#fff').attr('stroke-width', 1.5);
       }
       g.append('text').attr('y', 4).attr('x', 0).attr('text-anchor', 'middle');
+      // 展開状態バッジ（+ 開ける / − 開いてる / 非表示 葉）
+      const badge = g.append('g').attr('class', 'exg-badge');
+      badge.append('circle').attr('r', 6.5).attr('fill', '#fff').attr('stroke', '#64748b').attr('stroke-width', 1.2);
+      badge.append('text').attr('class', 'exg-badge-tx').attr('text-anchor', 'middle')
+        .attr('y', 3.6).attr('font-size', '11px').attr('font-weight', '800').attr('fill', '#334155');
     });
 
     const merged = enter.merge(node);
@@ -235,6 +240,24 @@
       .attr('x', (d) => -nodeRadius(d)).attr('y', (d) => -nodeRadius(d)).attr('fill', (d) => nodeColor(d));
     merged.select('text').attr('y', (d) => nodeRadius(d) + 12)
       .text((d) => (d.type === 'tag' ? '@' : '') + d.label);
+
+    // 展開状態バッジの更新（+ 開ける / − 開いてる / 葉なら非表示）
+    merged.each(function (d) {
+      const r = nodeRadius(d);
+      const isExp = expanded.has(d.id);
+      const cached = neighborCache.has(d.id);
+      const isLeaf = cached && (neighborCache.get(d.id) || []).length === 0;
+      const sym = isExp ? '−' : (isLeaf ? null : '+');
+      const badge = d3.select(this).select('.exg-badge');
+      if (sym == null) {
+        badge.style('display', 'none');
+      } else {
+        badge.style('display', null)
+          .attr('transform', `translate(${r * 0.78},${-r * 0.78})`);
+        badge.select('circle').attr('stroke', isExp ? '#0f766e' : '#94a3b8');
+        badge.select('.exg-badge-tx').text(sym).attr('fill', isExp ? '#0f766e' : '#334155');
+      }
+    });
 
     if (!simulation) {
       simulation = d3.forceSimulation()
@@ -322,6 +345,16 @@
   resetBtn.addEventListener('click', reset);
 
   window.addEventListener('resize', () => { if (simulation) render(); });
+
+  // 探索できる要素/銘柄が1つも無い（記録が無い or タグ未使用）＝空状態の案内を切り替える。
+  if (!EXPLORE_ITEMS.length) {
+    searchIn.placeholder = 'まだ探索できる要素がありません';
+    searchIn.disabled = true;
+    emptyEl.innerHTML =
+      '<i class="bi bi-inbox"></i>' +
+      '<div>タグの付いた記録がまだありません。<br>日記を作成してタグ（@…）を付けると、ここで要素や銘柄から探索できます。</div>' +
+      (cfg.createUrl ? '<a class="exg-empty-cta" href="' + cfg.createUrl + '"><i class="bi bi-plus-lg"></i>日記を作成 →</a>' : '');
+  }
 
   // URL の ?start=<node id> があれば、その要素/銘柄を起点に自動で開く
   // （タグ詳細等からの「この要素で探索 →」導線用）。

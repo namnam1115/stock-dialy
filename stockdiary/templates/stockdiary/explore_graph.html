@@ -45,6 +45,10 @@
 .exg-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:10px;color:var(--t3);text-align:center;padding:24px;pointer-events:none}
 .exg-empty i{font-size:2.4rem;opacity:.5}
+.exg-empty a{pointer-events:auto}
+.exg-empty-cta{display:inline-flex;align-items:center;gap:6px;margin-top:4px;height:38px;padding:0 16px;
+  border-radius:10px;background:var(--accent);color:#fff;font-size:13.5px;font-weight:700;text-decoration:none}
+.exg-empty-cta:hover{opacity:.9;color:#fff}
 .exg-reset{position:absolute;top:12px;right:12px;z-index:5;display:inline-flex;align-items:center;gap:6px;
   height:36px;padding:0 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg-100);
   color:var(--t2);font-size:13px;font-weight:700;cursor:pointer}
@@ -110,6 +114,7 @@
 <script>
   window.EXG_CONFIG = {
     neighborsUrl: "{% url 'stockdiary:api_graph_neighbors' %}",
+    createUrl: "{% url 'stockdiary:create' %}",
   };
 </script>
 <script src="{% static 'js/explore-graph.js' %}?v={{ STATIC_VERSION }}"></script>
