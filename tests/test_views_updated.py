@@ -781,3 +781,26 @@ class TestDiaryTabContentXSS:
         assert 'line2' in data['html']
         # <script> 等が含まれる場合もエスケープされるはず（念のため確認）
         assert '<script>' not in data['html']
+
+@pytest.mark.django_db
+class TestHashtagAutocompleteSingleLoad:
+    """hashtag-autocomplete.js の二重ロード回帰テスト。
+
+    なぜこのバグが起きたか: base.html がクイック記録シート用に
+    hashtag-autocomplete.js を全ページで読み込むようになった後も、
+    detail.html / diary_form.html がページ個別に同スクリプトを読み込み続けていた。
+    同スクリプトはトップレベルで `const HASHTAG_AXIS_META` を宣言しており、
+    クラシックスクリプトの二重実行は「Identifier has already been declared」の
+    SyntaxError になる（2回目のロードが丸ごと無効化され、コンソールに常時エラーが出る）。
+    ページ側の重複 include を撤去したので、描画 HTML 中の出現が1回であることを固定する。
+    """
+
+    def test_detail_loads_hashtag_autocomplete_once(self, authenticated_client, sample_diary):
+        html = authenticated_client.get(
+            reverse('stockdiary:detail', kwargs={'pk': sample_diary.pk})
+        ).content.decode()
+        assert html.count('js/hashtag-autocomplete.js') == 1
+
+    def test_diary_form_loads_hashtag_autocomplete_once(self, authenticated_client):
+        html = authenticated_client.get(reverse('stockdiary:create')).content.decode()
+        assert html.count('js/hashtag-autocomplete.js') == 1

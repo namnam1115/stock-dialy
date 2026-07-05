@@ -23,9 +23,15 @@ def test_speed_dial_contains_all_add_actions(authenticated_client, sample_diary)
     assert "openBottomSheet('addThesisSheet')" in html
     # 仮説追加シートの実体がページに存在する
     assert 'id="addThesisSheet"' in html
-    # 保存後は ?view=thesis で記録タブの『仮説』ビューへ着地する導線を持つ
-    assert "getElementById('notes-tab')" in html
-    assert "switchNotesView('thesis')" in html
+    # 保存後は ?view=thesis で記録タブの『仮説』ビューへ着地する導線を持つ。
+    # 着地ロジック(goToThesisView)はインラインから static/js/diary-detail-page.js へ
+    # 外部化したため、ページが同スクリプトを読み込むこと＋スクリプト実体に
+    # 導線コードが存在することの2点で検証する。
+    assert 'js/diary-detail-page.js' in html
+    from pathlib import Path
+    page_js = Path('static/js/diary-detail-page.js').read_text(encoding='utf-8')
+    assert "getElementById('notes-tab')" in page_js
+    assert "switchNotesView('thesis')" in page_js
 
 
 @pytest.mark.django_db
