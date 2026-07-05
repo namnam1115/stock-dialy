@@ -234,3 +234,91 @@ class TestGetStockPrice:
         url = reverse('stockdiary:api_stock_price', args=['7203'])
         resp = client.get(url)
         assert resp.status_code == 302
+
+
+# ---------------------------------------------------------------------------
+# yfinance キャッシュ層（YahooFinanceService.cached_fetch）
+# ---------------------------------------------------------------------------
+
+class TestYahooFinanceCache:
+    """外部API呼び出しの短TTLキャッシュと stale フォールバックのテスト。
+
+    なぜ追加したか: yfinance/Yahoo Chart API はリクエスト経路で同期呼び出しされ、
+    外部レイテンシがそのまま画面の体感速度になっていた（キャッシュ皆無）。
+    さらに yfinance の断続障害時はその都度エラーになっていた。
+    cached_fetch 導入で (1)同一銘柄の連続アクセスはキャッシュで吸収し
+    (2)取得失敗時は期限内の旧値（stale）へフォールバックする。
+    """
+
+    def setup_method(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def test_second_call_hits_cache(self):
+        """2回目の呼び出しは fetch_fn を実行しない（フレッシュヒット）。"""
+        from common.services.yahoo_finance_service import YahooFinanceService
+        calls = []
+
+        def fetch():
+            calls.append(1)
+            return {'price': 100}
+
+        r1 = YahooFinanceService.cached_fetch('price', 'test:0001', fetch)
+        r2 = YahooFinanceService.cached_fetch('price', 'test:0001', fetch)
+        assert r1 == r2 == {'price': 100}
+        assert len(calls) == 1
+
+    def test_stale_fallback_on_exception(self):
+        """フレッシュ期限切れ後に fetch が失敗したら stale コピーを返す。"""
+        from django.core.cache import cache
+        from common.services.yahoo_finance_service import YahooFinanceService
+
+        YahooFinanceService.cached_fetch('price', 'test:0002', lambda: {'price': 200})
+        # フレッシュだけ失効させる（stale コピーは残す）
+        cache.delete('yf:price:test:0002')
+
+        def broken():
+            raise RuntimeError('yfinance down')
+
+        result = YahooFinanceService.cached_fetch('price', 'test:0002', broken)
+        assert result == {'price': 200}
+
+    def test_empty_result_is_not_cached(self):
+        """空結果はキャッシュされず、次回の呼び出しでリトライされる。"""
+        from common.services.yahoo_finance_service import YahooFinanceService
+        calls = []
+
+        def fetch():
+            calls.append(1)
+            return {}
+
+        YahooFinanceService.cached_fetch('financial', 'test:0003', fetch)
+        YahooFinanceService.cached_fetch('financial', 'test:0003', fetch)
+        assert len(calls) == 2
+
+    def test_get_stock_price_view_uses_cache(self, authed_client):
+        """get_stock_price は10分キャッシュを経由し、2回目は外部HTTPを呼ばない。"""
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            'chart': {'result': [{'meta': {'regularMarketPrice': 1234.0}}]}
+        }
+        url = reverse('stockdiary:api_stock_price', args=['9999'])
+        with patch('stockdiary.api.requests.get', return_value=mock_resp) as mock_get:
+            r1 = authed_client.get(url)
+            r2 = authed_client.get(url)
+        assert r1.json()['price'] == 1234.0
+        assert r2.json()['price'] == 1234.0
+        assert mock_get.call_count == 1
+
+    def test_fetch_company_data_uses_cache(self):
+        """fetch_company_data は24時間キャッシュを経由する。"""
+        from decimal import Decimal
+        from common.services.yahoo_finance_service import YahooFinanceService
+        with patch.object(
+            YahooFinanceService, '_fetch_company_data_uncached',
+            return_value={'per': Decimal('12.3')},
+        ) as mock_fetch:
+            r1 = YahooFinanceService.fetch_company_data('7203')
+            r2 = YahooFinanceService.fetch_company_data('7203')
+        assert r1 == r2 == {'per': Decimal('12.3')}
+        assert mock_fetch.call_count == 1
