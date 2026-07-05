@@ -1293,3 +1293,20 @@ def link_preview(request):
         'site_name': site_name,
         'url': url,
     })
+
+@login_required
+@require_GET
+def graph_neighbors(request):
+    """ドリルダウン探索グラフの近傍API（TG-DD）。
+
+    GET /stockdiary/api/graph/neighbors/?node=tag:<pk> | stock:<symbol>
+    ログインユーザーのデータのみを対象に、指定ノードの隣接を1段返す。
+    設計: docs/graph_drilldown_redesign.md
+    """
+    from .utils import get_graph_neighbors
+
+    node_id = request.GET.get('node', '')
+    result = get_graph_neighbors(request.user, node_id)
+    if result is None:
+        return JsonResponse({'error': 'node not found'}, status=404)
+    return JsonResponse(result)

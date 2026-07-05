@@ -601,3 +601,54 @@ class DiaryGraphView(LoginRequiredMixin, TemplateView):
         return context
 
 
+class ExploreGraphView(LoginRequiredMixin, TemplateView):
+    """ドリルダウン探索グラフ（TG-DD）。
+
+    空から要素（タグ）を1つ選び、近傍API（`api_graph_neighbors`）で1段ずつ
+    深掘りする専用ページ。既存 diary_graph とは独立。
+    設計: docs/graph_drilldown_redesign.md
+    """
+    template_name = 'stockdiary/explore_graph.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        # 入口の検索用に、タグ（要素）と銘柄の両方を埋め込む。
+        # クライアント側で部分一致検索し、選んだ要素/銘柄を起点に展開する。
+        tags = (
+            Tag.objects.filter(user=user, stockdiary__user=user)
+            .exclude(axis__in=('event', 'custom'))
+            .distinct()
+            .order_by('name')
+            .values('id', 'name', 'axis')
+        )
+        items = [
+            {'id': f"tag:{t['id']}", 'label': t['name'], 'type': 'tag', 'axis': t['axis']}
+            for t in tags
+        ]
+        # 銘柄（symbol 単位で distinct）。銘柄コード・銘柄名どちらでも検索できるよう symbol も持たせる。
+        seen = set()
+        for symbol, name in (
+            StockDiary.objects.filter(user=user)
+            .exclude(stock_symbol__isnull=True).exclude(stock_symbol='')
+            .order_by('stock_symbol')
+            .values_list('stock_symbol', 'stock_name')
+        ):
+            if symbol in seen:
+                continue
+            seen.add(symbol)
+            items.append({'id': f'stock:{symbol}', 'label': name or symbol,
+                          'type': 'stock', 'symbol': symbol})
+        context['explore_items'] = items
+        context['page_actions'] = [
+            {
+                'type': 'back',
+                'url': reverse_lazy('stockdiary:home'),
+                'icon': 'bi-arrow-left',
+                'label': '戻る',
+                'aria_label': '一覧に戻る'
+            }
+        ]
+        return context
+
+

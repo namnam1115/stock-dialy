@@ -655,6 +655,99 @@ def get_tag_graph_data(diaries_qs) -> Dict[str, Any]:
     return {'tag_nodes': tag_nodes, 'edges': edges}
 
 
+# explore（ドリルダウン探索）で近傍から外す軸。get_tag_graph_data と方針を揃える。
+_EXPLORE_EXCLUDED_AXES = ('event', 'custom')
+
+
+def _explore_tag_visible(tag, noise_max) -> bool:
+    """explore で隣接タグを見せてよいか（event/custom 軸・df 上限超えを除外）。"""
+    if getattr(tag, 'axis', 'theme') in _EXPLORE_EXCLUDED_AXES:
+        return False
+    return (getattr(tag, 'df', 0) or 0) <= noise_max
+
+
+def _explore_tag_neighbor(tag, rel) -> dict:
+    """explore グラフのタグ隣接1件を dict 化する。"""
+    return {
+        'id': f'tag:{tag.pk}', 'type': 'tag', 'label': tag.name,
+        'axis': getattr(tag, 'axis', 'theme'), 'rel': rel,
+    }
+
+
+def get_graph_neighbors(user, node_id: str):
+    """ドリルダウン探索グラフで、1ノードの近傍を返す（オンデマンド展開用・TG-DD）。
+
+    node_id: 'tag:<pk>' または 'stock:<symbol>'。
+    返り値: {'node': {...}, 'neighbors': [...]} ／ 見つからなければ None。
+
+    - tag ノードの近傍 = 親タグ + 子タグ（`Tag.parent` 由来）+ そのタグの銘柄。
+    - stock ノードの近傍 = その銘柄（user の同一 symbol 日記群）に付いた全タグ。
+    - ノイズ除外は get_tag_graph_data と同方針（event/custom 軸・df > RELATED_NOISE_MAX）。
+    設計: docs/graph_drilldown_redesign.md
+    """
+    from django.urls import reverse
+    from tags.models import Tag
+    from .models import StockDiary
+    from .tag_axis_config import RELATED_NOISE_MAX
+
+    kind, _sep, raw = (node_id or '').partition(':')
+
+    if kind == 'tag':
+        try:
+            tag = Tag.objects.select_related('parent').get(user=user, pk=int(raw))
+        except (Tag.DoesNotExist, ValueError, TypeError):
+            return None
+        node = {'id': f'tag:{tag.pk}', 'type': 'tag', 'label': tag.name,
+                'axis': getattr(tag, 'axis', 'theme')}
+        neighbors = []
+        # 親タグ（あれば・表示可なら）
+        if tag.parent_id and _explore_tag_visible(tag.parent, RELATED_NOISE_MAX):
+            neighbors.append(_explore_tag_neighbor(tag.parent, 'parent'))
+        # 子タグ
+        for child in tag.children.all():
+            if _explore_tag_visible(child, RELATED_NOISE_MAX):
+                neighbors.append(_explore_tag_neighbor(child, 'child'))
+        # そのタグの銘柄（distinct symbol）
+        seen = {}
+        for symbol, name in (
+            tag.stockdiary_set.filter(user=user)
+            .values_list('stock_symbol', 'stock_name')
+        ):
+            if not symbol or symbol in seen:
+                continue
+            seen[symbol] = name or symbol
+        for symbol, name in seen.items():
+            neighbors.append({'id': f'stock:{symbol}', 'type': 'stock',
+                              'label': name, 'symbol': symbol, 'rel': 'tagged'})
+        return {'node': node, 'neighbors': neighbors}
+
+    if kind == 'stock':
+        symbol = raw
+        diaries = list(
+            StockDiary.objects.filter(user=user, stock_symbol=symbol)
+            .prefetch_related('tags')
+        )
+        if not symbol or not diaries:
+            return None
+        name = next((d.stock_name for d in diaries if d.stock_name), symbol)
+        rep = max(diaries, key=lambda d: d.pk)  # 代表 diary（詳細遷移先）
+        node = {'id': f'stock:{symbol}', 'type': 'stock', 'label': name,
+                'symbol': symbol,
+                'detail_url': reverse('stockdiary:detail', kwargs={'pk': rep.pk})}
+        neighbors = []
+        seen_tag_ids = set()
+        for d in diaries:
+            for tag in d.tags.all():
+                if tag.id in seen_tag_ids:
+                    continue
+                seen_tag_ids.add(tag.id)
+                if _explore_tag_visible(tag, RELATED_NOISE_MAX):
+                    neighbors.append(_explore_tag_neighbor(tag, 'tag'))
+        return {'node': node, 'neighbors': neighbors}
+
+    return None
+
+
 def get_sector_graph_data(diaries_qs, company_sector_map: Dict[str, str] = None) -> Dict[str, Any]:
     """
     業種ハブノードと diary→sector エッジを生成する。

@@ -12,6 +12,7 @@ from stockdiary.utils import (
     hub_weight,
     get_tag_graph_data,
     compute_related_strength,
+    get_graph_neighbors,
 )
 from tags.models import Tag
 
@@ -239,3 +240,96 @@ class TestRelatedStrengthQueryBudget:
         q_many = self._measure(another_user, 12)
         # 旧実装ではタグ数差(10)ぶんクエリが増える。一定であることを固定する。
         assert q_many == q_few, f'tag数でクエリが増えている: few={q_few}, many={q_many}'
+
+
+@pytest.mark.django_db
+class TestGraphNeighbors:
+    """ドリルダウン探索の近傍導出（get_graph_neighbors・TG-DD）。
+
+    設計: docs/graph_drilldown_redesign.md
+    - tag ノード → 親タグ + 子タグ + そのタグの銘柄
+    - stock ノード → その銘柄に付いた全タグ（+ detail_url）
+    - ノイズ除外: event/custom 軸・df > RELATED_NOISE_MAX を隣接から外す
+    """
+
+    def test_tag_node_returns_children_parent_and_stocks(self, user):
+        parent = Tag.objects.create(user=user, name='半導体', axis='theme')
+        child = Tag.objects.create(user=user, name='AI半導体', axis='theme', parent=parent)
+        d1 = _diary(user, '6758', 'ソニーG')
+        d2 = _diary(user, '8035', '東京エレクトロン')
+        d1.tags.add(parent)
+        d2.tags.add(parent)
+
+        res = get_graph_neighbors(user, f'tag:{parent.pk}')
+        assert res['node']['id'] == f'tag:{parent.pk}'
+        assert res['node']['type'] == 'tag'
+        nb = {n['id']: n for n in res['neighbors']}
+        # 子タグ
+        assert nb[f'tag:{child.pk}']['rel'] == 'child'
+        # 銘柄（distinct symbol・2件）
+        assert nb['stock:6758']['type'] == 'stock'
+        assert nb['stock:8035']['type'] == 'stock'
+        # 親は無い（parent はルート）
+        assert not any(n['rel'] == 'parent' for n in res['neighbors'])
+
+    def test_child_tag_node_returns_parent(self, user):
+        parent = Tag.objects.create(user=user, name='半導体', axis='theme')
+        child = Tag.objects.create(user=user, name='AI半導体', axis='theme', parent=parent)
+        d = _diary(user, '6758', 'ソニーG')
+        d.tags.add(child)
+
+        res = get_graph_neighbors(user, f'tag:{child.pk}')
+        parents = [n for n in res['neighbors'] if n['rel'] == 'parent']
+        assert len(parents) == 1
+        assert parents[0]['id'] == f'tag:{parent.pk}'
+
+    def test_stock_node_returns_its_tags_and_detail_url(self, user):
+        t1 = Tag.objects.create(user=user, name='半導体', axis='theme')
+        t2 = Tag.objects.create(user=user, name='AI', axis='theme')
+        d = _diary(user, '6758', 'ソニーG')
+        d.tags.add(t1, t2)
+
+        res = get_graph_neighbors(user, 'stock:6758')
+        assert res['node']['type'] == 'stock'
+        assert res['node']['detail_url'].endswith(f'/{d.pk}/')
+        ids = {n['id'] for n in res['neighbors']}
+        assert ids == {f'tag:{t1.pk}', f'tag:{t2.pk}'}
+
+    def test_event_and_custom_axis_tags_excluded_from_neighbors(self, user):
+        theme = Tag.objects.create(user=user, name='半導体', axis='theme')
+        evt = Tag.objects.create(user=user, name='決算注目', axis='event')
+        lbl = Tag.objects.create(user=user, name='監視中', axis='custom')
+        d = _diary(user, '6758', 'ソニーG')
+        d.tags.add(theme, evt, lbl)
+
+        res = get_graph_neighbors(user, 'stock:6758')
+        # event / custom 軸は近傍に出ない
+        ids = {n['id'] for n in res['neighbors']}
+        assert ids == {f'tag:{theme.pk}'}
+
+    def test_high_df_tag_excluded_as_noise(self, user):
+        from stockdiary.tag_axis_config import RELATED_NOISE_MAX
+        theme = Tag.objects.create(user=user, name='半導体', axis='theme')
+        noisy = Tag.objects.create(user=user, name='大型株', axis='theme',
+                                   df=RELATED_NOISE_MAX + 1)
+        d = _diary(user, '6758', 'ソニーG')
+        d.tags.add(theme, noisy)
+
+        res = get_graph_neighbors(user, 'stock:6758')
+        ids = {n['id'] for n in res['neighbors']}
+        assert f'tag:{noisy.pk}' not in ids
+        assert f'tag:{theme.pk}' in ids
+
+    def test_unknown_node_returns_none(self, user):
+        assert get_graph_neighbors(user, 'tag:999999') is None
+        assert get_graph_neighbors(user, 'stock:NOPE') is None
+        assert get_graph_neighbors(user, 'garbage') is None
+        assert get_graph_neighbors(user, '') is None
+
+    def test_scoped_to_user(self, user, another_user):
+        t = Tag.objects.create(user=another_user, name='半導体', axis='theme')
+        d = _diary(another_user, '6758', 'ソニーG')
+        d.tags.add(t)
+        # user からは other のタグ/銘柄は見えない
+        assert get_graph_neighbors(user, f'tag:{t.pk}') is None
+        assert get_graph_neighbors(user, 'stock:6758') is None

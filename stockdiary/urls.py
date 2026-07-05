@@ -155,6 +155,9 @@ path('api/create/', api.api_create_diary, name='api_create'),
     # ==========================================
     path('graph/', views_dashboard.DiaryGraphView.as_view(), name='diary_graph'),
     path('api/diary-graph/data/', api_views.diary_graph_data, name='api_diary_graph_data'),
+    # ドリルダウン探索グラフ（TG-DD・空から要素選択→近傍を1段ずつ展開）
+    path('explore/graph/', views_dashboard.ExploreGraphView.as_view(), name='explore_graph'),
+    path('api/graph/neighbors/', api_views.graph_neighbors, name='api_graph_neighbors'),
 
     # ==========================================
     # EDINET連携（開示書類パネル）

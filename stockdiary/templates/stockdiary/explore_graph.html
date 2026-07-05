@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}要素で探索 - カブログ{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+/* ===== ドリルダウン探索グラフ（.exg 配下にスコープ・exg- 接頭辞。TG-DD） ===== */
+.exg{
+  --accent:#00668c;--line:#e9e6df;--bg-100:#fffefb;--bg-200:#f5f4f1;
+  --t1:#1a2026;--t2:#566069;--t3:#9aa1aa;
+  color:var(--t1);
+}
+[data-theme="dark"] .exg,.dark-mode .exg{
+  --line:#334155;--bg-100:#1e293b;--bg-200:#0f172a;--t1:#f1f5f9;--t2:#94a3b8;--t3:#64748b;
+}
+.exg *{box-sizing:border-box}
+.exg-head{margin-bottom:14px}
+.exg-title{font-size:1.4rem;font-weight:800;display:flex;align-items:center;gap:10px}
+.exg-title i{color:var(--accent)}
+.exg-sub{font-size:13.5px;color:var(--t2);margin-top:4px}
+
+/* 検索入口 */
+.exg-search{position:relative;max-width:520px;margin:0 auto 12px}
+.exg-search-in{width:100%;height:46px;border:1.5px solid var(--line);border-radius:14px;background:var(--bg-200);
+  color:var(--t1);font-size:15px;padding:0 16px 0 44px;font-family:inherit;transition:all .18s}
+.exg-search-in:focus{outline:none;border-color:var(--accent);background:var(--bg-100);box-shadow:0 0 0 4px rgba(0,102,140,.1)}
+.exg-search-ic{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--t3)}
+.exg-results{position:absolute;left:0;right:0;top:52px;z-index:20;background:var(--bg-100);border:1px solid var(--line);
+  border-radius:12px;box-shadow:0 12px 32px rgba(20,40,60,.14);max-height:320px;overflow-y:auto;display:none}
+.exg-results.open{display:block}
+.exg-res{display:flex;align-items:center;gap:10px;padding:.6rem .9rem;cursor:pointer;font-size:14px}
+.exg-res:hover,.exg-res.active{background:var(--bg-200)}
+.exg-res-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.exg-res-empty{padding:.9rem;color:var(--t3);font-size:13.5px;text-align:center}
+
+/* キャンバス */
+.exg-stage{position:relative;background:var(--bg-100);border:1px solid var(--line);border-radius:18px;
+  height:clamp(460px,70vh,820px);overflow:hidden}
+.exg-svg{width:100%;height:100%;display:block;cursor:grab}
+.exg-svg:active{cursor:grabbing}
+.exg-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;color:var(--t3);text-align:center;padding:24px;pointer-events:none}
+.exg-empty i{font-size:2.4rem;opacity:.5}
+.exg-reset{position:absolute;top:12px;right:12px;z-index:5;display:inline-flex;align-items:center;gap:6px;
+  height:36px;padding:0 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg-100);
+  color:var(--t2);font-size:13px;font-weight:700;cursor:pointer}
+.exg-reset:hover{background:var(--bg-200);color:var(--t1)}
+
+/* ノード情報パネル */
+.exg-panel{position:absolute;left:12px;bottom:12px;z-index:5;max-width:min(320px,72%);
+  background:var(--bg-100);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 24px rgba(20,40,60,.12);
+  padding:14px 16px;display:none}
+.exg-panel.open{display:block}
+.exg-panel-kind{font-size:.68rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--t3)}
+.exg-panel-name{font-size:1.05rem;font-weight:800;margin:2px 0 8px;word-break:break-word}
+.exg-panel-hint{font-size:12.5px;color:var(--t2)}
+.exg-panel-link{display:inline-flex;align-items:center;gap:6px;margin-top:8px;height:36px;padding:0 14px;
+  border-radius:10px;background:var(--accent);color:#fff;font-size:13.5px;font-weight:700;text-decoration:none}
+.exg-panel-link:hover{opacity:.9;color:#fff}
+
+/* SVG 内 */
+.exg-node{cursor:pointer}
+.exg-node text{font-size:11px;font-weight:600;fill:var(--t1);paint-order:stroke;stroke:var(--bg-100);stroke-width:3px}
+.exg-link{stroke:#cbd5e1;stroke-width:1.6px}
+[data-theme="dark"] .exg-link,.dark-mode .exg-link{stroke:#475569}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="exg">
+  <div class="exg-head">
+    <div class="exg-title"><i class="bi bi-diagram-3-fill"></i>要素で探索</div>
+    <div class="exg-sub">要素（タグ）を1つ選び、タップで関連する小要素・銘柄へ深掘りします。もう一度タップで畳みます。</div>
+  </div>
+
+  <div class="exg-search">
+    <i class="bi bi-search exg-search-ic"></i>
+    <input type="text" id="exgSearch" class="exg-search-in" placeholder="要素・銘柄を検索（例: 半導体 / 6758）…" autocomplete="off">
+    <div id="exgResults" class="exg-results"></div>
+  </div>
+
+  <div class="exg-stage">
+    <button type="button" id="exgReset" class="exg-reset" style="display:none;"><i class="bi bi-arrow-counterclockwise"></i>リセット</button>
+    <svg id="exgSvg" class="exg-svg"></svg>
+    <div id="exgEmpty" class="exg-empty">
+      <i class="bi bi-diagram-3"></i>
+      <div>上の検索から要素（タグ）または銘柄を1つ選ぶと、ここに関連が広がります。</div>
+    </div>
+    <div id="exgPanel" class="exg-panel">
+      <div class="exg-panel-kind" id="exgPanelKind"></div>
+      <div class="exg-panel-name" id="exgPanelName"></div>
+      <div class="exg-panel-hint" id="exgPanelHint"></div>
+      <a href="#" id="exgPanelLink" class="exg-panel-link" style="display:none;"><i class="bi bi-journal-richtext"></i>日記を開く</a>
+    </div>
+  </div>
+</div>
+
+{% include 'speed_dial.html' with actions=page_actions %}
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+{{ explore_items|json_script:"exg-items-data" }}
+<script>
+  window.EXG_CONFIG = {
+    neighborsUrl: "{% url 'stockdiary:api_graph_neighbors' %}",
+  };
+</script>
+<script src="{% static 'js/explore-graph.js' %}?v={{ STATIC_VERSION }}"></script>
+{% endblock %}

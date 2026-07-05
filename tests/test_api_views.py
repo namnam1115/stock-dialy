@@ -321,6 +321,92 @@ class TestDiaryGraphData:
         assert any(e.get('edge_type') == 'tag' for e in data['edges'])
 
 
+class TestGraphNeighborsAPI:
+    """ドリルダウン探索の近傍 API（graph_neighbors・TG-DD）。
+
+    設計: docs/graph_drilldown_redesign.md
+    """
+
+    def test_tag_node_returns_neighbors(self, authed_client, user):
+        from tags.models import Tag
+        parent = Tag.objects.create(user=user, name='半導体', axis='theme')
+        child = Tag.objects.create(user=user, name='AI半導体', axis='theme', parent=parent)
+        d = StockDiary.objects.create(user=user, stock_symbol='6758', stock_name='ソニーG')
+        d.tags.add(parent)
+
+        url = reverse('stockdiary:api_graph_neighbors')
+        resp = authed_client.get(url, {'node': f'tag:{parent.pk}'})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data['node']['id'] == f'tag:{parent.pk}'
+        ids = {n['id'] for n in data['neighbors']}
+        assert f'tag:{child.pk}' in ids   # 子タグ
+        assert 'stock:6758' in ids        # 銘柄
+
+    def test_stock_node_returns_tags_with_detail_url(self, authed_client, user):
+        from tags.models import Tag
+        t = Tag.objects.create(user=user, name='半導体', axis='theme')
+        d = StockDiary.objects.create(user=user, stock_symbol='6758', stock_name='ソニーG')
+        d.tags.add(t)
+
+        url = reverse('stockdiary:api_graph_neighbors')
+        resp = authed_client.get(url, {'node': 'stock:6758'})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data['node']['detail_url'].endswith(f'/{d.pk}/')
+        assert {n['id'] for n in data['neighbors']} == {f'tag:{t.pk}'}
+
+    def test_unknown_node_returns_404(self, authed_client):
+        url = reverse('stockdiary:api_graph_neighbors')
+        resp = authed_client.get(url, {'node': 'stock:NOPE'})
+        assert resp.status_code == 404
+
+    def test_requires_login(self, client):
+        url = reverse('stockdiary:api_graph_neighbors')
+        resp = client.get(url, {'node': 'tag:1'})
+        assert resp.status_code == 302
+
+
+class TestExploreGraphPage:
+    """explore（要素で探索）ページの入口データ。タグ・銘柄の両方から開始できる（TG-DD）。"""
+
+    def test_entry_items_include_tags_and_stocks(self, authed_client, user):
+        import json
+        import re
+        from tags.models import Tag
+        t = Tag.objects.create(user=user, name='半導体', axis='theme')
+        d = StockDiary.objects.create(user=user, stock_symbol='6758', stock_name='ソニーG')
+        d.tags.add(t)
+
+        url = reverse('stockdiary:explore_graph')
+        resp = authed_client.get(url)
+        assert resp.status_code == 200
+        body = resp.content.decode()
+        m = re.search(r'id="exg-items-data"[^>]*>(.*?)</script>', body, re.S)
+        items = json.loads(m.group(1))
+        ids = {i['id']: i for i in items}
+        # タグ起点と銘柄起点の両方が入口に並ぶ
+        assert ids[f'tag:{t.pk}']['type'] == 'tag'
+        assert ids['stock:6758']['type'] == 'stock'
+        assert ids['stock:6758']['symbol'] == '6758'
+
+    def test_event_and_custom_tags_excluded_from_entry(self, authed_client, user):
+        import json
+        import re
+        from tags.models import Tag
+        theme = Tag.objects.create(user=user, name='半導体', axis='theme')
+        evt = Tag.objects.create(user=user, name='決算注目', axis='event')
+        d = StockDiary.objects.create(user=user, stock_symbol='6758', stock_name='ソニーG')
+        d.tags.add(theme, evt)
+
+        resp = authed_client.get(reverse('stockdiary:explore_graph'))
+        body = resp.content.decode()
+        items = json.loads(re.search(r'id="exg-items-data"[^>]*>(.*?)</script>', body, re.S).group(1))
+        ids = {i['id'] for i in items}
+        assert f'tag:{theme.pk}' in ids
+        assert f'tag:{evt.pk}' not in ids  # event 軸は入口に出さない
+
+
 # ---------------------------------------------------------------------------
 # list_diary_notifications
 # ---------------------------------------------------------------------------
