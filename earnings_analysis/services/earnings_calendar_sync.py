@@ -25,17 +25,27 @@ logger = logging.getLogger(__name__)
 FANOUT_BATCH_SIZE = 500
 
 
-def sync_earnings_calendar(days: int = 90, base_date=None) -> int:
+def sync_earnings_calendar(days: int = 90, base_date=None,
+                           with_estimates: bool = True) -> int:
     """決算予定APIから取得して EarningsSchedule を洗い替え保存する。
 
     取得期間（基準日〜days日後）の既存レコードを削除してから再投入するため、
     リスケ・取り下げがあっても未来分は常に最新のAPI内容と一致する。基準日より
     前のレコードは履歴として保持する。
 
+    保存する未来分は2種類:
+      - 確定分（is_estimated=False）: APIが返す直近の確定発表日（現状は約2週間先まで）
+      - 予想分（is_estimated=True）: 各社の会計年度末から自前算出した次回以降の
+        発表予想日（earnings_calendar_estimate）。提供元APIが予想日を返さなく
+        なったため、確定分だけだと記録銘柄の多くがマスタから外れて日記に
+        関連付かなくなる。予想分で残りの期間を埋める。毎回ゼロから再生成する
+        ので、洗い替え方式のまま予想が陳腐化しない。
+
     Args:
         days: 取得期間（基準日からの日数）
         base_date: 取得基準日（既定=今日）。日次バッチが失敗した日のリカバリ実行で
             過去日を指定できる。
+        with_estimates: 予想日の自前算出を行うか（既定 True。テスト等で無効化可）
 
     Returns:
         int: 保存した決算予定レコード数
@@ -44,6 +54,9 @@ def sync_earnings_calendar(days: int = 90, base_date=None) -> int:
     from earnings_analysis.services.earnings_calendar_api import (
         EarningsCalendarAPIService,
     )
+    from earnings_analysis.services.earnings_calendar_estimate import (
+        build_roster, build_estimates,
+    )
 
     service = EarningsCalendarAPIService()
     if not service.is_configured:
@@ -51,11 +64,35 @@ def sync_earnings_calendar(days: int = 90, base_date=None) -> int:
         return 0
 
     base_date = base_date or date.today()
-    items = service.fetch_window(days=days, start=base_date)
+    confirmed = service.fetch_window(days=days, start=base_date)
 
-    # 同一バッチ内のコード×日付の重複を排除（DBの一意制約に合わせる）
+    # 予想分（確定分で埋まらない期間を自前算出で補完）
+    estimates = []
+    if with_estimates:
+        try:
+            history = service.fetch_history(months=13, end=base_date)
+            roster = build_roster(history)
+            confirmed_by_code = {}
+            for item in confirmed:
+                confirmed_by_code.setdefault(
+                    item['securities_code'], []).append(item['earnings_date'])
+            estimates = build_estimates(
+                roster, confirmed_by_code, base_date,
+                horizon_days=days,
+                to_business_day=EarningsCalendarAPIService._to_business_day,
+            )
+        except Exception as e:
+            # 予想の算出に失敗しても確定分の保存は続ける（決算前日通知等を止めない）
+            logger.warning('決算予想日の算出に失敗（確定分のみ保存）: %s', e,
+                           exc_info=True)
+            estimates = []
+
+    # 同一バッチ内のコード×日付の重複を排除（DBの一意制約に合わせる）。
+    # 予想を先に入れ、確定を後から入れて上書き（同一日は確定を正とする）。
     deduped = {}
-    for item in items:
+    for item in estimates:
+        deduped[(item['securities_code'], item['earnings_date'])] = item
+    for item in confirmed:
         deduped[(item['securities_code'], item['earnings_date'])] = item
 
     to_create = [
@@ -79,7 +116,8 @@ def sync_earnings_calendar(days: int = 90, base_date=None) -> int:
                 to_create, batch_size=500, ignore_conflicts=True
             )
 
-    logger.info('決算予定同期完了: 保存=%s件', len(to_create))
+    logger.info('決算予定同期完了: 保存=%s件（確定=%s / 予想=%s）',
+                len(to_create), len(confirmed), len(estimates))
     return len(to_create)
 
 

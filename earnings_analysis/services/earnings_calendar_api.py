@@ -54,6 +54,10 @@ _MARKET_KEYS = (
     'market_code',
 )
 _UPDATED_KEYS = ('updated_at', 'updatedAt', 'modified', 'last_updated')
+# 会計年度末（fiscalYearEnd）。予想日の自前算出（四半期末＋一定日数）に使う。
+_FYE_KEYS = (
+    'fiscal_year_end', 'fiscalYearEnd', 'fiscalYearEndDate', 'fy_end', 'fyEnd',
+)
 # 確定日（announcementDate 系）と予想日（estimatedAnnouncementDate 系）を区別する
 _CONFIRMED_DATE_KEYS = ('earnings_date', 'announcementDate', 'announcement_date')
 _STATUS_KEYS = ('dateStatus', 'date_status', 'status')
@@ -127,8 +131,41 @@ class EarningsCalendarAPIService:
         logger.info('決算予定API取得: 生%s件 → 正規化%s件', len(raw), len(normalized))
         return normalized
 
-    # 1回の同期での最大リクエスト数（無料枠100/日を守る安全弁）
-    MAX_REQUESTS = 25
+    def fetch_history(self, months: int = 13, end=None) -> list:
+        """基準日から過去 months ヶ月分の（確定済み）決算発表実績を取得する。
+
+        提供元APIは予想日を返さなくなったため、予想日は各社の会計年度末
+        （fiscalYearEnd）から自前算出する（earnings_calendar_estimate）。その
+        算出に必要な「各社の会計年度末・社名・市場区分」の名簿をこの履歴から作る。
+        決算集中期（2・5・8・11月）は1レンジで limit を超えるため、fetch_window と
+        同様に日付レンジを二分割して取り切る。
+
+        Args:
+            months: 遡る月数（既定13＝直近1年＋余裕。年次のみ開示の企業も拾える）
+            end: 取得終端日（既定=今日）
+
+        Returns:
+            list[dict]: fetch_window と同形（fiscal_year_end を含む）
+        """
+        from dateutil.relativedelta import relativedelta
+
+        end = end or date.today()
+        start = end - relativedelta(months=months)
+
+        self._request_count = 0
+        raw = self._fetch_range(start, end)
+
+        normalized = []
+        for item in raw:
+            n = self._normalize_item(item)
+            if n:
+                normalized.append(n)
+        logger.info('決算履歴API取得: 生%s件 → 正規化%s件', len(raw), len(normalized))
+        return normalized
+
+    # 1回の取得（fetch_window / fetch_history）での最大リクエスト数。
+    # 無料枠100/日に対し、日次同期は window(〜3) + history(〜15) = 〜18 程度。
+    MAX_REQUESTS = 40
 
     def _fetch_range(self, date_from: date, date_to: date) -> list:
         """[date_from, date_to] を取得。limit に達したら日付を二分割して取り切る。
@@ -237,6 +274,8 @@ class EarningsCalendarAPIService:
             'earnings_type': _first(raw, _TYPE_KEYS),
             'market_segment': _first(raw, _MARKET_KEYS),
             'source_updated_at': _first(raw, _UPDATED_KEYS),
+            # 会計年度末（予想日の自前算出に使う。無ければ空文字）
+            'fiscal_year_end': _first(raw, _FYE_KEYS),
         }
 
     @staticmethod
