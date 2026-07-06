@@ -725,7 +725,7 @@ async function deleteDiaryNotification(notificationId) {
             return;
         }
         
-        const response = await fetch(`/stockdiary/api/notifications/${notificationId}/delete/`, {
+        const response = await fetch(window.DIARY_DETAIL_CONFIG.urls.notificationDeleteTemplate.replace('00000000-0000-0000-0000-000000000000', notificationId), {
             method: 'POST',
             headers: {
                 'X-CSRFToken': csrfToken,
@@ -869,7 +869,7 @@ window.loadNotifications = loadNotifications;
       item.className = 'related-unified-item';
       item.id = `related-item-${relatedId}`;
       item.innerHTML = `
-        <a href="/stockdiary/${relatedId}/" class="related-unified-main">
+        <a href="${window.DIARY_DETAIL_CONFIG.urls.detailUrlTemplate.replace('/0/', '/' + relatedId + '/')}" class="related-unified-main">
           <div class="related-unified-head">
             ${symbol ? `<span class="badge bg-secondary related-unified-code">${esc(symbol)}</span>` : ''}
             <span class="related-unified-name">${esc(name)}</span>
@@ -898,7 +898,7 @@ window.loadNotifications = loadNotifications;
   window.removeRelatedDiary = async function(relatedId) {
     if (!confirm('関連付けを解除しますか？')) return;
     try {
-      const removeUrl = `/stockdiary/api/diary/${DIARY_ID}/related/${relatedId}/remove/`;
+      const removeUrl = window.DIARY_DETAIL_CONFIG.urls.relatedRemoveTemplate.replace('/0/', '/' + relatedId + '/');
       const res = await fetch(removeUrl, {
         method: 'POST',
         headers: { 'X-CSRFToken': csrf() }
@@ -923,7 +923,7 @@ window.loadNotifications = loadNotifications;
 // EDINET連携: 開示書類メモ化
 // ============================================
 window.edinetPrefillNote = function(diaryId, docId) {
-  fetch('/stockdiary/' + diaryId + '/edinet-note-prefill/?doc_id=' + encodeURIComponent(docId), {
+  fetch(window.DIARY_DETAIL_CONFIG.urls.edinetNotePrefill + '?doc_id=' + encodeURIComponent(docId), {
     headers: {'X-Requested-With': 'XMLHttpRequest'}
   })
   .then(function(r) { return r.json(); })
@@ -983,7 +983,7 @@ window.edinetXBRLAnalyze = function(diaryId, docId, btn) {
   fd.append('doc_id', docId);
   if (csrf) fd.append('csrfmiddlewaretoken', csrf.value);
 
-  fetch('/stockdiary/' + diaryId + '/edinet-xbrl-analyze/', {
+  fetch(window.DIARY_DETAIL_CONFIG.urls.edinetXbrlAnalyze, {
     method: 'POST',
     headers: {'X-Requested-With': 'XMLHttpRequest'},
     body: fd,
@@ -997,7 +997,7 @@ window.edinetXBRLAnalyze = function(diaryId, docId, btn) {
     }
     // パネルを再ロードして財務指標を表示
     // htmx.ajax を直接呼ぶ（hx-trigger="once" の制限を回避）
-    var panelUrl = '/stockdiary/' + diaryId + '/edinet-panel/';
+    var panelUrl = window.DIARY_DETAIL_CONFIG.urls.edinetPanel;
     if (window.htmx) {
       htmx.ajax('GET', panelUrl, {target: '#edinet-panel-body', swap: 'innerHTML'});
     } else {
@@ -1180,7 +1180,7 @@ window.showReportModal = function(el) {
 
     // リアルタイム株価を非同期取得
     if (symbol) {
-      fetch('/stockdiary/api/stock/metrics/' + encodeURIComponent(symbol) + '/')
+      fetch(window.DIARY_DETAIL_CONFIG.urls.stockMetricsTemplate.replace('/0/', '/' + encodeURIComponent(symbol) + '/'))
         .then(function(r) { return r.json(); })
         .then(function(m) {
           var el2 = document.getElementById(liveId);
@@ -1521,7 +1521,7 @@ window.showReportModal = function(el) {
 
     getWebArticleModal().show();
 
-    fetch('/stockdiary/api/link-preview/?url=' + encodeURIComponent(url), {
+    fetch(window.DIARY_DETAIL_CONFIG.urls.linkPreview + '?url=' + encodeURIComponent(url), {
       credentials: 'same-origin'
     })
       .then(function (res) { return res.json(); })

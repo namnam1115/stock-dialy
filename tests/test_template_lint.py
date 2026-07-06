@@ -94,3 +94,49 @@ def test_static_version_matches_sw_version():
         f'sw.js の VERSION ({m.group(1)}) と settings.STATIC_VERSION '
         f'({settings.STATIC_VERSION}) が不一致です。両方を同じ値に更新してください'
     )
+
+
+def test_hardcoded_stockdiary_urls_in_js_do_not_increase():
+    """static/js 内の '/stockdiary/' ハードコードURLの増加を禁止する（CH4・ラチェット）。
+
+    URLはテンプレート側で {% url %} により解決し、window.*_CONFIG.urls で
+    JSへ渡す（diary-detail-page.js で全12箇所を config 化した確立パターン）。
+    直書きは URL 変更・プレフィックス変更（test_urls はルート直下）で静かに壊れる。
+    実際、直書きされていた EDINET パネル等の fetch はテスト環境では 404 だった。
+
+    既存負債（下記 BASELINE）は一括修正せず凍結し、**増加のみを失敗にする**。
+    直書きを config 化したら該当ファイルの件数を減らす（0 になったら行ごと削除）。
+    """
+    # 恒久除外: _sw.js=旧SW（未配信）/ autocomplete.js=上書き可能な既定値 /
+    #           diary-detail-graph.js / hashtag-autocomplete.js=docコメント内のみ
+    allowlist = {'_sw.js', 'autocomplete.js', 'diary-detail-graph.js', 'hashtag-autocomplete.js'}
+    # 凍結された既存負債（2026-07 時点）。増やしてはならない。
+    baseline = {
+        'diary-detail.js': 5,
+        'diary-form.js': 4,
+        'diary-tabs.js': 1,
+        'diary-theme.js': 1,
+        'home-page.js': 1,
+        'margin-analysis.js': 2,
+        'notifications.js': 1,
+        'stock_diary_modal.js': 2,
+    }
+    counts = {}
+    for path in sorted((BASE_DIR / 'static/js').glob('*.js')):
+        if path.name in allowlist:
+            continue
+        n = sum(
+            ("'/stockdiary/" in line or '"/stockdiary/' in line or '`/stockdiary/' in line)
+            for line in path.read_text(encoding='utf-8').splitlines()
+        )
+        if n:
+            counts[path.name] = n
+    over = {
+        name: (n, baseline.get(name, 0))
+        for name, n in counts.items() if n > baseline.get(name, 0)
+    }
+    assert not over, (
+        "'/stockdiary/' の直書きが増えています。window.*_CONFIG.urls（テンプレートで "
+        '{% url %} 解決）を使ってください: '
+        + ', '.join(f'{k}: {v[0]}件 (許容 {v[1]})' for k, v in over.items())
+    )

@@ -412,7 +412,16 @@
       searchMyDiaries: "{% url 'stockdiary:api_search_my_diaries' %}",
       notifications: "{% url 'stockdiary:api_list_diary_notifications' diary.pk %}",
       relatedSearch: "{% url 'stockdiary:api_related_search' diary.pk %}",
-      relatedAdd: "{% url 'stockdiary:api_related_add' diary.pk %}"
+      relatedAdd: "{% url 'stockdiary:api_related_add' diary.pk %}",
+      {# 0 はプレースホルダ。JS側で '/0/' を実IDに置換する（quick_record_sheet と同じパターン） #}
+      relatedRemoveTemplate: "{% url 'stockdiary:api_related_remove' diary.pk 0 %}",
+      detailUrlTemplate: "{% url 'stockdiary:detail' 0 %}",
+      stockMetricsTemplate: "{% url 'stockdiary:api_stock_metrics' 0 %}",
+      linkPreview: "{% url 'stockdiary:api_link_preview' %}",
+      edinetNotePrefill: "{% url 'stockdiary:edinet_note_prefill' diary.pk %}",
+      edinetXbrlAnalyze: "{% url 'stockdiary:edinet_xbrl_analyze' diary.pk %}",
+      edinetPanel: "{% url 'stockdiary:edinet_panel' diary.pk %}",
+      notificationDeleteTemplate: "{% url 'stockdiary:api_delete_diary_notification' '00000000-0000-0000-0000-000000000000' %}"
     },
     noteTopics: [
       {% for topic, topic_notes in notes_by_topic.items %}
