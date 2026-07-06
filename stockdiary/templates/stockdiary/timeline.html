@@ -14,7 +14,13 @@
   --tl-t1:#1a2026;--tl-t2:#566069;--tl-t3:#9aa1aa;
   --tl-grad:linear-gradient(135deg,#71c4ef 0%,#00668c 100%);
   --tl-grad-txt:linear-gradient(120deg,#00668c,#37a4d4);
+  /* イベント種別カラーの単一ソース（CH6）。KIND_UI（views_timeline.py）と
+     種類チップはこの変数を参照する。色変更はここだけを直す */
   --tl-k-note:#0891b2;
+  --tl-k-retrospective:#7c3aed;
+  --tl-k-buy:#10b981;
+  --tl-k-sell:#ef4444;
+  --tl-k-diary:#d97706;
   --tl-shadow-sm:0 2px 8px rgba(20,40,60,.05);
   --tl-shadow-md:0 8px 24px rgba(20,40,60,.08);
   --tl-r-md:14px;--tl-r-lg:18px;--tl-r-xl:22px;
@@ -140,10 +146,10 @@
         {% for value, label in type_choices %}
         <a class="tl-chip{% if etype == value %} active{% endif %}"
            href="?period={{ period }}&type={{ value }}{% if tag_id %}&tag={{ tag_id }}{% endif %}{% if q %}&q={{ q|urlencode }}{% endif %}">
-          {% if value == 'note' %}<span class="kd" style="background:#0891b2"></span>
-          {% elif value == 'retrospective' %}<span class="kd" style="background:#7c3aed"></span>
-          {% elif value == 'transaction' %}<span class="kd" style="background:#10b981"></span>
-          {% elif value == 'diary' %}<span class="kd" style="background:#d97706"></span>
+          {% if value == 'note' %}<span class="kd" style="background:var(--tl-k-note)"></span>
+          {% elif value == 'retrospective' %}<span class="kd" style="background:var(--tl-k-retrospective)"></span>
+          {% elif value == 'transaction' %}<span class="kd" style="background:var(--tl-k-buy)"></span>
+          {% elif value == 'diary' %}<span class="kd" style="background:var(--tl-k-diary)"></span>
           {% endif %}{{ label }}</a>
         {% endfor %}
       </div>
