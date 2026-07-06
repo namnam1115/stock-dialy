@@ -14,7 +14,13 @@
   --tl-t1:#1a2026;--tl-t2:#566069;--tl-t3:#9aa1aa;
   --tl-grad:linear-gradient(135deg,#71c4ef 0%,#00668c 100%);
   --tl-grad-txt:linear-gradient(120deg,#00668c,#37a4d4);
+  /* イベント種別カラーの単一ソース（CH6）。KIND_UI（views_timeline.py）と
+     種類チップはこの変数を参照する。色変更はここだけを直す */
   --tl-k-note:#0891b2;
+  --tl-k-retrospective:#7c3aed;
+  --tl-k-buy:#10b981;
+  --tl-k-sell:#ef4444;
+  --tl-k-diary:#d97706;
   --tl-shadow-sm:0 2px 8px rgba(20,40,60,.05);
   --tl-shadow-md:0 8px 24px rgba(20,40,60,.08);
   --tl-r-md:14px;--tl-r-lg:18px;--tl-r-xl:22px;
@@ -52,6 +58,11 @@
 .tl-tagsel{position:relative}
 .tl-tagsel select{appearance:none;-webkit-appearance:none;height:40px;border:1.5px solid var(--tl-line);border-radius:999px;background:var(--tl-bg);font-family:inherit;font-size:13.5px;font-weight:600;color:var(--tl-t2);padding:0 38px 0 16px;cursor:pointer;transition:all .16s}
 .tl-tagsel select:focus{outline:none;border-color:var(--tl-accent);box-shadow:0 0 0 3px rgba(0,102,140,.1)}
+.tl-search{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.tl-search input[type=search]{flex:1;min-width:0;height:40px;border:1.5px solid var(--tl-line);border-radius:999px;background:var(--tl-bg);font-family:inherit;font-size:13.5px;color:var(--tl-t2);padding:0 16px;transition:all .16s}
+.tl-search input[type=search]:focus{outline:none;border-color:var(--tl-accent);box-shadow:0 0 0 3px rgba(0,102,140,.1)}
+.tl-search-clear{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;color:var(--tl-t2);flex-shrink:0}
+.tl-search-clear:hover{background:var(--tl-line)}
 .tl-tagsel::after{content:"\F282";font-family:"bootstrap-icons";position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--tl-t3);font-size:13px;pointer-events:none}
 
 /* result meta */
@@ -125,7 +136,7 @@
       <div class="tl-chips">
         {% for value, label in period_choices %}
         <a class="tl-chip{% if period == value %} active{% endif %}"
-           href="?period={{ value }}&type={{ etype }}{% if tag_id %}&tag={{ tag_id }}{% endif %}">{{ label }}</a>
+           href="?period={{ value }}&type={{ etype }}{% if tag_id %}&tag={{ tag_id }}{% endif %}{% if q %}&q={{ q|urlencode }}{% endif %}">{{ label }}</a>
         {% endfor %}
       </div>
     </div>
@@ -134,11 +145,11 @@
       <div class="tl-chips">
         {% for value, label in type_choices %}
         <a class="tl-chip{% if etype == value %} active{% endif %}"
-           href="?period={{ period }}&type={{ value }}{% if tag_id %}&tag={{ tag_id }}{% endif %}">
-          {% if value == 'note' %}<span class="kd" style="background:#0891b2"></span>
-          {% elif value == 'retrospective' %}<span class="kd" style="background:#7c3aed"></span>
-          {% elif value == 'transaction' %}<span class="kd" style="background:#10b981"></span>
-          {% elif value == 'diary' %}<span class="kd" style="background:#d97706"></span>
+           href="?period={{ period }}&type={{ value }}{% if tag_id %}&tag={{ tag_id }}{% endif %}{% if q %}&q={{ q|urlencode }}{% endif %}">
+          {% if value == 'note' %}<span class="kd" style="background:var(--tl-k-note)"></span>
+          {% elif value == 'retrospective' %}<span class="kd" style="background:var(--tl-k-retrospective)"></span>
+          {% elif value == 'transaction' %}<span class="kd" style="background:var(--tl-k-buy)"></span>
+          {% elif value == 'diary' %}<span class="kd" style="background:var(--tl-k-diary)"></span>
           {% endif %}{{ label }}</a>
         {% endfor %}
       </div>
@@ -147,7 +158,7 @@
     <div class="tl-frow">
       <span class="tl-flabel"><i class="bi bi-tag"></i>タグ</span>
       <div class="tl-tagsel">
-        <select onchange="location.href='?period={{ period }}&type={{ etype }}' + (this.value ? '&tag=' + this.value : '')">
+        <select onchange="location.href='?period={{ period }}&type={{ etype }}{% if q %}&q={{ q|urlencode }}{% endif %}' + (this.value ? '&tag=' + this.value : '')">
           <option value="">すべてのタグ</option>
           {% for tag in tags %}
           <option value="{{ tag.id }}" {% if tag_id == tag.id %}selected{% endif %}>@{{ tag.name }}</option>
@@ -156,6 +167,22 @@
       </div>
     </div>
     {% endif %}
+    {# キーワード検索（銘柄名・本文・トピック・取引メモを横断。TL1） #}
+    <div class="tl-frow">
+      <span class="tl-flabel"><i class="bi bi-search"></i>検索</span>
+      <form class="tl-search" method="get" action="">
+        <input type="hidden" name="period" value="{{ period }}">
+        <input type="hidden" name="type" value="{{ etype }}">
+        {% if tag_id %}<input type="hidden" name="tag" value="{{ tag_id }}">{% endif %}
+        <input type="search" name="q" value="{{ q }}" placeholder="銘柄名・本文で絞り込み"
+               maxlength="100" aria-label="タイムラインをキーワードで絞り込み">
+        {% if q %}
+        <a class="tl-search-clear"
+           href="?period={{ period }}&type={{ etype }}{% if tag_id %}&tag={{ tag_id }}{% endif %}"
+           aria-label="検索をクリア"><i class="bi bi-x-lg"></i></a>
+        {% endif %}
+      </form>
+    </div>
   </div>
 
   {% if event_groups %}

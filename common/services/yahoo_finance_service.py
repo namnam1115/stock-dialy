@@ -10,11 +10,63 @@ from decimal import Decimal
 from typing import Dict, List, Optional
 import logging
 
+from django.core.cache import cache
+
 logger = logging.getLogger(__name__)
 
 
 class YahooFinanceService:
-    """Yahoo Finance APIからデータを取得するサービスクラス"""
+    """Yahoo Finance APIからデータを取得するサービスクラス
+
+    公開APIは Django cache による短TTLキャッシュを経由する。
+    yfinance はリクエスト経路で同期呼び出しされるため、外部APIのレイテンシが
+    そのまま画面の体感速度になる。同一銘柄への連続アクセスをプロセス内で吸収し、
+    さらに取得失敗時は期限切れの旧値（stale コピー）へフォールバックして
+    yfinance の断続的な障害への耐性を持たせる。
+    """
+
+    # 種別ごとのフレッシュTTL（秒）。株価を含むものは短く、財務諸表ベースは長く。
+    CACHE_TTL = {
+        'price': 600,        # 株価系: 10分
+        'financial': 86400,  # 財務諸表系: 24時間
+        'news': 1800,        # ニュース: 30分
+    }
+    # stale コピーの保持期間。フレッシュ期限切れ後もこの間は障害時フォールバックに使う
+    STALE_TTL = 7 * 86400
+
+    @classmethod
+    def cached_fetch(cls, kind: str, key: str, fetch_fn):
+        """種別 kind・キー key で fetch_fn() の結果をキャッシュする共通ヘルパー。
+
+        - フレッシュヒット → そのまま返す（fetch_fn は呼ばない）
+        - ミス → fetch_fn() を実行。非空の結果はフレッシュ＋stale の二重に保存
+        - fetch_fn() が空（{} / [] / None）or 例外 → stale コピーがあればそれを返す
+          （空結果はキャッシュしない＝次回リトライされる）
+        """
+        fresh_key = f"yf:{kind}:{key}"
+        stale_key = f"yf:stale:{kind}:{key}"
+
+        hit = cache.get(fresh_key)
+        if hit is not None:
+            return hit
+
+        try:
+            result = fetch_fn()
+        except Exception as e:
+            logger.warning(f"cached_fetch: fetch失敗 ({fresh_key}): {e}")
+            result = None
+
+        if result:
+            ttl = cls.CACHE_TTL.get(kind, 600)
+            cache.set(fresh_key, result, ttl)
+            cache.set(stale_key, result, cls.STALE_TTL)
+            return result
+
+        stale = cache.get(stale_key)
+        if stale is not None:
+            logger.info(f"cached_fetch: staleフォールバック ({fresh_key})")
+            return stale
+        return result
 
     # ticker.info フォールバック用マッピング（主要ソースで取得できなかった場合のみ使用）
     METRIC_MAPPING_FALLBACK = {
@@ -250,6 +302,8 @@ class YahooFinanceService:
         """
         企業の財務データを取得（財務諸表ベース＋ ticker.info フォールバック）
 
+        結果は24時間キャッシュされる（財務諸表は日次より細かく変わらないため）。
+
         Args:
             company_code: 企業コード（例: 7203）
             fiscal_year: 会計年度（現在は未使用）
@@ -257,6 +311,13 @@ class YahooFinanceService:
         Returns:
             指標名とその値の辞書（Decimal型）
         """
+        return cls.cached_fetch(
+            'financial', company_code,
+            lambda: cls._fetch_company_data_uncached(company_code, fiscal_year),
+        ) or {}
+
+    @classmethod
+    def _fetch_company_data_uncached(cls, company_code: str, fiscal_year: Optional[str] = None) -> Dict[str, Decimal]:
         ticker_symbol = cls.get_ticker_symbol(company_code)
 
         try:
@@ -327,13 +388,21 @@ class YahooFinanceService:
         except Exception:
             return False
 
-    @staticmethod
-    def fetch_stock_news(company_code: str, company_name: str = "", max_items: int = 5) -> List[dict]:
+    @classmethod
+    def fetch_stock_news(cls, company_code: str, company_name: str = "", max_items: int = 5) -> List[dict]:
         """
         yfinance + Google News RSS から直近ニュースを取得する。
+        結果は30分キャッシュされる。
         Returns: [{"title": str, "source": str, "published": str}, ...]
         外部通信失敗時は取得できた分だけ返す（例外を外に漏らさない）。
         """
+        return cls.cached_fetch(
+            'news', f"{company_code}:{max_items}",
+            lambda: cls._fetch_stock_news_uncached(company_code, company_name, max_items),
+        ) or []
+
+    @staticmethod
+    def _fetch_stock_news_uncached(company_code: str, company_name: str = "", max_items: int = 5) -> List[dict]:
         news_items: List[dict] = []
 
         # --- yfinance ニュース ---
@@ -379,8 +448,8 @@ class YahooFinanceService:
                         t = parsedate(pub_el.text)
                         if t:
                             pub_str = datetime(*t[:3]).strftime('%Y-%m-%d')
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug('RSS pubDateのパースに失敗: %s', e)
                 news_items.append({
                     'title': title_el.text,
                     'source': source_el.text if source_el is not None and source_el.text else 'Google News',

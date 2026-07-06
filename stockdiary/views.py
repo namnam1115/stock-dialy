@@ -216,7 +216,9 @@ class StockDiaryListView(LoginRequiredMixin, ListView):
         from .views_earnings import attach_next_earnings
         attach_next_earnings(context['diaries'])
 
-        # フォーム用のスピードダイアルアクション
+        # フォーム用のスピードダイアルアクション。
+        # 記録動線（クイック記録・新規登録）のみに絞る（FB2）。
+        # テンプレート/タグ管理はメニュー「設定・その他」と重複していたため FAB からは撤去。
         context['form_actions'] = [
             {
                 'id': 'quick-add',
@@ -234,20 +236,6 @@ class StockDiaryListView(LoginRequiredMixin, ListView):
                 'label': '新規登録',
                 'aria_label': '新規登録'
             },
-            {
-                'type': 'template',
-                'url': reverse_lazy('diary_templates:list'),
-                'icon': 'bi-clipboard-data',
-                'label': 'テンプレート',
-                'aria_label': 'テンプレート',
-            },
-            {
-                'type': 'tag',
-                'url': reverse_lazy('tags:list'),
-                'icon': 'bi-tags',
-                'label': 'タグ管理',
-                'aria_label': 'タグ管理'
-            }
         ]
 
         # クイック記録用に今日の日付を追加
@@ -656,8 +644,8 @@ class StockDiaryDetailView(ObjectNotFoundRedirectMixin, LoginRequiredMixin, Deta
                     'missed_factor': v.missed_factor or '',
                     'learning': v.learning or '',
                 }
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug('Verdict(検証結果)のJSON化に失敗: %s', e)
             theses.append({
                 'claim': th.claim,
                 'basis': th.basis or '',
@@ -685,8 +673,8 @@ class StockDiaryDetailView(ObjectNotFoundRedirectMixin, LoginRequiredMixin, Deta
             try:
                 from stockdiary.api_analysis import _fetch_margin_data
                 margin = _fetch_margin_data(diary.stock_symbol)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug('信用残データの取得に失敗: %s', e)
 
         if diary.current_quantity > 0:
             status = '保有中'

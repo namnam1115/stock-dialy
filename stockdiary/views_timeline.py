@@ -14,6 +14,7 @@ from itertools import groupby
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import TemplateView
@@ -29,13 +30,14 @@ SOURCE_CAP = 500
 PERIOD_DAYS = {'1m': 30, '3m': 90, '1y': 365}
 
 # イベント種別ごとの表示メタ（マーカー色・アイコン・ラベル）。
-# ライト/ダーク双方で視認できる固定カラーを用いる。
+# 色の実値は timeline.html の CSS 変数（--tl-k-*）が単一ソース（CH6）。
+# ここは変数参照のみを持ち、色変更でPython側の修正が要らないようにする。
 KIND_UI = {
-    'note': {'color': '#0891b2', 'icon': 'bi-journal-text', 'label': '継続記録'},
-    'retrospective': {'color': '#7c3aed', 'icon': 'bi-arrow-counterclockwise', 'label': '振り返り'},
-    'buy': {'color': '#10b981', 'icon': 'bi-arrow-down-circle-fill', 'label': '買'},
-    'sell': {'color': '#ef4444', 'icon': 'bi-arrow-up-circle-fill', 'label': '売'},
-    'diary': {'color': '#d97706', 'icon': 'bi-journal-plus', 'label': '日記作成'},
+    'note': {'color': 'var(--tl-k-note)', 'icon': 'bi-journal-text', 'label': '継続記録'},
+    'retrospective': {'color': 'var(--tl-k-retrospective)', 'icon': 'bi-arrow-counterclockwise', 'label': '振り返り'},
+    'buy': {'color': 'var(--tl-k-buy)', 'icon': 'bi-arrow-down-circle-fill', 'label': '買'},
+    'sell': {'color': 'var(--tl-k-sell)', 'icon': 'bi-arrow-up-circle-fill', 'label': '売'},
+    'diary': {'color': 'var(--tl-k-diary)', 'icon': 'bi-journal-plus', 'label': '日記作成'},
 }
 
 
@@ -94,12 +96,14 @@ class TimelineView(LoginRequiredMixin, TemplateView):
             tag_id = int(self.request.GET.get('tag', '') or 0) or None
         except (ValueError, TypeError):
             tag_id = None
+        # キーワード検索（銘柄名・本文・トピック・取引メモを横断。TL1）
+        q = self.request.GET.get('q', '').strip()[:100]
 
         since = None
         if period in PERIOD_DAYS:
             since = timezone.now().date() - timedelta(days=PERIOD_DAYS[period])
 
-        events = self._collect_events(user, since, etype, tag_id)
+        events = self._collect_events(user, since, etype, tag_id, q)
 
         # 結果メタ用（フィルター後の全件・日数）
         total_count = len(events)
@@ -132,6 +136,7 @@ class TimelineView(LoginRequiredMixin, TemplateView):
             'period_label': period_label,
             'etype': etype,
             'tag_id': tag_id,
+            'q': q,
             'period_choices': PERIOD_CHOICES,
             'type_choices': TYPE_CHOICES,
             'tags': Tag.objects.filter(user=user).order_by('name'),
@@ -158,7 +163,7 @@ class TimelineView(LoginRequiredMixin, TemplateView):
         return context
 
     @staticmethod
-    def _collect_events(user, since, etype, tag_id):
+    def _collect_events(user, since, etype, tag_id, q=''):
         """3ソース（継続記録・取引・日記作成）を統合して日付降順で返す"""
         events = []
 
@@ -175,6 +180,11 @@ class TimelineView(LoginRequiredMixin, TemplateView):
                 notes = notes.filter(date__gte=since)
             if tag_id:
                 notes = notes.filter(diary__tags__id=tag_id)
+            if q:
+                notes = notes.filter(
+                    Q(content__icontains=q) | Q(topic__icontains=q)
+                    | Q(diary__stock_name__icontains=q)
+                )
             for n in notes.order_by('-date', '-created_at')[:SOURCE_CAP]:
                 kind = 'retrospective' if n.note_type == 'retrospective' else 'note'
                 events.append({
@@ -197,6 +207,10 @@ class TimelineView(LoginRequiredMixin, TemplateView):
                 txs = txs.filter(transaction_date__gte=since)
             if tag_id:
                 txs = txs.filter(diary__tags__id=tag_id)
+            if q:
+                txs = txs.filter(
+                    Q(memo__icontains=q) | Q(diary__stock_name__icontains=q)
+                )
             for t in txs.order_by('-transaction_date', '-created_at')[:SOURCE_CAP]:
                 side = 'buy' if t.transaction_type == 'buy' else 'sell'
                 events.append({
@@ -216,6 +230,10 @@ class TimelineView(LoginRequiredMixin, TemplateView):
                 diaries = diaries.filter(created_at__date__gte=since)
             if tag_id:
                 diaries = diaries.filter(tags__id=tag_id)
+            if q:
+                diaries = diaries.filter(
+                    Q(reason__icontains=q) | Q(stock_name__icontains=q)
+                )
             for d in diaries.order_by('-created_at')[:SOURCE_CAP]:
                 events.append({
                     'kind': 'diary',
