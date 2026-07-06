@@ -150,11 +150,13 @@
 .ec-day-panel-head { display: flex; align-items: center; gap: 0.5rem; padding: 0.7rem 1rem;
     background: var(--bg-secondary); font-weight: 700; font-size: 0.95rem; }
 .ec-day-items { display: flex; flex-direction: column; }
-.ec-item { display: flex; align-items: center; gap: 0.55rem; padding: 0.7rem 1rem;
+.ec-item { display: flex; align-items: flex-start; gap: 0.55rem; padding: 0.7rem 1rem;
     border-top: 1px solid var(--border-light); flex-wrap: wrap; }
 .ec-item--mine { background: rgba(47,62,107,0.05); }
-.ec-item-name { flex: 1; min-width: 0; font-weight: 600;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 銘柄名が長い場合は省略せず2行まで折り返す（#396: 見切れ対策） */
+.ec-item-name { flex-basis: 100%; font-weight: 600; white-space: normal;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    overflow: hidden; line-height: 1.3; }
 .ec-mine-tag { font-size: 0.74rem; color: var(--ec-mine); font-weight: 600; white-space: nowrap; }
 
 /* ダークモードでは選択日をブランドカラー寄りにして視認性を確保 */

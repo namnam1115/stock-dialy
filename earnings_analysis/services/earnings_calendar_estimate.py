@@ -120,6 +120,8 @@ def build_estimates(roster, confirmed_by_code, base_date,
     for code, info in roster.items():
         fye = info['fye']
         confirmed_dates = confirmed_by_code.get(code, ())
+        upcoming_confirmed = [cd for cd in confirmed_dates if cd >= base_date]
+        earliest_confirmed = min(upcoming_confirmed) if upcoming_confirmed else None
         for k in range(_ROLL_YEARS + 1):
             base_fye = _plus_years(fye, k)
             for period, qmonths in PERIOD_QUARTER_OFFSET_MONTHS.items():
@@ -128,6 +130,11 @@ def build_estimates(roster, confirmed_by_code, base_date,
                 if to_business_day is not None:
                     predicted = to_business_day(predicted)
                 if not (base_date <= predicted <= window_end):
+                    continue
+                # 既知の確定日より前の予想は出さない（#396: 計算式の誤差で予想が
+                # 確定より30日超前にずれると、決算カレンダーの一覧が確定より
+                # 早い予想日を「次回決算」として誤表示してしまうため）
+                if earliest_confirmed is not None and predicted < earliest_confirmed:
                     continue
                 # 確定日の近傍は予想を出さない（確定が正）
                 if any(abs((predicted - cd).days) <= CONFIRMED_SUPPRESS_DAYS
