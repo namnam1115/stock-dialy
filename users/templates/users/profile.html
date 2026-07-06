@@ -443,70 +443,94 @@
     color: var(--dm-foreground);
   }
 
-  /* アカウント設定ボタングリッド */
-  .account-actions {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
+  /* アカウント設定リスト（アイコンバッジ＋ラベル＋シェブロン） */
+  .settings-list {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border-light);
   }
 
-  .account-actions .btn {
+  .settings-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border-light);
+    transition: background-color 0.2s ease;
+  }
+
+  .settings-list-item:last-child {
+    border-bottom: none;
+  }
+
+  .settings-list-item:hover {
+    background-color: var(--surface-hover);
+    color: var(--text-primary);
+  }
+
+  .settings-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 0.65rem 1rem;
-    border-radius: var(--radius-md, 0.5rem);
+    font-size: 1rem;
+    color: #fff;
+  }
+
+  .settings-icon-info { background-color: var(--primary-color); }
+  .settings-icon-warning { background-color: var(--warning-color); }
+  .settings-icon-neutral { background-color: var(--text-secondary); }
+  .settings-icon-danger { background-color: var(--danger-color); }
+
+  .settings-label {
+    flex: 1;
     font-weight: 500;
-    font-size: 0.85rem;
-    transition: all 0.3s ease;
+    font-size: 0.9rem;
   }
 
-  .account-actions .btn-delete-account {
-    grid-column: 1 / -1;
+  .settings-chevron {
+    color: var(--text-tertiary);
+    font-size: 0.9rem;
   }
 
-  @media (max-width: 576px) {
-    .account-actions {
-      grid-template-columns: 1fr;
-    }
+  .settings-list-item-danger .settings-label {
+    color: var(--danger-color);
   }
 
-  /* ダークモード: アカウント設定ボタン */
-  .dark-mode .btn-outline-info,
-  [data-theme="dark"] .btn-outline-info {
-    color: var(--dm-primary, #71c4ef) !important;
-    border-color: var(--dm-primary, #71c4ef) !important;
+  /* ダークモード: アカウント設定リスト */
+  .dark-mode .settings-list,
+  [data-theme="dark"] .settings-list {
+    border-color: var(--dm-border);
   }
 
-  .dark-mode .btn-outline-info:hover,
-  [data-theme="dark"] .btn-outline-info:hover {
-    background-color: rgba(113, 196, 239, 0.15) !important;
-    color: var(--dm-primary, #71c4ef) !important;
+  .dark-mode .settings-list-item,
+  [data-theme="dark"] .settings-list-item {
+    background-color: rgba(71, 85, 105, 0.3);
+    border-bottom-color: var(--dm-border);
+    color: var(--dm-foreground);
   }
 
-  .dark-mode .btn-outline-warning,
-  [data-theme="dark"] .btn-outline-warning {
-    color: #fbbf24 !important;
-    border-color: #fbbf24 !important;
+  .dark-mode .settings-list-item:hover,
+  [data-theme="dark"] .settings-list-item:hover {
+    background-color: rgba(71, 85, 105, 0.5);
   }
 
-  .dark-mode .btn-outline-warning:hover,
-  [data-theme="dark"] .btn-outline-warning:hover {
-    background-color: rgba(251, 191, 36, 0.15) !important;
-    color: #fbbf24 !important;
+  .dark-mode .settings-chevron,
+  [data-theme="dark"] .settings-chevron {
+    color: var(--dm-muted-foreground);
   }
 
-  .dark-mode .btn-outline-danger,
-  [data-theme="dark"] .btn-outline-danger {
-    color: #f87171 !important;
-    border-color: #f87171 !important;
-  }
-
-  .dark-mode .btn-outline-danger:hover,
-  [data-theme="dark"] .btn-outline-danger:hover {
-    background-color: rgba(248, 113, 113, 0.15) !important;
-    color: #f87171 !important;
+  .dark-mode .settings-list-item-danger .settings-label,
+  [data-theme="dark"] .settings-list-item-danger .settings-label {
+    color: #f87171;
   }
 
   .dark-mode .btn-outline-primary,
@@ -647,18 +671,26 @@
           <i class="bi bi-gear"></i> アカウント設定
         </h3>
 
-        <div class="account-actions">
-          <a href="{% url 'users:profile_edit' %}" class="btn btn-outline-info">
-            <i class="bi bi-pencil"></i> プロフィール編集
+        <div class="settings-list">
+          <a href="{% url 'users:profile_edit' %}" class="settings-list-item">
+            <span class="settings-icon settings-icon-info"><i class="bi bi-pencil"></i></span>
+            <span class="settings-label">プロフィール編集</span>
+            <i class="bi bi-chevron-right settings-chevron"></i>
           </a>
-          <a href="{% url 'users:password_change' %}" class="btn btn-outline-warning">
-            <i class="bi bi-shield-lock"></i> パスワード変更
+          <a href="{% url 'users:password_change' %}" class="settings-list-item">
+            <span class="settings-icon settings-icon-warning"><i class="bi bi-shield-lock"></i></span>
+            <span class="settings-label">パスワード変更</span>
+            <i class="bi bi-chevron-right settings-chevron"></i>
           </a>
-          <a href="{% url 'users:logout' %}" class="btn btn-outline-danger">
-            <i class="bi bi-box-arrow-right"></i> ログアウト
+          <a href="{% url 'users:logout' %}" class="settings-list-item">
+            <span class="settings-icon settings-icon-neutral"><i class="bi bi-box-arrow-right"></i></span>
+            <span class="settings-label">ログアウト</span>
+            <i class="bi bi-chevron-right settings-chevron"></i>
           </a>
-          <a href="{% url 'users:account_delete_confirm' %}" class="btn btn-outline-danger btn-delete-account">
-            <i class="bi bi-trash"></i> アカウント削除
+          <a href="{% url 'users:account_delete_confirm' %}" class="settings-list-item settings-list-item-danger">
+            <span class="settings-icon settings-icon-danger"><i class="bi bi-trash"></i></span>
+            <span class="settings-label">アカウント削除</span>
+            <i class="bi bi-chevron-right settings-chevron"></i>
           </a>
         </div>
       </div>
