@@ -644,8 +644,8 @@ class StockDiaryDetailView(ObjectNotFoundRedirectMixin, LoginRequiredMixin, Deta
                     'missed_factor': v.missed_factor or '',
                     'learning': v.learning or '',
                 }
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug('Verdict(検証結果)のJSON化に失敗: %s', e)
             theses.append({
                 'claim': th.claim,
                 'basis': th.basis or '',
@@ -673,8 +673,8 @@ class StockDiaryDetailView(ObjectNotFoundRedirectMixin, LoginRequiredMixin, Deta
             try:
                 from stockdiary.api_analysis import _fetch_margin_data
                 margin = _fetch_margin_data(diary.stock_symbol)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug('信用残データの取得に失敗: %s', e)
 
         if diary.current_quantity > 0:
             status = '保有中'
