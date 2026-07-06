@@ -91,6 +91,28 @@ def test_build_estimates_suppresses_near_confirmed():
     assert all(e['earnings_date'] != target for e in ests)
 
 
+def test_build_estimates_never_precedes_known_confirmed():
+    """予想日が既知の確定日より前になる場合は出さない（確定が正）。
+
+    バグ再現(#396「決算カレンダーのリストとカレンダーの予定が異なる」):
+    確定発表が計算式(四半期末+43日)の予想日より30日超あとにずれると、
+    近傍抑止(±30日)をすり抜けて「確定より前の予想日」が別レコードとして
+    生き残ってしまう。get_next_earnings_map は日付が最も早いレコードを
+    「次回決算」として採用するため、保有/ウォッチ一覧はこの誤った予想日を
+    表示する一方、決算カレンダー本体は同じ銘柄の確定日を別の日に表示し、
+    両者が食い違って見えていた。
+    """
+    roster = {'7203': {'fye': date(2026, 3, 31),
+                       'company_name': 'トヨタ', 'market_segment': 'プライム'}}
+    base = date(2026, 7, 5)
+    # 第1四半期末 2026-06-30 + 43日 = 2026-08-12（予想）
+    # 確定発表を予想より40日後に置く（近傍抑止の±30日を超える）
+    confirmed_by_code = {'7203': [date(2026, 6, 30) + timedelta(days=ANNOUNCE_OFFSET_DAYS + 40)]}
+    ests = build_estimates(roster, confirmed_by_code, base, horizon_days=180)
+    q1 = [e for e in ests if e['earnings_type'] == '第１四半期']
+    assert q1 == []
+
+
 def test_build_roster_picks_latest_fiscal_year_end():
     """同一コードの履歴からは最も新しい会計年度末を採用する。"""
     history = [
