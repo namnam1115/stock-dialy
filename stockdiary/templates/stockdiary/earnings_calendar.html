@@ -71,7 +71,7 @@
 .ec-badge--scheduled { background: #6b7280; }
 .ec-empty { color: var(--text-secondary); font-size: 0.9rem; padding: 0.5rem 0; }
 
-/* ===== サマリーのタブ（保有 / ウォッチ）— CSSのみで切替、縦積みを回避 ===== */
+/* ===== サマリーのタブ（保有 / 売却済 / メモ）— CSSのみで切替、縦積みを回避 ===== */
 .ec-tab-input { position: absolute; opacity: 0; pointer-events: none; }
 .ec-tab-bar { display: inline-flex; gap: 2px; padding: 3px; background: var(--bg-secondary);
     border-radius: var(--radius-full, 999px); margin-bottom: 0.85rem; }
@@ -82,16 +82,21 @@
     color: inherit; border-radius: 999px; min-width: 1.15rem; padding: 0 0.35rem; text-align: center; }
 .ec-tab-panel { display: none; }
 #ec-tab-hold:checked ~ .ec-tab-bar label[for="ec-tab-hold"],
+#ec-tab-sold:checked ~ .ec-tab-bar label[for="ec-tab-sold"],
 #ec-tab-watch:checked ~ .ec-tab-bar label[for="ec-tab-watch"] {
     background: var(--ec-selected); color: #fff; }
 #ec-tab-hold:checked ~ .ec-tab-bar label[for="ec-tab-hold"] .ec-tab-count,
+#ec-tab-sold:checked ~ .ec-tab-bar label[for="ec-tab-sold"] .ec-tab-count,
 #ec-tab-watch:checked ~ .ec-tab-bar label[for="ec-tab-watch"] .ec-tab-count {
     background: rgba(255,255,255,0.28); }
 #ec-tab-hold:checked ~ .ec-hold-panel { display: block; }
+#ec-tab-sold:checked ~ .ec-sold-panel { display: block; }
 #ec-tab-watch:checked ~ .ec-watch-panel { display: block; }
 .dark-mode #ec-tab-hold:checked ~ .ec-tab-bar label[for="ec-tab-hold"],
+.dark-mode #ec-tab-sold:checked ~ .ec-tab-bar label[for="ec-tab-sold"],
 .dark-mode #ec-tab-watch:checked ~ .ec-tab-bar label[for="ec-tab-watch"],
 [data-theme="dark"] #ec-tab-hold:checked ~ .ec-tab-bar label[for="ec-tab-hold"],
+[data-theme="dark"] #ec-tab-sold:checked ~ .ec-tab-bar label[for="ec-tab-sold"],
 [data-theme="dark"] #ec-tab-watch:checked ~ .ec-tab-bar label[for="ec-tab-watch"] {
     background: var(--primary-color); }
 
@@ -177,40 +182,9 @@
     <h1><i class="bi bi-calendar-event"></i> 決算カレンダー</h1>
   </div>
 
-  {# ===== 次回決算サマリー: 保有 / ウォッチ をタブ切替（縦積みを避ける・JS不要） ===== #}
-  <section class="ec-section ec-summary">
-    <input type="radio" name="ec-summary-tab" id="ec-tab-hold" class="ec-tab-input"
-           {% if holdings or not watchlist %}checked{% endif %}>
-    <input type="radio" name="ec-summary-tab" id="ec-tab-watch" class="ec-tab-input"
-           {% if not holdings and watchlist %}checked{% endif %}>
-    <div class="ec-tab-bar" role="tablist">
-      <label for="ec-tab-hold"><i class="bi bi-briefcase"></i> 保有<span class="ec-tab-count">{{ holdings|length }}</span></label>
-      <label for="ec-tab-watch"><i class="bi bi-eye"></i> ウォッチ<span class="ec-tab-count">{{ watchlist|length }}</span></label>
-    </div>
-
-    <div class="ec-tab-panel ec-hold-panel">
-      {% if holdings %}
-      <div class="ec-list">
-        {% for diary in holdings %}
-        {% include 'stockdiary/components/_earnings_summary_row.html' with diary=diary %}
-        {% endfor %}
-      </div>
-      {% else %}
-      <p class="ec-empty">次回決算日が判明している保有銘柄はありません。</p>
-      {% endif %}
-    </div>
-
-    <div class="ec-tab-panel ec-watch-panel">
-      {% if watchlist %}
-      <div class="ec-list">
-        {% for diary in watchlist %}
-        {% include 'stockdiary/components/_earnings_summary_row.html' with diary=diary %}
-        {% endfor %}
-      </div>
-      {% else %}
-      <p class="ec-empty">次回決算日が判明しているウォッチ銘柄（メモ）はありません。</p>
-      {% endif %}
-    </div>
+  {# ===== 次回決算サマリー: 保有 / ウォッチ をタブ切替（縦積みを避ける・JS不要）。中身は _earnings_summary_content.html を共有し、カレンダー操作(HTMX)のたびにOOB更新される（#396） ===== #}
+  <section class="ec-section ec-summary" id="ec-summary">
+    {% include 'stockdiary/partials/_earnings_summary_content.html' %}
   </section>
 
   {# ===== 決算カレンダー（月グリッド＋選択日リスト） ===== #}

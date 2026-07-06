@@ -1,5 +1,11 @@
 {% load stockdiary_filters %}
 {# 選択日の決算一覧（HTMXで日パネルのみ差し替える場合はこの要素ごと返す） #}
+{% if is_htmx %}
+{# 次回決算サマリーもあわせて最新化する。単独で日パネルのみ差し替える呼び出しでもリストが古いままにならないようにする（#396） #}
+<section class="ec-section ec-summary" id="ec-summary" hx-swap-oob="true">
+  {% include 'stockdiary/partials/_earnings_summary_content.html' %}
+</section>
+{% endif %}
 <div id="ec-day-panel" class="ec-day-panel">
   <div class="ec-day-panel-head">
     <i class="bi bi-list-ul"></i>

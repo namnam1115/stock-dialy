@@ -433,6 +433,47 @@ def test_calendar_view_renders_without_calling_api(client):
     assert watch.stock_name.encode() in resp.content
 
 
+def test_calendar_summary_has_three_tabs_matching_diary_status(client):
+    """サマリーは 保有/売却済/メモ の3タブ（StockDiaryのis_holding/is_sold_out/is_memoと同じ基準）。
+
+    以前は「保有/ウォッチ」の2タブで、ウォッチが実質メモ日記のことなのに
+    別の言葉を使っていて分かりにくかった（#396フォローアップ）。取引はあるが
+    保有数ゼロ（売却済）の日記を独立タブとして出す。
+    """
+    user = User.objects.create_user('v_3tab', 'v3tab@e.com', 'p')
+    client.force_login(user)
+    today = date.today()
+
+    holding = StockDiary.objects.create(
+        user=user, stock_name='保有株', stock_symbol='7203',
+        current_quantity=100, transaction_count=2)
+    sold = StockDiary.objects.create(
+        user=user, stock_name='売却株', stock_symbol='6758',
+        current_quantity=0, transaction_count=2)
+    memo = StockDiary.objects.create(
+        user=user, stock_name='メモ株', stock_symbol='9984',
+        current_quantity=0, transaction_count=0)
+    EarningsSchedule.objects.create(
+        securities_code='7203', earnings_date=today + timedelta(days=5),
+        company_name='保有株')
+    EarningsSchedule.objects.create(
+        securities_code='6758', earnings_date=today + timedelta(days=6),
+        company_name='売却株')
+    EarningsSchedule.objects.create(
+        securities_code='9984', earnings_date=today + timedelta(days=7),
+        company_name='メモ株')
+
+    resp = client.get(reverse('stockdiary:earnings_calendar'))
+    html = resp.content.decode()
+
+    assert '売却済' in html
+    assert 'メモ' in html
+    assert holding.stock_name in html
+    assert sold.stock_name in html
+    assert memo.stock_name in html
+    assert 'id="ec-tab-sold"' in html
+
+
 def test_calendar_selected_day_lists_that_days_earnings(client):
     """?date= で指定した日の決算が選択日パネルに一覧される。"""
     user = User.objects.create_user('v_day', 'vd@e.com', 'p')
@@ -500,6 +541,42 @@ def test_calendar_view_requires_login(client):
     """未ログインはログインへリダイレクトする。"""
     resp = client.get(reverse('stockdiary:earnings_calendar'))
     assert resp.status_code in (301, 302)
+
+
+def test_calendar_htmx_nav_refreshes_summary_oob(client):
+    """月送り/日付タップ(HTMX)のたびに、次回決算サマリーもOOBで最新化される。
+
+    バグ再現(#396「決算カレンダーのリストとカレンダーの予定が異なる」の追報):
+    保有/ウォッチサマリーは初回のフルページ描画にしか含まれておらず、HTMXでの
+    月送り・日付タップ（#ec-calendar のみ差し替え）では再送されなかった。その
+    ため、初回表示後にサマリーの元データ（is_estimated 等）が変わっても、
+    ユーザーがカレンダーを操作するとサマリー欄だけ古いまま（例:カレンダー本体は
+    「確定」表示なのにサマリーはまだ「予想」表示）に見えていた。ビューは
+    holdings/watchlist を毎リクエスト計算しているため、HTMX応答に
+    hx-swap-oob="true" の #ec-summary を含めて必ず最新化するようにした。
+    """
+    user = User.objects.create_user('v_oob', 'voob@e.com', 'p')
+    client.force_login(user)
+    StockDiary.objects.create(
+        user=user, stock_name='トヨタ自動車', stock_symbol='7203',
+        current_quantity=100)
+    target = date.today() + timedelta(days=10)
+    EarningsSchedule.objects.create(
+        securities_code='7203', earnings_date=target,
+        company_name='トヨタ自動車', is_estimated=False)
+
+    url = reverse('stockdiary:earnings_calendar')
+
+    full = client.get(url)
+    full_html = full.content.decode()
+    assert full_html.count('id="ec-summary"') == 1
+    assert 'hx-swap-oob' not in full_html  # フルページでは二重描画させない
+
+    htmx = client.get(url, {'scope': 'mine'}, HTTP_HX_REQUEST='true')
+    htmx_html = htmx.content.decode()
+    assert htmx_html.count('id="ec-summary"') == 1
+    assert 'hx-swap-oob="true"' in htmx_html
+    assert 'トヨタ自動車' in htmx_html
 
 
 def test_thesis_next_earnings_uses_actual_date():
