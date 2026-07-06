@@ -442,6 +442,16 @@ class TagUpdateView(LoginRequiredMixin, UpdateView):
         context['axis_meta'] = get_axis_meta()
         context['existing_tags'] = _parent_candidates(user, exclude_pk=self.object.pk)
         context['can_be_child'] = not self.object.children.exists()
+        # このタグ自身がルート（親を持たない）なら「既存タグをまとめて子タグにする」を出せる
+        context['is_root'] = self.object.parent_id is None
+        if context['is_root']:
+            context['assignable_children'] = list(
+                _child_candidates_qs(user, self.object)
+                .order_by('name')
+                .values('id', 'name', 'record_count', 'parent_id')
+            )
+        else:
+            context['assignable_children'] = []
         # スピードダイアルのアクションを定義
         analytics_actions = [
             {
@@ -606,6 +616,54 @@ def set_tag_direction(request, pk):
         'direction': direction,
         'dir_choices': DIRECTION_TOGGLE_CHOICES,
     })
+
+
+def _child_candidates_qs(user, parent):
+    """親候補(parent)の子タグにできる/なっているタグの queryset。
+
+    「同じ軸のルートタグで、自身は子を持たない」もの（2階層制限。TagForm.clean()
+    と同じ制約）に加え、既に parent の子であるタグも含める。一覧に現在の子タグと
+    追加候補を同居させ、チェックの有無だけで追加/解除を一括指定できるようにするため。
+    """
+    return (
+        Tag.objects.filter(user=user, axis=parent.axis)
+        .filter(Q(parent__isnull=True) | Q(parent=parent))
+        .exclude(pk=parent.pk)
+        .annotate(child_count=Count('children', distinct=True), record_count=Count('stockdiary', distinct=True))
+        .filter(child_count=0)
+    )
+
+
+@login_required
+@require_POST
+def bulk_assign_children(request, pk):
+    """既存タグ(pk)を親として、選択した複数タグをまとめて子タグにする/解除する。
+
+    子タグ側の編集フォームで親を1件ずつ選ぶ方式だと、既存タグを複数まとめて
+    同じ親にぶら下げたい・外したいときに手間がかかる（相談を受けて追加）。
+    候補一覧には現在の子タグも表示されるため、チェックを外して送信すれば解除できる
+    （表示された候補のうち、送信時にチェックが外れていた既存の子だけを解除対象とする）。
+    """
+    parent = get_object_or_404(Tag, pk=pk, user=request.user, parent__isnull=True)
+    checked_ids = set(request.POST.getlist('child_ids'))
+
+    candidates = list(_child_candidates_qs(request.user, parent))
+    to_assign_ids = [t.pk for t in candidates if str(t.pk) in checked_ids and t.parent_id != parent.pk]
+    to_detach_ids = [t.pk for t in candidates if str(t.pk) not in checked_ids and t.parent_id == parent.pk]
+
+    assigned = Tag.objects.filter(pk__in=to_assign_ids).update(parent=parent) if to_assign_ids else 0
+    detached = Tag.objects.filter(pk__in=to_detach_ids, parent=parent).update(parent=None) if to_detach_ids else 0
+
+    parts = []
+    if assigned:
+        parts.append(f'{assigned}件を子タグに追加')
+    if detached:
+        parts.append(f'{detached}件を子タグから解除')
+    if parts:
+        messages.success(request, '、'.join(parts) + f'しました（「{parent.name}」）。')
+    else:
+        messages.info(request, '変更はありませんでした。')
+    return redirect('tags:update', pk=parent.pk)
 
 
 @login_required

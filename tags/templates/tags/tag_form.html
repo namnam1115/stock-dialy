@@ -71,9 +71,13 @@
 .tf-parent-opt:hover{background:var(--bg-300)}
 .tf-parent-opt.sel{background:color-mix(in srgb,var(--cur-ax,var(--accent-200)) 14%,var(--bg-200))}
 .tf-parent-opt input[type=radio]{accent-color:var(--cur-ax,var(--accent-200));width:16px;height:16px;flex-shrink:0}
+.tf-parent-opt input[type=checkbox]{accent-color:var(--accent-200);width:16px;height:16px;flex-shrink:0}
 .tf-parent-opt-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .tf-parent-opt-name{flex:1;font-size:.85rem;font-weight:600;color:var(--t1)}
 .tf-parent-opt-count{font-size:.7rem;color:var(--t3)}
+.tf-childsearch-noresult{font-size:.8rem;color:var(--t3);padding:10px;text-align:center}
+.tf-child-actions{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+.tf-btn-block{width:100%;justify-content:center}
 
 .tf-preview-box{background:var(--bg-200);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;display:flex;flex-direction:column;gap:12px}
 .tf-preview-tag{display:inline-flex;align-items:center;gap:8px;padding:.55rem 1.1rem;border-radius:var(--r-pill);background:color-mix(in srgb,var(--cur-ax,var(--accent-200)) 14%,transparent);border:1.5px solid color-mix(in srgb,var(--cur-ax,var(--accent-200)) 40%,transparent);color:var(--cur-ax,var(--accent-200));font-weight:700;font-size:.9rem;transition:all .16s;width:fit-content}
@@ -152,20 +156,29 @@
 
         <!-- 3. 親タグ -->
         <div class="tf-field">
+          {% if form.instance.pk %}
+          <span class="tf-label"><i class="bi bi-diagram-2"></i>親子関係</span>
+          {% if form.instance.parent_id %}
+          <p class="tf-parent-note"><i class="bi bi-diagram-2"></i> 「@{{ form.instance.parent.name }}」の子タグです。解除・付け替えは <a href="{% url 'tags:update' pk=form.instance.parent_id %}">「@{{ form.instance.parent.name }}」の編集画面</a> から行えます。</p>
+          {% elif can_be_child == False %}
+          <p class="tf-parent-note"><i class="bi bi-info-circle"></i> このタグは子タグを持つ親タグです。子タグの追加・解除は下の「子タグをまとめて管理する」から行えます。</p>
+          {% else %}
+          <p class="tf-parent-note"><i class="bi bi-info-circle"></i> このタグを誰かの子タグにするには、対象タグの編集画面（「子タグをまとめて管理する」）から追加してください。</p>
+          {% endif %}
+          <div style="display:none;">{{ form.parent }}</div>
+          {% else %}
           <div class="tf-toggle-row">
             <span class="tf-toggle-label"><i class="bi bi-diagram-2"></i>この軸の既存タグの子タグにする</span>
             <label class="tf-sw">
-              <input type="checkbox" id="parentToggle"{% if can_be_child == False %} disabled{% endif %}>
+              <input type="checkbox" id="parentToggle">
               <span class="tf-sw-track"></span>
             </label>
           </div>
-          {% if can_be_child == False %}
-          <p class="tf-parent-note"><i class="bi bi-info-circle"></i> このタグには既に子タグがあるため、別のタグの子タグにはできません（階層は2段階まで）。</p>
-          {% endif %}
           <div id="parentSection" class="tf-parent-picker" style="display:none;">
             <div id="parentList" class="tf-parent-list"></div>
             <div style="display:none;">{{ form.parent }}</div>
           </div>
+          {% endif %}
           {% if form.parent.errors %}
           <div class="tf-error"><i class="bi bi-exclamation-circle"></i><span>{{ form.parent.errors.0 }}</span></div>
           {% endif %}
@@ -194,6 +207,40 @@
       </form>
     </div>
   </div>
+
+  {% if form.instance.pk and is_root %}
+  <div class="tf-card" style="margin-top:20px;">
+    <div class="tf-card-head">
+      <h2><i class="bi bi-diagram-3"></i>子タグをまとめて管理する</h2>
+    </div>
+    <div class="tf-card-body">
+      {% if assignable_children %}
+      <form method="post" action="{% url 'tags:bulk_assign_children' pk=form.instance.pk %}">
+        {% csrf_token %}
+        <div class="tf-field" style="margin-bottom:2px;">
+          <input type="text" id="childSearchInput" class="tf-input" placeholder="タグ名で絞り込み…" autocomplete="off">
+        </div>
+        <div class="tf-parent-list" id="assignChildrenList" style="max-height:280px;">
+          {% for t in assignable_children %}
+          <label class="tf-parent-opt" data-name="{{ t.name|lower }}">
+            <input type="checkbox" name="child_ids" value="{{ t.id }}"{% if t.parent_id == form.instance.pk %} checked{% endif %}>
+            <span class="tf-parent-opt-name">@{{ t.name }}</span>
+            <span class="tf-parent-opt-count">{{ t.record_count }}件で使用中</span>
+          </label>
+          {% endfor %}
+        </div>
+        <p class="tf-childsearch-noresult" id="childSearchNoResult" style="display:none;">該当するタグがありません。</p>
+        <div class="tf-child-actions">
+          <span class="tf-hint">チェックで子タグに追加、外すと解除します（同じ軸のルートタグのみ）</span>
+          <button type="submit" class="tf-btn primary tf-btn-block"><i class="bi bi-check2-square"></i>変更を保存する</button>
+        </div>
+      </form>
+      {% else %}
+      <p class="tf-parent-empty">この軸には、子タグにできる既存タグがありません。</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 </div>
 
 {% include 'speed_dial.html' with actions=page_actions %}
@@ -242,6 +289,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function buildParentList(axisKey, keepParent) {
+    if (!parentList) return;
     parentList.innerHTML = '';
     if (!keepParent) curParentId = null;
 
@@ -270,17 +318,19 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  parentToggle.addEventListener('change', function() {
-    isChild = this.checked;
-    parentSection.style.display = isChild ? 'flex' : 'none';
-    if (!isChild) {
-      curParentId = null;
-      parentSelect.value = '';
-      parentList.querySelectorAll('.tf-parent-opt').forEach(r => r.classList.remove('sel'));
-      parentList.querySelectorAll('input[type=radio]').forEach(r => r.checked = false);
-    }
-    updatePreview();
-  });
+  if (parentToggle) {
+    parentToggle.addEventListener('change', function() {
+      isChild = this.checked;
+      parentSection.style.display = isChild ? 'flex' : 'none';
+      if (!isChild) {
+        curParentId = null;
+        parentSelect.value = '';
+        parentList.querySelectorAll('.tf-parent-opt').forEach(r => r.classList.remove('sel'));
+        parentList.querySelectorAll('input[type=radio]').forEach(r => r.checked = false);
+      }
+      updatePreview();
+    });
+  }
 
   function updatePreview() {
     const name = nameInput.value.trim();
@@ -325,11 +375,26 @@ document.addEventListener('DOMContentLoaded', function() {
   nameInput.addEventListener('input', () => selectAxis(curAxis, { keepParent: true }));
 
   // 初期化（編集時は既存値を反映）
-  if (isChild) {
+  if (isChild && parentToggle) {
     parentToggle.checked = true;
     parentSection.style.display = 'flex';
   }
   selectAxis(curAxis, { keepParent: true });
+
+  const childSearchInput = document.getElementById('childSearchInput');
+  const childSearchNoResult = document.getElementById('childSearchNoResult');
+  if (childSearchInput) {
+    childSearchInput.addEventListener('input', () => {
+      const q = childSearchInput.value.trim().toLowerCase();
+      let anyVisible = false;
+      document.querySelectorAll('#assignChildrenList .tf-parent-opt').forEach(row => {
+        const show = !q || (row.dataset.name || '').includes(q);
+        row.style.display = show ? '' : 'none';
+        if (show) anyVisible = true;
+      });
+      if (childSearchNoResult) childSearchNoResult.style.display = anyVisible ? 'none' : 'block';
+    });
+  }
 
   document.getElementById('tagForm').addEventListener('submit', function() {
     submitBtn.disabled = true;

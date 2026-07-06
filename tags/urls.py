@@ -15,6 +15,7 @@ urlpatterns = [
     path('<int:pk>/book/', views.TagBookView.as_view(), name='book'),  # 本モード
     path('<int:pk>/direction/', views.set_tag_direction, name='set_direction'),  # 方向トグル(HTMX)
     path('bulk-delete-unused/', views.bulk_delete_unused_tags, name='bulk_delete_unused'),
+    path('<int:pk>/assign-children/', views.bulk_assign_children, name='bulk_assign_children'),
 
     path('api/list/', api.list_tags, name='api_list'),
 ]

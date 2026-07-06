@@ -440,6 +440,85 @@ class TestTagManagement:
 
         assert response.status_code == 200
 
+    def test_bulk_assign_children(self, client):
+        """親タグ側から複数タグを選んでまとめて子タグにできる"""
+        client.login(username='testuser', password='testpass123')
+
+        parent = Tag.objects.create(user=self.user, name='半導体', axis='theme')
+        child1 = Tag.objects.create(user=self.user, name='AI半導体', axis='theme')
+        child2 = Tag.objects.create(user=self.user, name='パワー半導体', axis='theme')
+
+        response = client.post(
+            reverse('tags:bulk_assign_children', kwargs={'pk': parent.pk}),
+            {'child_ids': [child1.pk, child2.pk]},
+        )
+
+        assert response.status_code == 302
+        child1.refresh_from_db()
+        child2.refresh_from_db()
+        assert child1.parent_id == parent.pk
+        assert child2.parent_id == parent.pk
+
+    def test_bulk_assign_children_excludes_other_axis_and_tags_with_children(self, client):
+        """軸違い・既に子を持つタグは一括紐付けの対象にならない（2階層制限を維持）"""
+        client.login(username='testuser', password='testpass123')
+
+        parent = Tag.objects.create(user=self.user, name='半導体', axis='theme')
+        other_axis = Tag.objects.create(user=self.user, name='金利', axis='macro')
+        grandparent_candidate = Tag.objects.create(user=self.user, name='EV', axis='theme')
+        Tag.objects.create(user=self.user, name='EVバッテリー', axis='theme', parent=grandparent_candidate)
+
+        client.post(
+            reverse('tags:bulk_assign_children', kwargs={'pk': parent.pk}),
+            {'child_ids': [other_axis.pk, grandparent_candidate.pk]},
+        )
+
+        other_axis.refresh_from_db()
+        grandparent_candidate.refresh_from_db()
+        assert other_axis.parent_id is None
+        assert grandparent_candidate.parent_id is None
+
+    def test_bulk_assign_children_can_detach_existing_child(self, client):
+        """既存の子タグをチェックから外して送信すると解除できる
+
+        親タグ側の一括操作は「新規追加」しかできず、既に子にしたタグを外す
+        手段がなかった（子タグ側の編集フォームでしか解除できず使いにくいと
+        フィードバックを受けて対応）。候補一覧には現在の子タグも表示され、
+        チェックを外した状態で送信すると親子関係が解除される。
+        """
+        client.login(username='testuser', password='testpass123')
+
+        parent = Tag.objects.create(user=self.user, name='半導体', axis='theme')
+        child = Tag.objects.create(user=self.user, name='AI半導体', axis='theme', parent=parent)
+
+        response = client.post(
+            reverse('tags:bulk_assign_children', kwargs={'pk': parent.pk}),
+            {'child_ids': []},
+        )
+
+        assert response.status_code == 302
+        child.refresh_from_db()
+        assert child.parent_id is None
+
+    def test_bulk_assign_children_assign_and_detach_together(self, client):
+        """1回の送信で「新規に子にする」と「既存の子を外す」を同時に行える"""
+        client.login(username='testuser', password='testpass123')
+
+        parent = Tag.objects.create(user=self.user, name='半導体', axis='theme')
+        existing_child = Tag.objects.create(user=self.user, name='AI半導体', axis='theme', parent=parent)
+        new_child = Tag.objects.create(user=self.user, name='パワー半導体', axis='theme')
+
+        response = client.post(
+            reverse('tags:bulk_assign_children', kwargs={'pk': parent.pk}),
+            {'child_ids': [new_child.pk]},
+        )
+
+        assert response.status_code == 302
+        existing_child.refresh_from_db()
+        new_child.refresh_from_db()
+        assert existing_child.parent_id is None
+        assert new_child.parent_id == parent.pk
+
 
 # ---------------------------------------------------------------------------
 # 検索バグ回帰テスト（#fix: 2026-06-20 のバグ修正に対応）
