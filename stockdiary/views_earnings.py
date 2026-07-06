@@ -196,6 +196,11 @@ def earnings_calendar(request):
     prev_month = prev_first.strftime('%Y-%m') if prev_first >= ws_first else None
     next_month = next_first.strftime('%Y-%m') if next_first <= we_first else None
 
+    is_htmx = (
+        request.headers.get('HX-Request') == 'true'
+        or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    )
+
     context = {
         'scope': scope,
         'today': today,
@@ -210,12 +215,10 @@ def earnings_calendar(request):
         'next_month': next_month,
         'selected_date': selected_date,
         'day_items': day_items,
+        # HTMX応答でのみ #ec-summary をOOB更新する（フルページでは二重描画を避ける）
+        'is_htmx': is_htmx,
     }
 
-    is_htmx = (
-        request.headers.get('HX-Request') == 'true'
-        or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-    )
     if is_htmx and request.GET.get('panel') == 'day':
         return render(
             request, 'stockdiary/partials/earnings_calendar_day.html', context)

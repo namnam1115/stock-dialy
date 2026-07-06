@@ -502,6 +502,42 @@ def test_calendar_view_requires_login(client):
     assert resp.status_code in (301, 302)
 
 
+def test_calendar_htmx_nav_refreshes_summary_oob(client):
+    """月送り/日付タップ(HTMX)のたびに、次回決算サマリーもOOBで最新化される。
+
+    バグ再現(#396「決算カレンダーのリストとカレンダーの予定が異なる」の追報):
+    保有/ウォッチサマリーは初回のフルページ描画にしか含まれておらず、HTMXでの
+    月送り・日付タップ（#ec-calendar のみ差し替え）では再送されなかった。その
+    ため、初回表示後にサマリーの元データ（is_estimated 等）が変わっても、
+    ユーザーがカレンダーを操作するとサマリー欄だけ古いまま（例:カレンダー本体は
+    「確定」表示なのにサマリーはまだ「予想」表示）に見えていた。ビューは
+    holdings/watchlist を毎リクエスト計算しているため、HTMX応答に
+    hx-swap-oob="true" の #ec-summary を含めて必ず最新化するようにした。
+    """
+    user = User.objects.create_user('v_oob', 'voob@e.com', 'p')
+    client.force_login(user)
+    StockDiary.objects.create(
+        user=user, stock_name='トヨタ自動車', stock_symbol='7203',
+        current_quantity=100)
+    target = date.today() + timedelta(days=10)
+    EarningsSchedule.objects.create(
+        securities_code='7203', earnings_date=target,
+        company_name='トヨタ自動車', is_estimated=False)
+
+    url = reverse('stockdiary:earnings_calendar')
+
+    full = client.get(url)
+    full_html = full.content.decode()
+    assert full_html.count('id="ec-summary"') == 1
+    assert 'hx-swap-oob' not in full_html  # フルページでは二重描画させない
+
+    htmx = client.get(url, {'scope': 'mine'}, HTTP_HX_REQUEST='true')
+    htmx_html = htmx.content.decode()
+    assert htmx_html.count('id="ec-summary"') == 1
+    assert 'hx-swap-oob="true"' in htmx_html
+    assert 'トヨタ自動車' in htmx_html
+
+
 def test_thesis_next_earnings_uses_actual_date():
     """Thesis「次の決算まで」の検証予定日が、実際の次回決算日になる。"""
     from stockdiary.views_growth import _default_review_due_date
