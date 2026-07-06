@@ -75,3 +75,22 @@ def test_no_duplicate_static_js_with_base():
         'base.html と重複するJS読み込みがあります（二重実行は const 再宣言で '
         'SyntaxError になります）:\n  ' + '\n  '.join(violations)
     )
+
+
+def test_static_version_matches_sw_version():
+    """STATIC_VERSION（settings.py）と Service Worker の VERSION（sw.js）の一致を強制する。
+
+    この2つは「静的アセット更新時に人手で同時にバンプする」運用で、実際に
+    片方ずつ手動同期する場面が繰り返し発生していた（CH2）。片方の更新漏れは
+    「デプロイしたのに古いキャッシュが配信され続ける」事故として現れ、原因
+    特定が難しい。ここで一致を機械的に強制し、更新漏れをCIで即検知する。
+    """
+    from django.conf import settings
+
+    sw = (BASE_DIR / 'static/sw.js').read_text(encoding='utf-8')
+    m = re.search(r"const VERSION = '([^']+)'", sw)
+    assert m, 'static/sw.js の VERSION 定義が見つかりません'
+    assert m.group(1) == settings.STATIC_VERSION, (
+        f'sw.js の VERSION ({m.group(1)}) と settings.STATIC_VERSION '
+        f'({settings.STATIC_VERSION}) が不一致です。両方を同じ値に更新してください'
+    )
