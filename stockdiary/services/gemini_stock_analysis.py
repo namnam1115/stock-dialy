@@ -207,8 +207,8 @@ class GeminiStockAnalyzer:
                     data['fallback_used'] = False
                     self._align_stocks_order(data, stocks_data)
                     return data
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug('Gemini応答のJSONパースに失敗(次の候補を試行): %s', e)
 
         logger.warning("Gemini応答のJSONパースに失敗 - フォールバックへ")
         return self._fallback_analysis(stocks_data)

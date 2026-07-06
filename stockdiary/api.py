@@ -442,8 +442,8 @@ def _build_stock_metrics(stock_code):
                 per = round(price / (annual_net / shares), 2)
             if equity and equity > 0:
                 pbr = round(price / (equity / shares), 2)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug('PER/PBR計算(財務諸表)に失敗: %s', e)
 
     # 財務諸表で取得できなかった場合は ticker.info にフォールバック
     if per is None or pbr is None:
@@ -455,8 +455,8 @@ def _build_stock_metrics(stock_code):
             if pbr is None:
                 raw = info.get('priceToBook')
                 pbr = round(raw, 2) if raw else None
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug('PER/PBRフォールバック(ticker.info)に失敗: %s', e)
 
     # --- 配当利回り: ticker.info の dividendYield を優先（Yahoo Finance 表示値と一致）
     # yfinance の dividendYield は小数（0.054=5.4%）またはパーセント（5.4=5.4%）で返る
@@ -466,8 +466,8 @@ def _build_stock_metrics(stock_code):
         raw = ticker.info.get('dividendYield')
         if raw:
             dividend_yield = round(raw if raw > 0.3 else raw * 100, 2)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug('配当利回り取得(ticker.info)に失敗: %s', e)
 
     # ticker.info が取得できない場合は ticker.dividends から直近1年合計で計算
     if dividend_yield is None:
@@ -478,8 +478,8 @@ def _build_stock_metrics(stock_code):
                 annual_div   = float(divs[divs.index >= one_year_ago].sum())
                 if annual_div > 0 and price and price > 0:
                     dividend_yield = round(annual_div / price * 100, 2)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug('配当利回り計算(dividends)に失敗: %s', e)
 
     return {
         'success': True,
@@ -660,8 +660,8 @@ def _build_stock_historical(stock_code):
             ma25  = _ma(25)
             ma75  = _ma(75)
             ma200 = _ma(200)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug('移動平均計算に失敗: %s', e)
 
     # 業種コード・業種名（CompanyMaster DB）と業種ベンチマーク（IndustryBenchmark DB）
     industry_code = industry_name = None
@@ -681,8 +681,8 @@ def _build_stock_historical(stock_code):
                     'median':  float(ib.median_value)  if ib.median_value  is not None else None,
                     'average': float(ib.average_value) if ib.average_value is not None else None,
                 }
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug('業種ベンチマーク取得に失敗: %s', e)
 
     try:
         inc = ticker.income_stmt
@@ -697,8 +697,8 @@ def _build_stock_historical(stock_code):
                     per = round(price / (annual_net / shares), 2)
                 if equity_latest and equity_latest > 0:
                     pbr = round(price / (equity_latest / shares), 2)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug('PER/PBR計算(財務諸表)に失敗: %s', e)
 
     if per is None or pbr is None:
         try:
@@ -709,8 +709,8 @@ def _build_stock_historical(stock_code):
             if pbr is None:
                 raw = info.get('priceToBook')
                 pbr = round(raw, 2) if raw else None
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug('PER/PBRフォールバック(ticker.info)に失敗: %s', e)
 
     # 配当利回り: ticker.info の dividendYield を優先（Yahoo Finance 表示値と一致）
     # yfinance の dividendYield は小数（0.054=5.4%）またはパーセント（5.4=5.4%）で返る
@@ -720,8 +720,8 @@ def _build_stock_historical(stock_code):
         raw = ticker.info.get('dividendYield')
         if raw:
             dividend_yield = round(raw if raw > 0.3 else raw * 100, 2)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug('配当利回り取得(ticker.info)に失敗: %s', e)
 
     if dividend_yield is None:
         try:
@@ -731,8 +731,8 @@ def _build_stock_historical(stock_code):
                 annual_div = float(divs[divs.index >= one_year_ago].sum())
                 if annual_div > 0 and price and price > 0:
                     dividend_yield = round(annual_div / price * 100, 2)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug('配当利回り計算(dividends)に失敗: %s', e)
 
     if not stock_name:
         try:

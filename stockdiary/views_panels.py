@@ -136,8 +136,8 @@ def edinet_panel(request, diary_id):
                         .order_by('-analysis_date')
                         .first()
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug('感情分析履歴の取得に失敗: %s', e)
             sent = sent_session or sent_history
 
             # 経営トーンの前回比（同一銘柄の前回有報・半報との比較）
@@ -149,8 +149,8 @@ def edinet_panel(request, diary_id):
             if doc.pdf_flag:
                 try:
                     pdf_url = reverse('copomo:document-download', args=[doc.doc_id]) + '?type=pdf'
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug('PDFダウンロードURLの解決に失敗: %s', e)
 
             # 感情分析データをJSON化（モーダル表示用）
             # 判定（AIスコア・AI投資ポイント）は載せず、語彙分析の根拠
@@ -190,8 +190,8 @@ def edinet_panel(request, diary_id):
                             'sentences_analyzed', 'positive_words_count', 'negative_words_count'
                         ) if k in stats_raw},
                     }, ensure_ascii=False)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug('感情分析JSONの構築に失敗: %s', e)
 
             # 財務データ（XBRL 分析済みの場合）
             fin_data = (
@@ -238,8 +238,8 @@ def edinet_panel(request, diary_id):
                             d = getattr(fin_data, denominator)
                             if n is not None and d is not None and Decimal(str(d)) != 0:
                                 return round(float(Decimal(str(n)) / Decimal(str(d)) * 100), 2)
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.debug('財務比率の計算に失敗: %s', e)
                         return None
 
                     report_json = json.dumps({
@@ -255,8 +255,8 @@ def edinet_panel(request, diary_id):
                         # CFパターン詳細
                         'cf': cf_data,
                     }, ensure_ascii=False)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug('財務レポートJSONの構築に失敗: %s', e)
 
             # XBRL財務分析の可否（財務諸表を含む種別のみ。臨報・内部統制等は不可）
             from earnings_analysis.services.xbrl_analysis_service import XBRL_ANALYZABLE_DOC_TYPE_CODES

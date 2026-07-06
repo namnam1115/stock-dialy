@@ -448,8 +448,8 @@ class YahooFinanceService:
                         t = parsedate(pub_el.text)
                         if t:
                             pub_str = datetime(*t[:3]).strftime('%Y-%m-%d')
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug('RSS pubDateのパースに失敗: %s', e)
                 news_items.append({
                     'title': title_el.text,
                     'source': source_el.text if source_el is not None and source_el.text else 'Google News',

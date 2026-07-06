@@ -206,6 +206,7 @@ TEMPLATES = [
                 'ads.context_processors.static_version',
                 'users.context_processors.google_oauth_status',  # Google OAuth状態
                 'users.context_processors.demo_status',  # デモ体験ボタン表示可否
+                'common.context_processors.main_nav',  # 主要ナビの単一ソース（CH3）
             ],
         },
     },
@@ -849,4 +850,4 @@ Q_CLUSTER = {
     'catch_up': False,
 }
 
-STATIC_VERSION = '1.2.1011'
+STATIC_VERSION = '1.2.1012'
