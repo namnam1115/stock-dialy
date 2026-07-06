@@ -73,13 +73,22 @@
 
 /* ===== サマリーのタブ（保有 / 売却済 / メモ）— CSSのみで切替、縦積みを回避 ===== */
 .ec-tab-input { position: absolute; opacity: 0; pointer-events: none; }
-.ec-tab-bar { display: inline-flex; gap: 2px; padding: 3px; background: var(--bg-secondary);
-    border-radius: var(--radius-full, 999px); margin-bottom: 0.85rem; }
-.ec-tab-bar label { display: inline-flex; align-items: center; gap: 0.4rem;
-    padding: 0.45rem 1rem; font-size: 0.86rem; font-weight: 600; color: var(--text-secondary);
-    border-radius: var(--radius-full, 999px); cursor: pointer; transition: background .15s, color .15s; }
+.ec-tab-bar { display: flex; gap: 2px; padding: 3px; background: var(--bg-secondary);
+    border-radius: var(--radius-full, 999px); margin-bottom: 0.85rem;
+    max-width: 100%; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.ec-tab-bar::-webkit-scrollbar { display: none; }
+.ec-tab-bar label { display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.45rem 0.85rem; font-size: 0.86rem; font-weight: 600; color: var(--text-secondary);
+    border-radius: var(--radius-full, 999px); cursor: pointer; transition: background .15s, color .15s;
+    white-space: nowrap; flex: none; }
 .ec-tab-count { font-size: 0.72rem; font-weight: 700; background: rgba(120,120,120,0.18);
-    color: inherit; border-radius: 999px; min-width: 1.15rem; padding: 0 0.35rem; text-align: center; }
+    color: inherit; border-radius: 999px; min-width: 1.15rem; padding: 0 0.35rem; text-align: center;
+    white-space: nowrap; }
+/* せまい画面（3タブ分の幅が厳しいiPhone SE等）はパディング/フォントを詰めて折り返しを防ぐ */
+@media (max-width: 400px) {
+  .ec-tab-bar label { padding: 0.4rem 0.65rem; font-size: 0.78rem; gap: 0.28rem; }
+  .ec-tab-count { font-size: 0.66rem; min-width: 1rem; padding: 0 0.3rem; }
+}
 .ec-tab-panel { display: none; }
 #ec-tab-hold:checked ~ .ec-tab-bar label[for="ec-tab-hold"],
 #ec-tab-sold:checked ~ .ec-tab-bar label[for="ec-tab-sold"],
