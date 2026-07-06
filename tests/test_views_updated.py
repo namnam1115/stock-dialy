@@ -868,3 +868,28 @@ class TestDashboardKarteBridge:
     def test_karte_links_to_dashboard(self, authenticated_client, sample_diary):
         html = authenticated_client.get(reverse('stockdiary:investor_karte')).content.decode()
         assert reverse('stockdiary:dashboard') in html
+
+
+@pytest.mark.django_db
+class TestMainNavSingleSource:
+    """主要ナビの単一ソース化（CH3）の回帰テスト。
+
+    なぜこの変更をしたか: PCヘッダー（nav-item）とモバイルメニュー
+    （menu-item primary）が base.html 内の別々の手書きリストで、ナビ変更の
+    たびに2箇所同時編集が必要だった（NV1 実装で実測）。片側だけ直る drift を
+    防ぐため、common/context_processors.MAIN_NAV を単一ソースにして両方を描画する。
+    """
+
+    def test_pc_and_mobile_nav_render_same_items(self, authenticated_client, sample_diary):
+        from common.context_processors import MAIN_NAV
+        html = authenticated_client.get(reverse('stockdiary:home')).content.decode()
+        assert len(MAIN_NAV) == 5  # 決定10「主要5項目」
+        for item in MAIN_NAV:
+            url = reverse(item['url_name'])
+            # PC ナビとモバイルメニューの両方に同じリンクが出る（最低2回出現）
+            assert html.count(f'href="{url}"') >= 2, item['label']
+
+    def test_nav_item_counts_match(self, authenticated_client, sample_diary):
+        html = authenticated_client.get(reverse('stockdiary:home')).content.decode()
+        assert html.count('class="nav-item"') == 5
+        assert html.count('menu-item primary') == 5
