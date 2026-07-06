@@ -21,8 +21,21 @@
 
   .list-group-item:last-child {
     border-bottom: none;
-  }  
-  
+  }
+
+  .profile-page {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    max-width: 720px;
+  }
+
+  @media (min-width: 768px) {
+    .profile-page {
+      padding-top: 2rem;
+      padding-bottom: 2rem;
+    }
+  }
+
   .profile-card {
     border: none;
     border-radius: var(--radius-lg);
@@ -30,39 +43,110 @@
     overflow: hidden;
     background-color: var(--bg-primary);
   }
-  
+
   .profile-header {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-    padding: 2rem;
+    padding: 1.5rem 1.25rem;
     color: var(--text-inverse);
-    text-align: center;
   }
-  
+
+  @media (min-width: 768px) {
+    .profile-header {
+      padding: 2rem;
+    }
+  }
+
+  .profile-header-top {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
   .profile-img {
-    width: 100px;
-    height: 100px;
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
     border-radius: 50%;
     background-color: var(--bg-primary);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 1rem;
-    font-size: 3rem;
+    font-size: 1.75rem;
     color: var(--primary-color);
   }
-  
-  .profile-body {
-    padding: 2rem;
+
+  .profile-header-text {
+    min-width: 0;
   }
-  
-  .profile-section {
-    margin-bottom: 2rem;
-  }
-  
-  .profile-section-title {
+
+  .profile-header-text h2 {
     font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.15rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .profile-header-text p {
+    font-size: 0.85rem;
+    margin-bottom: 0;
+    opacity: 0.9;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .profile-joined {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    opacity: 0.85;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .profile-body {
+    padding: 1.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .profile-body {
+      padding: 1.75rem 2rem;
+    }
+  }
+
+  /* 統計サマリー行（follower行のような軽量表示） */
+  .profile-stats-row {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0.25rem 0.25rem 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .profile-stat-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+
+  .profile-stat-number {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 1.05rem;
+  }
+
+  .profile-section {
+    margin-bottom: 1.75rem;
+  }
+
+  .profile-section-title {
+    font-size: 1.05rem;
     font-weight: 600;
-    margin-bottom: 1rem;
+    margin-bottom: 0.85rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--border-primary);
     display: flex;
@@ -70,155 +154,288 @@
     gap: 0.5rem;
     color: var(--text-primary);
   }
-  
+
+  /* ===== 活動ヒートマップ ===== */
+  .heatmap-summary {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.85rem;
+  }
+
+  .heatmap-summary strong {
+    color: var(--primary-color);
+    font-size: 1rem;
+  }
+
+  .heatmap-scroll {
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .heatmap-inner {
+    display: inline-block;
+    min-width: 100%;
+  }
+
+  .heatmap-months {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 11px;
+    grid-template-rows: 14px;
+    gap: 3px;
+    margin-left: 24px;
+    margin-bottom: 3px;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  .heatmap-month-label {
+    overflow: visible;
+  }
+
+  .heatmap-with-weekdays {
+    display: flex;
+    gap: 4px;
+  }
+
+  .heatmap-weekday-labels {
+    display: grid;
+    grid-template-rows: repeat(7, 11px);
+    gap: 3px;
+    font-size: 0.6rem;
+    line-height: 11px;
+    color: var(--text-secondary);
+    width: 20px;
+    flex-shrink: 0;
+  }
+
+  .heatmap-grid {
+    display: grid;
+    grid-template-rows: repeat(7, 11px);
+    grid-auto-flow: column;
+    grid-auto-columns: 11px;
+    gap: 3px;
+  }
+
+  .heatmap-day {
+    width: 11px;
+    height: 11px;
+    border-radius: 2px;
+    background-color: rgba(0, 102, 140, 0.08);
+    display: inline-block;
+  }
+
+  .heatmap-day[data-level="1"] { background-color: rgba(0, 102, 140, 0.3); }
+  .heatmap-day[data-level="2"] { background-color: rgba(0, 102, 140, 0.5); }
+  .heatmap-day[data-level="3"] { background-color: rgba(0, 102, 140, 0.75); }
+  .heatmap-day[data-level="4"] { background-color: var(--primary-color); }
+
+  .heatmap-day-future {
+    background-color: transparent !important;
+  }
+
+  .heatmap-day-today {
+    outline: 1.5px solid var(--primary-color);
+    outline-offset: -1.5px;
+  }
+
+  .heatmap-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.6rem;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+  }
+
+  .heatmap-legend .heatmap-day {
+    width: 10px;
+    height: 10px;
+  }
+
+  .dark-mode .heatmap-day,
+  [data-theme="dark"] .heatmap-day {
+    background-color: rgba(59, 130, 246, 0.12);
+  }
+
+  .dark-mode .heatmap-day[data-level="1"],
+  [data-theme="dark"] .heatmap-day[data-level="1"] { background-color: rgba(59, 130, 246, 0.35); }
+  .dark-mode .heatmap-day[data-level="2"],
+  [data-theme="dark"] .heatmap-day[data-level="2"] { background-color: rgba(59, 130, 246, 0.55); }
+  .dark-mode .heatmap-day[data-level="3"],
+  [data-theme="dark"] .heatmap-day[data-level="3"] { background-color: rgba(59, 130, 246, 0.8); }
+  .dark-mode .heatmap-day[data-level="4"],
+  [data-theme="dark"] .heatmap-day[data-level="4"] { background-color: var(--dm-primary); }
+
+  .dark-mode .heatmap-day-today,
+  [data-theme="dark"] .heatmap-day-today {
+    outline-color: var(--dm-primary);
+  }
+
   .stats-card {
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
-    padding: 1.5rem;
+    padding: 1.25rem 1rem;
     text-align: center;
     transition: all 0.3s ease;
   }
-  
+
   .stats-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-3px);
     box-shadow: var(--shadow-md);
     border-color: var(--primary-color);
   }
-  
+
   .stats-number {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 700;
     color: var(--primary-color);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.35rem;
   }
-  
+
   .stats-label {
     color: var(--text-secondary);
-    font-size: 0.875rem;
+    font-size: 0.8rem;
   }
-  
+
   .recent-item {
-    padding: 1rem;
+    padding: 0.85rem 1rem;
     border-radius: var(--radius-md);
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-light);
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.6rem;
     transition: all 0.3s ease;
   }
-  
+
   .recent-item:hover {
     background-color: var(--surface-hover);
-    transform: translateX(5px);
+    transform: translateX(3px);
     border-color: var(--primary-color);
   }
-  
+
   .recent-item-title {
     font-weight: 600;
     margin-bottom: 0.25rem;
     color: var(--text-primary);
   }
-  
+
   .recent-item-meta {
     color: var(--text-secondary);
-    font-size: 0.875rem;
+    font-size: 0.85rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-wrap: wrap;
   }
-  
+
   .recent-item-meta a {
     color: var(--primary-color);
     text-decoration: none;
   }
-  
+
   .recent-item-meta a:hover {
     color: var(--primary-dark);
   }
-  
+
   /* Dark Mode Support */
   .dark-mode .profile-card,
   [data-theme="dark"] .profile-card {
     background-color: var(--dm-card);
     border: 1px solid var(--dm-border);
   }
-  
+
   .dark-mode .profile-header,
   [data-theme="dark"] .profile-header {
     background: linear-gradient(135deg, var(--dm-primary) 0%, var(--dm-primary-hover) 100%);
   }
-  
+
   .dark-mode .profile-img,
   [data-theme="dark"] .profile-img {
     background-color: var(--dm-card);
     color: var(--dm-primary);
   }
-  
+
   .dark-mode .profile-body,
   [data-theme="dark"] .profile-body {
     color: var(--dm-foreground);
   }
-  
+
+  .dark-mode .profile-stat-item,
+  [data-theme="dark"] .profile-stat-item {
+    color: var(--dm-muted-foreground);
+  }
+
+  .dark-mode .profile-stat-number,
+  [data-theme="dark"] .profile-stat-number {
+    color: var(--dm-foreground);
+  }
+
   .dark-mode .profile-section-title,
   [data-theme="dark"] .profile-section-title {
     color: var(--dm-foreground);
     border-bottom-color: var(--dm-border);
   }
-  
+
   .dark-mode .stats-card,
   [data-theme="dark"] .stats-card {
     background-color: rgba(71, 85, 105, 0.3);
     border-color: var(--dm-border);
   }
-  
+
   .dark-mode .stats-card:hover,
   [data-theme="dark"] .stats-card:hover {
     border-color: var(--dm-primary);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
   }
-  
+
   .dark-mode .stats-number,
   [data-theme="dark"] .stats-number {
     color: var(--dm-primary);
   }
-  
+
   .dark-mode .stats-label,
   [data-theme="dark"] .stats-label {
     color: var(--dm-muted-foreground);
   }
-  
+
   .dark-mode .recent-item,
   [data-theme="dark"] .recent-item {
     background-color: rgba(71, 85, 105, 0.3);
     border-color: var(--dm-border);
   }
-  
+
   .dark-mode .recent-item:hover,
   [data-theme="dark"] .recent-item:hover {
     background-color: rgba(71, 85, 105, 0.5);
     border-color: var(--dm-primary);
   }
-  
+
   .dark-mode .recent-item-title,
   [data-theme="dark"] .recent-item-title {
     color: var(--dm-foreground);
   }
-  
+
   .dark-mode .recent-item-meta,
   [data-theme="dark"] .recent-item-meta {
     color: var(--dm-muted-foreground);
   }
-  
+
   .dark-mode .recent-item-meta a,
   [data-theme="dark"] .recent-item-meta a {
     color: var(--dm-primary);
   }
-  
+
   .dark-mode .recent-item-meta a:hover,
   [data-theme="dark"] .recent-item-meta a:hover {
     color: var(--dm-primary-hover);
   }
-  
+
   .dark-mode .alert-info,
   [data-theme="dark"] .alert-info {
     background-color: rgba(59, 130, 246, 0.1);
@@ -238,10 +455,10 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.75rem 1rem;
+    padding: 0.65rem 1rem;
     border-radius: var(--radius-md, 0.5rem);
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     transition: all 0.3s ease;
   }
 
@@ -307,54 +524,94 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
+<div class="container profile-page">
   <div class="profile-card">
     <div class="profile-header">
-      <div class="profile-img">
-        <i class="bi bi-person"></i>
+      <div class="profile-header-top">
+        <div class="profile-img">
+          <i class="bi bi-person"></i>
+        </div>
+        <div class="profile-header-text">
+          <h2>{{ user.username }}</h2>
+          <p>{{ user.email }}</p>
+        </div>
       </div>
-      <h2>{{ user.username }}</h2>
-      <p>{{ user.email }}</p>
-      <p>登録日: {{ user.date_joined|date:"Y年m月d日" }}</p>
+      <p class="profile-joined">
+        <i class="bi bi-calendar3"></i> {{ user.date_joined|date:"Y年m月d日" }} 登録
+      </p>
     </div>
-    
+
     <div class="profile-body">
-      <!-- 統計情報 -->
+      <!-- 統計サマリー -->
+      <div class="profile-stats-row">
+        <div class="profile-stat-item">
+          <span class="profile-stat-number">{{ diary_count }}</span> 記録銘柄
+        </div>
+        <div class="profile-stat-item">
+          <span class="profile-stat-number">{{ template_count }}</span> 分析テンプレート
+        </div>
+        <div class="profile-stat-item">
+          <span class="profile-stat-number">{{ tag_count }}</span> タグ
+        </div>
+      </div>
+
+      <!-- 活動ヒートマップ -->
       <div class="profile-section">
         <h3 class="profile-section-title">
-          <i class="bi bi-bar-chart-line"></i> 投資記録の統計
+          <i class="bi bi-calendar-week"></i> 記録の継続度
         </h3>
-        
-        <div class="row row-cols-1 row-cols-md-3 g-4">
-          <div class="col">
-            <div class="stats-card">
-              <div class="stats-number">{{ diary_count }}</div>
-              <div class="stats-label">記録した銘柄</div>
+
+        <div class="heatmap-summary">
+          <span><strong>{{ active_days }}</strong>日 記録</span>
+          <span><strong>{{ current_streak }}</strong>日 継続中</span>
+          <span><strong>{{ longest_streak }}</strong>日 最長継続</span>
+        </div>
+
+        <div class="heatmap-scroll">
+          <div class="heatmap-inner">
+            <div class="heatmap-months">
+              {% for week in heatmap_weeks %}
+                <span class="heatmap-month-label">{% if week.month_label %}{{ week.month_label }}月{% endif %}</span>
+              {% endfor %}
             </div>
-          </div>
-                
-          <div class="col">
-            <div class="stats-card">
-              <div class="stats-number">{{ template_count }}</div>
-              <div class="stats-label">分析テンプレート</div>
-            </div>
-          </div>
-          
-          <div class="col">
-            <div class="stats-card">
-              <div class="stats-number">{{ tag_count }}</div>
-              <div class="stats-label">作成したタグ</div>
+            <div class="heatmap-with-weekdays">
+              <div class="heatmap-weekday-labels">
+                {% for label in heatmap_weekday_labels %}
+                  <span>{{ label }}</span>
+                {% endfor %}
+              </div>
+              <div class="heatmap-grid">
+                {% for week in heatmap_weeks %}
+                  {% for day in week.days %}
+                    <span
+                      class="heatmap-day{% if day.is_future %} heatmap-day-future{% endif %}{% if day.is_today %} heatmap-day-today{% endif %}"
+                      data-level="{{ day.level }}"
+                      {% if not day.is_future %}title="{{ day.date|date:'Y年n月j日' }}：{{ day.count }}件の記録"{% endif %}
+                    ></span>
+                  {% endfor %}
+                {% endfor %}
+              </div>
             </div>
           </div>
         </div>
+
+        <div class="heatmap-legend">
+          <span>少ない</span>
+          <span class="heatmap-day" data-level="0"></span>
+          <span class="heatmap-day" data-level="1"></span>
+          <span class="heatmap-day" data-level="2"></span>
+          <span class="heatmap-day" data-level="3"></span>
+          <span class="heatmap-day" data-level="4"></span>
+          <span>多い</span>
+        </div>
       </div>
-      
+
       <!-- 最近の投資日記 -->
       <div class="profile-section">
         <h3 class="profile-section-title">
           <i class="bi bi-journal-text"></i> 最近の投資日記
         </h3>
-        
+
         {% if recent_diaries %}
           {% for diary in recent_diaries %}
             <div class="recent-item">
@@ -376,20 +633,20 @@
             まだ投資日記がありません。記録を始めましょう！
           </div>
         {% endif %}
-        
-        <div class="text-center mt-4">
+
+        <div class="text-center mt-3">
           <a href="{% url 'stockdiary:home' %}" class="btn btn-outline-primary">
             <i class="bi bi-journal-text me-1"></i> すべての投資日記を見る
           </a>
         </div>
       </div>
-   
+
       <!-- アカウント設定 -->
       <div class="profile-section">
         <h3 class="profile-section-title">
           <i class="bi bi-gear"></i> アカウント設定
         </h3>
-        
+
         <div class="account-actions">
           <a href="{% url 'users:profile_edit' %}" class="btn btn-outline-info">
             <i class="bi bi-pencil"></i> プロフィール編集
