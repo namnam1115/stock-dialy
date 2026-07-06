@@ -1,4 +1,7 @@
 # users/views.py
+import datetime
+from collections import defaultdict
+
 from django.contrib.auth.views import LoginView, LogoutView
 from django.views.generic import TemplateView, DeleteView
 from django.urls import reverse_lazy, reverse
@@ -15,6 +18,9 @@ from django.views.generic import FormView
 from django.contrib.auth.forms import AuthenticationForm
 from allauth.socialaccount.models import SocialAccount
 from django.views.decorators.http import require_http_methods
+from django.db.models.functions import TruncDate
+from django.db.models import Count
+from django.utils import timezone
 
 from django.contrib.auth import logout as auth_logout, get_user_model
 from django.shortcuts import redirect
@@ -95,18 +101,22 @@ class GoogleLoginView(TemplateView):
 
 class ProfileView(LoginRequiredMixin, TemplateView):
     template_name = 'users/profile.html'
-    
+
+    # 活動ヒートマップの表示期間（GitHubの草に合わせて53週分＝1年強）
+    HEATMAP_WEEKS = 53
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-        
+
         # ユーザーの統計情報を取得
         context['diary_count'] = user.stockdiary_set.count()
         context['tag_count'] = user.tag_set.count()
-        
+        context['template_count'] = user.analysis_templates.count()
+
         # 最近の投資日記を取得（最新5件）
         context['recent_diaries'] = user.stockdiary_set.all().order_by('-created_at')[:5]
-        
+
         # サブスクリプション情報を追加
         try:
             subscription = user.subscription
@@ -119,8 +129,102 @@ class ProfileView(LoginRequiredMixin, TemplateView):
                 context['subscription_plan'] = SubscriptionPlan.objects.get(slug='free')
             except:
                 context['subscription_plan'] = None
-        
+
+        context.update(self._build_activity_heatmap(user))
+
         return context
+
+    def _build_activity_heatmap(self, user):
+        """GitHub風の活動ヒートマップ用データを組み立てる。
+
+        「活動」= その日記録された日記作成・取引・継続記録（DiaryNote）の合計件数。
+        継続度が一目でわかるよう、日曜始まりの週カラムに整形して返す。
+        """
+        from stockdiary.models import Transaction, DiaryNote
+
+        today = timezone.localdate()
+        # Pythonのweekday()はMon=0..Sun=6。日曜始まりに変換（Sun=0..Sat=6）
+        sunday_index = (today.weekday() + 1) % 7
+        week_end = today + datetime.timedelta(days=6 - sunday_index)  # 今週の土曜日
+        total_days = self.HEATMAP_WEEKS * 7
+        start_date = week_end - datetime.timedelta(days=total_days - 1)  # 表示開始日（日曜日）
+
+        activity_by_date = defaultdict(int)
+        querysets = [
+            user.stockdiary_set.filter(created_at__date__gte=start_date),
+            Transaction.objects.filter(diary__user=user, created_at__date__gte=start_date),
+            DiaryNote.objects.filter(diary__user=user, created_at__date__gte=start_date),
+        ]
+        for qs in querysets:
+            counts = (
+                qs.annotate(activity_date=TruncDate('created_at'))
+                .values('activity_date')
+                .annotate(total=Count('id'))
+            )
+            for row in counts:
+                activity_by_date[row['activity_date']] += row['total']
+
+        def level_for(count):
+            if count <= 0:
+                return 0
+            if count == 1:
+                return 1
+            if count <= 3:
+                return 2
+            if count <= 6:
+                return 3
+            return 4
+
+        weeks = []
+        prev_month = None
+        for week_index in range(self.HEATMAP_WEEKS):
+            week_sunday = start_date + datetime.timedelta(days=week_index * 7)
+            days = []
+            for day_offset in range(7):
+                day = week_sunday + datetime.timedelta(days=day_offset)
+                is_future = day > today
+                count = 0 if is_future else activity_by_date.get(day, 0)
+                days.append({
+                    'date': day,
+                    'count': count,
+                    'level': level_for(count),
+                    'is_future': is_future,
+                    'is_today': day == today,
+                })
+            month_label = None
+            if week_sunday.month != prev_month:
+                month_label = week_sunday.month
+                prev_month = week_sunday.month
+            weeks.append({'days': days, 'month_label': month_label})
+
+        # 継続日数（ストリーク）の算出
+        current_streak = 0
+        cursor = today if activity_by_date.get(today, 0) > 0 else today - datetime.timedelta(days=1)
+        while activity_by_date.get(cursor, 0) > 0:
+            current_streak += 1
+            cursor -= datetime.timedelta(days=1)
+
+        longest_streak = 0
+        running = 0
+        for day_index in range(total_days):
+            day = start_date + datetime.timedelta(days=day_index)
+            if day > today:
+                break
+            if activity_by_date.get(day, 0) > 0:
+                running += 1
+                longest_streak = max(longest_streak, running)
+            else:
+                running = 0
+
+        active_days = sum(1 for d, c in activity_by_date.items() if start_date <= d <= today and c > 0)
+
+        return {
+            'heatmap_weeks': weeks,
+            'heatmap_weekday_labels': ['', '月', '', '水', '', '金', ''],
+            'current_streak': current_streak,
+            'longest_streak': longest_streak,
+            'active_days': active_days,
+        }
 
 class AccountDeleteConfirmView(LoginRequiredMixin, TemplateView):
     """アカウント削除の確認画面を表示するビュー"""
