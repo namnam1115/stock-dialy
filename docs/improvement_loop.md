@@ -191,11 +191,11 @@ R1–R4 で「プロダクト機能をAI単独で探す」3信号源が doc-drif
 
 | # | 候補 | 信号源 | 判断軸照合 | 状態 | メモ |
 |---|------|--------|-----------|------|------|
-| CH2 | **STATIC_VERSION と sw.js VERSION の二重手動管理を解消**：現在 `config/settings.py:852` と `static/sw.js:2` を人手で同時更新する運用（今セッションでも2回手動同期が発生）。片方の更新漏れ＝古いキャッシュ配信事故になる | コード健全性（運用で実測） | ✅ 更新漏れによる「直したのに直らない」を防ぐ | 候補 | 案: (a)整合性チェックテスト（両者一致を pytest で強制・最小） (b)`sw.js` をテンプレート配信にして settings から注入（大きめ）。まず (a) が費用対効果最良 |
-| CH3 | **ナビの二重定義を単一ソース化**：PCヘッダー（`nav-item`×5）とモバイルメニュー（`menu-item primary`×5）が base.html 内の別々の手書きリスト。今回の NV1 でも2箇所同時編集が必要だった＝将来のナビ変更で片側だけ直る drift が構造的に起きる | コード健全性（NV1実装で実測） | ✅ ナビ再肥大・片側drift の再発防止 | 候補 | 案: ナビ項目を1つのリスト（テンプレ変数 or include）に定義し両方を描画。表示形式が異なるためテンプレ側は2つのままデータだけ共通化する |
-| CH4 | **diary-detail-page.js のハードコードURL集約**：`/stockdiary/...` 直書きが6箇所（EDINETパネル・関連日記リンク・株価メトリクス等。インライン時代からの持ち込み）。URL変更やプレフィックス変更で静かに壊れる | コード健全性 | ✅ 既存の `DIARY_DETAIL_CONFIG.urls` パターンに揃えるだけ | 候補 | Phase1 外部化で「テンプレ変数由来」は config 化済みだが、元から直書きだった分が残存。同パターンへの追従で解消。実装小 |
-| CH5 | **`except Exception: pass` の握りつぶし19箇所の選別**：stockdiary/common に無言の握りつぶしが19箇所。yfinance 系の「欠損は仕様」箇所は妥当だが、バグを隠すものが混在していないか選別し、最低限 `logger.debug` を入れる | コード健全性 | ✅ 「静かに壊れる」の温床を減らす | 候補 | 一括変換はせず、外部データ欠損（妥当）とロジック例外（要ログ）を1箇所ずつ選別する。Sentry 導入（P1提案）とセットだと効果大 |
-| CH6 | **timeline イベント色の三重定義を一本化**：同じ4色が `views_timeline.KIND_UI`・`timeline.html` のCSS変数・種類チップの inline style の3箇所に直書き。色変更で3箇所同時修正が必要 | コード健全性 | ✅ 振り返り画面の見た目変更を安全にする | 候補 | CSS変数（`--tl-k-*`）に一本化し、KIND_UI は色を持たずクラス名を持つ形へ。実装小 |
+| CH2 | **STATIC_VERSION と sw.js VERSION の二重手動管理を解消**：現在 `config/settings.py:852` と `static/sw.js:2` を人手で同時更新する運用（今セッションでも2回手動同期が発生）。片方の更新漏れ＝古いキャッシュ配信事故になる | コード健全性（運用で実測） | ✅ 更新漏れによる「直したのに直らない」を防ぐ | 完了（検証済み） | (a)を採用: `tests/test_template_lint.py::test_static_version_matches_sw_version` で両者一致をCI強制。不一致＝即失敗で更新漏れを検知 |
+| CH3 | **ナビの二重定義を単一ソース化**：PCヘッダー（`nav-item`×5）とモバイルメニュー（`menu-item primary`×5）が base.html 内の別々の手書きリスト。今回の NV1 でも2箇所同時編集が必要だった＝将来のナビ変更で片側だけ直る drift が構造的に起きる | コード健全性（NV1実装で実測） | ✅ ナビ再肥大・片側drift の再発防止 | 完了（検証済み） | `common/context_processors.MAIN_NAV` を単一ソース化しPC/モバイル両方をループ描画。並びは決定10の5項目に統一（PCの新規作成は末尾へ）。回帰テスト2件 |
+| CH4 | **diary-detail-page.js のハードコードURL集約**：`/stockdiary/...` 直書きが6箇所（EDINETパネル・関連日記リンク・株価メトリクス等。インライン時代からの持ち込み）。URL変更やプレフィックス変更で静かに壊れる | コード健全性 | ✅ 既存の `DIARY_DETAIL_CONFIG.urls` パターンに揃えるだけ | 完了（検証済み） | diary-detail-page.js の直書き8箇所を `DIARY_DETAIL_CONFIG.urls` へ全集約。走査で他8ファイルに17箇所の残存が判明したため、lint をラチェット化（BASELINE凍結・増加のみCI失敗）し漸減運用に |
+| CH5 | **`except Exception: pass` の握りつぶし19箇所の選別**：stockdiary/common に無言の握りつぶしが19箇所。yfinance 系の「欠損は仕様」箇所は妥当だが、バグを隠すものが混在していないか選別し、最低限 `logger.debug` を入れる | コード健全性 | ✅ 「静かに壊れる」の温床を減らす | 完了 | 19箇所全てを選別し、挙動不変のまま文脈ラベル付き `logger.debug` を付与（api.py 10 / views_panels.py 5 / views.py 2 / gemini 1 / yahoo 1）。全て外部データのオプショナル欠損系で握りつぶし自体は妥当と確認 |
+| CH6 | **timeline イベント色の三重定義を一本化**：同じ4色が `views_timeline.KIND_UI`・`timeline.html` のCSS変数・種類チップの inline style の3箇所に直書き。色変更で3箇所同時修正が必要 | コード健全性 | ✅ 振り返り画面の見た目変更を安全にする | 完了（検証済み） | timeline.html の CSS変数（--tl-k-*）を単一ソース化。KIND_UI は var() 参照のみ・チップの inline HEX も変数参照へ。実HTTP経路で描画確認 |
 
 ---
 
