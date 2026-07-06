@@ -71,7 +71,7 @@
 .ec-badge--scheduled { background: #6b7280; }
 .ec-empty { color: var(--text-secondary); font-size: 0.9rem; padding: 0.5rem 0; }
 
-/* ===== サマリーのタブ（保有 / ウォッチ）— CSSのみで切替、縦積みを回避 ===== */
+/* ===== サマリーのタブ（保有 / 売却済 / メモ）— CSSのみで切替、縦積みを回避 ===== */
 .ec-tab-input { position: absolute; opacity: 0; pointer-events: none; }
 .ec-tab-bar { display: inline-flex; gap: 2px; padding: 3px; background: var(--bg-secondary);
     border-radius: var(--radius-full, 999px); margin-bottom: 0.85rem; }
@@ -82,16 +82,21 @@
     color: inherit; border-radius: 999px; min-width: 1.15rem; padding: 0 0.35rem; text-align: center; }
 .ec-tab-panel { display: none; }
 #ec-tab-hold:checked ~ .ec-tab-bar label[for="ec-tab-hold"],
+#ec-tab-sold:checked ~ .ec-tab-bar label[for="ec-tab-sold"],
 #ec-tab-watch:checked ~ .ec-tab-bar label[for="ec-tab-watch"] {
     background: var(--ec-selected); color: #fff; }
 #ec-tab-hold:checked ~ .ec-tab-bar label[for="ec-tab-hold"] .ec-tab-count,
+#ec-tab-sold:checked ~ .ec-tab-bar label[for="ec-tab-sold"] .ec-tab-count,
 #ec-tab-watch:checked ~ .ec-tab-bar label[for="ec-tab-watch"] .ec-tab-count {
     background: rgba(255,255,255,0.28); }
 #ec-tab-hold:checked ~ .ec-hold-panel { display: block; }
+#ec-tab-sold:checked ~ .ec-sold-panel { display: block; }
 #ec-tab-watch:checked ~ .ec-watch-panel { display: block; }
 .dark-mode #ec-tab-hold:checked ~ .ec-tab-bar label[for="ec-tab-hold"],
+.dark-mode #ec-tab-sold:checked ~ .ec-tab-bar label[for="ec-tab-sold"],
 .dark-mode #ec-tab-watch:checked ~ .ec-tab-bar label[for="ec-tab-watch"],
 [data-theme="dark"] #ec-tab-hold:checked ~ .ec-tab-bar label[for="ec-tab-hold"],
+[data-theme="dark"] #ec-tab-sold:checked ~ .ec-tab-bar label[for="ec-tab-sold"],
 [data-theme="dark"] #ec-tab-watch:checked ~ .ec-tab-bar label[for="ec-tab-watch"] {
     background: var(--primary-color); }
 

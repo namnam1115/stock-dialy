@@ -132,11 +132,19 @@ def earnings_calendar(request):
         .values_list('stock_symbol', flat=True)
     )
 
-    # --- サマリー: 保有銘柄・ウォッチリスト（月・日に依らず常時表示） ---
+    # --- サマリー: 保有・売却済・メモ（日記の状態3分類、月・日に依らず常時表示） ---
+    # StockDiary.is_holding / is_sold_out / is_memo と同じ判定基準に揃える
     holdings = attach_next_earnings(
         user_diaries.filter(current_quantity__gt=0), today=today, with_previous=True)
     holdings = sorted(
         [d for d in holdings if d.next_earnings],
+        key=lambda d: d.next_earnings.date)
+
+    sold = attach_next_earnings(
+        user_diaries.filter(transaction_count__gt=0, current_quantity=0),
+        today=today, with_previous=True)
+    sold = sorted(
+        [d for d in sold if d.next_earnings],
         key=lambda d: d.next_earnings.date)
 
     watchlist = attach_next_earnings(
@@ -144,6 +152,16 @@ def earnings_calendar(request):
     watchlist = sorted(
         [d for d in watchlist if d.next_earnings],
         key=lambda d: d.next_earnings.date)
+
+    # サマリーの既定タブ（データがある最初の区分を開く。全て空なら保有を既定に）
+    if holdings:
+        default_tab = 'hold'
+    elif sold:
+        default_tab = 'sold'
+    elif watchlist:
+        default_tab = 'watch'
+    else:
+        default_tab = 'hold'
 
     # --- 月グリッド用の集計（対象月のみ・軽量） ---
     month_qs = _scope_filter(
@@ -206,7 +224,9 @@ def earnings_calendar(request):
         'today': today,
         'window_days': CALENDAR_WINDOW_DAYS,
         'holdings': holdings,
+        'sold': sold,
         'watchlist': watchlist,
+        'default_tab': default_tab,
         'weekday_headers': WEEKDAY_HEADERS,
         'grid': grid,
         'month_label': f'{year}年{month}月',

@@ -433,6 +433,47 @@ def test_calendar_view_renders_without_calling_api(client):
     assert watch.stock_name.encode() in resp.content
 
 
+def test_calendar_summary_has_three_tabs_matching_diary_status(client):
+    """サマリーは 保有/売却済/メモ の3タブ（StockDiaryのis_holding/is_sold_out/is_memoと同じ基準）。
+
+    以前は「保有/ウォッチ」の2タブで、ウォッチが実質メモ日記のことなのに
+    別の言葉を使っていて分かりにくかった（#396フォローアップ）。取引はあるが
+    保有数ゼロ（売却済）の日記を独立タブとして出す。
+    """
+    user = User.objects.create_user('v_3tab', 'v3tab@e.com', 'p')
+    client.force_login(user)
+    today = date.today()
+
+    holding = StockDiary.objects.create(
+        user=user, stock_name='保有株', stock_symbol='7203',
+        current_quantity=100, transaction_count=2)
+    sold = StockDiary.objects.create(
+        user=user, stock_name='売却株', stock_symbol='6758',
+        current_quantity=0, transaction_count=2)
+    memo = StockDiary.objects.create(
+        user=user, stock_name='メモ株', stock_symbol='9984',
+        current_quantity=0, transaction_count=0)
+    EarningsSchedule.objects.create(
+        securities_code='7203', earnings_date=today + timedelta(days=5),
+        company_name='保有株')
+    EarningsSchedule.objects.create(
+        securities_code='6758', earnings_date=today + timedelta(days=6),
+        company_name='売却株')
+    EarningsSchedule.objects.create(
+        securities_code='9984', earnings_date=today + timedelta(days=7),
+        company_name='メモ株')
+
+    resp = client.get(reverse('stockdiary:earnings_calendar'))
+    html = resp.content.decode()
+
+    assert '売却済' in html
+    assert 'メモ' in html
+    assert holding.stock_name in html
+    assert sold.stock_name in html
+    assert memo.stock_name in html
+    assert 'id="ec-tab-sold"' in html
+
+
 def test_calendar_selected_day_lists_that_days_earnings(client):
     """?date= で指定した日の決算が選択日パネルに一覧される。"""
     user = User.objects.create_user('v_day', 'vd@e.com', 'p')

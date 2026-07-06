@@ -1,11 +1,14 @@
-{# 次回決算サマリー（保有/ウォッチ タブ）の中身。初回表示とHTMXでのOOB更新の両方から include する（#396: カレンダー操作のたびにサマリーも最新化） #}
+{# 次回決算サマリー（保有/売却済/メモ タブ）の中身。初回表示とHTMXでのOOB更新の両方から include する（#396: カレンダー操作のたびにサマリーも最新化）。3分類は StockDiary.is_holding/is_sold_out/is_memo と同じ基準 #}
 <input type="radio" name="ec-summary-tab" id="ec-tab-hold" class="ec-tab-input"
-       {% if holdings or not watchlist %}checked{% endif %}>
+       {% if default_tab == 'hold' %}checked{% endif %}>
+<input type="radio" name="ec-summary-tab" id="ec-tab-sold" class="ec-tab-input"
+       {% if default_tab == 'sold' %}checked{% endif %}>
 <input type="radio" name="ec-summary-tab" id="ec-tab-watch" class="ec-tab-input"
-       {% if not holdings and watchlist %}checked{% endif %}>
+       {% if default_tab == 'watch' %}checked{% endif %}>
 <div class="ec-tab-bar" role="tablist">
   <label for="ec-tab-hold"><i class="bi bi-briefcase"></i> 保有<span class="ec-tab-count">{{ holdings|length }}</span></label>
-  <label for="ec-tab-watch"><i class="bi bi-eye"></i> ウォッチ<span class="ec-tab-count">{{ watchlist|length }}</span></label>
+  <label for="ec-tab-sold"><i class="bi bi-check2-circle"></i> 売却済<span class="ec-tab-count">{{ sold|length }}</span></label>
+  <label for="ec-tab-watch"><i class="bi bi-journal-text"></i> メモ<span class="ec-tab-count">{{ watchlist|length }}</span></label>
 </div>
 
 <div class="ec-tab-panel ec-hold-panel">
@@ -20,6 +23,18 @@
   {% endif %}
 </div>
 
+<div class="ec-tab-panel ec-sold-panel">
+  {% if sold %}
+  <div class="ec-list">
+    {% for diary in sold %}
+    {% include 'stockdiary/components/_earnings_summary_row.html' with diary=diary %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="ec-empty">次回決算日が判明している売却済銘柄はありません。</p>
+  {% endif %}
+</div>
+
 <div class="ec-tab-panel ec-watch-panel">
   {% if watchlist %}
   <div class="ec-list">
@@ -28,6 +43,6 @@
     {% endfor %}
   </div>
   {% else %}
-  <p class="ec-empty">次回決算日が判明しているウォッチ銘柄（メモ）はありません。</p>
+  <p class="ec-empty">次回決算日が判明しているメモ銘柄はありません。</p>
   {% endif %}
 </div>
