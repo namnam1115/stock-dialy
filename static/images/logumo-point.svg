@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 320" width="300" height="320" role="img" aria-label="ログモ（指さす）">
+  <defs>
+    <radialGradient id="lgp-body" cx="42%" cy="34%" r="72%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="55%" stop-color="#fbfbfa"/>
+      <stop offset="100%" stop-color="#e9e7e2"/>
+    </radialGradient>
+    <radialGradient id="lgp-arm" cx="40%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e6e4df"/>
+    </radialGradient>
+    <filter id="lgp-soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="lgp-blur2" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+
+  <ellipse cx="132" cy="300" rx="74" ry="15" fill="#3b3c3d" opacity="0.14" filter="url(#lgp-soft)"/>
+
+  <!-- left arm resting -->
+  <path d="M44,212 C24,214 18,232 30,244 C40,252 54,244 54,228 Z" fill="url(#lgp-arm)" stroke="#e0ddd6" stroke-width="1"/>
+  <!-- right arm pointing to the side (rounded, stubby) -->
+  <path d="M204,190 C236,184 262,184 280,188 C293,191 293,205 280,208 C262,212 236,212 204,214 Z" fill="url(#lgp-arm)" stroke="#e0ddd6" stroke-width="1"/>
+
+  <path d="M130,26
+           C86,26 48,62 42,118
+           C37,160 37,208 48,244
+           C56,266 76,278 102,280
+           C112,281 150,281 160,280
+           C186,278 206,266 214,244
+           C225,208 225,160 220,118
+           C214,62 176,26 130,26 Z"
+        fill="url(#lgp-body)" stroke="#e4e1db" stroke-width="1.5"/>
+
+  <ellipse cx="96" cy="96" rx="34" ry="26" fill="#ffffff" opacity="0.7" filter="url(#lgp-blur2)"/>
+
+  <!-- eyes glancing toward the pointing side -->
+  <g fill="#33322f">
+    <ellipse cx="112" cy="150" rx="8" ry="11"/>
+    <ellipse cx="164" cy="150" rx="8" ry="11"/>
+  </g>
+  <circle cx="115" cy="146" r="2.4" fill="#ffffff"/>
+  <circle cx="167" cy="146" r="2.4" fill="#ffffff"/>
+  <path d="M120,176 Q134,190 148,176" fill="none" stroke="#33322f" stroke-width="4" stroke-linecap="round"/>
+
+  <path d="M56,116 c-3,-4 -9,-2 -9,3 c0,4 6,7 9,10 c3,-3 9,-6 9,-10 c0,-5 -6,-7 -9,-3 z" fill="#71c4ef" opacity="0.6"/>
+</svg>

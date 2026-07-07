@@ -1,0 +1,95 @@
+@import url("fonts/nsjp-local.css");
+
+:root{
+  --paper1:#f7f1e8; --paper2:#ece1d0;
+  --ink:#1d1c1c; --ink2:#3b3c3d; --muted:#6b6a64; --faint:#928c81;
+  --primary:#00668c; --bright:#71c4ef; --primary-100:#d4eaf7;
+  --card:#fffdf9; --line:#ece5d8;
+  --skill:#3f7a5f; --unlucky:#9a7b3f; --lucky:#b0584f; --discipline:#5b6b86;
+  --font:'Noto Sans JP','IPAGothic',sans-serif;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+.frame{
+  width:1200px;height:1500px;position:relative;overflow:hidden;
+  background:linear-gradient(160deg,#f9f4ec 0%,var(--paper1) 42%,var(--paper2) 100%);
+  font-family:var(--font);color:var(--ink);
+  -webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;
+}
+.pad{position:absolute;inset:0;padding:76px 78px}
+
+/* soft decorative blobs */
+.blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;z-index:0}
+.blob.a{width:520px;height:520px;background:#d4eaf7;top:-140px;right:-120px;opacity:.55}
+.blob.b{width:420px;height:420px;background:#f3e4d2;bottom:-120px;left:-120px;opacity:.6}
+
+/* brand row */
+.brand{display:flex;align-items:center;gap:16px;position:relative;z-index:2}
+.brand .mark{width:52px;height:52px;border-radius:14px;display:block}
+.brand .name{font-weight:900;font-size:38px;letter-spacing:.01em}
+.brand .name .en{color:var(--faint);font-weight:700;font-size:22px;margin-left:12px;letter-spacing:.06em}
+
+/* eyebrow pill */
+.eyebrow{display:inline-flex;align-items:center;gap:10px;background:var(--ink);color:#fff;
+  font-weight:800;font-size:24px;padding:12px 26px;border-radius:999px;letter-spacing:.02em}
+.eyebrow.blue{background:var(--primary)}
+.eyebrow .dot{width:11px;height:11px;border-radius:50%;background:var(--bright);display:inline-block}
+
+/* headlines */
+.h1{font-weight:900;font-size:66px;line-height:1.34;letter-spacing:-.01em;margin:0}
+.h1 .hi{color:var(--primary)}
+.h1 .mark-hi{background:linear-gradient(transparent 62%,#cfe8f6 62%)}
+.h2{font-weight:900;font-size:58px;line-height:1.36;letter-spacing:-.01em;margin:0}
+.lead{font-size:27px;line-height:1.85;color:var(--ink2);font-weight:500;margin:0}
+.sub{font-size:25px;line-height:1.8;color:var(--muted);font-weight:500;margin:0}
+
+/* feature rows */
+.feat{display:flex;flex-direction:column;gap:16px}
+.feat .row{display:flex;align-items:center;gap:20px;background:var(--card);
+  border:1px solid var(--line);border-radius:22px;padding:20px 24px;
+  box-shadow:0 10px 26px rgba(59,60,61,.06)}
+.feat .ic{flex:0 0 auto;width:60px;height:60px;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#e9f4fb,#d4eaf7)}
+.feat .ic svg{width:32px;height:32px}
+.feat .tx b{display:block;font-weight:800;font-size:25px;line-height:1.4}
+.feat .tx span{display:block;font-weight:500;font-size:19px;color:var(--muted);line-height:1.5;margin-top:2px}
+
+/* phone mockup */
+.phone{background:#fff;border-radius:44px;padding:12px;position:relative;
+  box-shadow:0 40px 90px rgba(0,60,90,.20),0 8px 24px rgba(59,60,61,.12);
+  border:1px solid #efeae1}
+.phone .screen{border-radius:34px;overflow:hidden;display:block;background:#f3ede3}
+.phone .screen img{display:block;width:100%;height:100%;object-fit:cover;object-position:top}
+.phone .notch{position:absolute;top:22px;left:50%;transform:translateX(-50%);
+  width:120px;height:8px;border-radius:8px;background:#e7e1d6;z-index:3}
+
+/* mascot */
+.mascot{position:absolute;z-index:5}
+
+/* signature */
+.sign{font-weight:800;font-size:30px;color:var(--ink2)}
+.sign .q{color:var(--primary)}
+
+/* step cards (loop) */
+.steps{display:flex;flex-direction:column;gap:22px}
+.step{display:flex;gap:24px;align-items:flex-start;background:var(--card);
+  border:1px solid var(--line);border-radius:26px;padding:28px 30px;
+  box-shadow:0 12px 30px rgba(59,60,61,.06);position:relative}
+.step .num{flex:0 0 auto;width:66px;height:66px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:28px;color:#fff}
+.step .num.n1{background:var(--primary)}
+.step .num.n2{background:var(--bright)}
+.step .num.n3{background:var(--skill)}
+.step .num.n4{background:var(--unlucky)}
+.step .body b{font-weight:900;font-size:30px;display:block}
+.step .body b .tag{font-weight:800;font-size:22px;color:var(--muted);margin-left:12px}
+.step .body p{margin:8px 0 0;font-size:22px;line-height:1.65;color:var(--ink2);font-weight:500}
+.step .arrow{position:absolute;left:33px;bottom:-30px;color:var(--line);font-size:26px;z-index:2}
+
+/* quadrant (decision quality, optional reuse) */
+.chiprow{display:flex;gap:14px;flex-wrap:wrap}
+.chip{background:#fff;border:1px solid var(--line);border-radius:999px;
+  padding:12px 22px;font-weight:700;font-size:22px;display:flex;align-items:center;gap:10px}
+.chip .d{width:12px;height:12px;border-radius:50%}

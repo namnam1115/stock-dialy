@@ -1,0 +1,55 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<link rel="stylesheet" href="promo.css">
+<style>
+  .pad{display:flex;flex-direction:column}
+  .eyebrow{align-self:flex-start;margin:22px 0 18px}
+  .h2{font-size:50px}
+  .phones{position:relative;height:600px;margin:20px 0 8px}
+  .phones .phone{position:absolute}
+  .phones .p1{left:150px;top:40px;transform:rotate(-5deg);z-index:2}
+  .phones .p2{right:150px;top:0;transform:rotate(5deg);z-index:1}
+  .phones .phone .screen{width:270px;height:470px}
+  .tagline{position:absolute;z-index:3;background:var(--ink);color:#fff;font-weight:800;
+    font-size:22px;padding:11px 22px;border-radius:999px;box-shadow:0 12px 26px rgba(0,0,0,.18)}
+  .tagline.t1{left:120px;top:0}
+  .tagline.t2{right:120px;bottom:22px;background:var(--primary)}
+  .feat{margin-top:8px}
+  .feat .row{padding:22px 26px}
+  .mascot{width:170px;right:70px;bottom:44px}
+  .feat .ic svg{stroke:#00668c;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+</style></head>
+<body>
+<div class="frame">
+  <div class="blob a"></div><div class="blob b"></div>
+  <div class="pad">
+    <div class="brand">
+      <img class="mark" src="../../icon-192.svg" alt="">
+      <div class="name">カブログ<span class="en">KABULOG</span></div>
+    </div>
+
+    <div class="eyebrow"><span class="dot"></span>Recall ／ 想起と投資家カルテ</div>
+
+    <h2 class="h2">ホームを開くと、損益ではなく、<br>過去の自分が現れる。</h2>
+    <p class="sub" style="margin-top:18px">答え合わせを待つ仮説・1年前の今日・最近の学び。<br>毎日ひらくたび、忘れていた思考と再会する。</p>
+
+    <div class="phones">
+      <div class="tagline t1">今日の想起</div>
+      <div class="phone p1"><div class="notch"></div><div class="screen"><img src="../../lp/recall.webp" alt=""></div></div>
+      <div class="phone p2"><div class="notch"></div><div class="screen"><img src="../../lp/karte.webp" alt=""></div></div>
+      <div class="tagline t2">投資家カルテ</div>
+    </div>
+
+    <div class="feat">
+      <div class="row">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <div class="tx"><b>想起</b><span>検証予定日が、死蔵しかけた過去の記録を静かに連れ戻す</span></div>
+      </div>
+      <div class="row">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6z"/><path d="M9 9h6M9 13h6M9 17h4"/></svg></div>
+        <div class="tx"><b>投資家カルテ</b><span>あなたが「どういう投資家か」を、成績表ではなく言葉で返す</span></div>
+      </div>
+    </div>
+  </div>
+  <img class="mascot" src="../../logumo-lookback.svg">
+</div>
+</body></html>
