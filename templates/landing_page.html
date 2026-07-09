@@ -7,6 +7,10 @@
 <title>カブログ — 投資判断を記録し、未来の自分が診察する「投資家の成長OS」</title>
 <meta name="description" content="証券口座は損益を記録する。カブログは「なぜ買い、なぜ売り、その判断は正しかったか」を記録する投資ノート。予想→結果→検証→学びのループで、意思決定の質を損益と分けて磨く。見立ての変遷を自動で残し、年間レビュー・投資家カルテ・知識ライブラリで読み返す。">
 
+<link rel="icon" href="{% static 'favicon.ico' %}" sizes="any">
+<link rel="icon" type="image/svg+xml" href="{% static 'images/icon-192.svg' %}">
+<link rel="apple-touch-icon" href="{% static 'images/apple-touch-icon.png' %}">
+
 {# ── OGP / Twitter カード ── #}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="カブログ">
@@ -71,8 +75,13 @@ a{text-decoration:none;color:inherit}
 .nav-cta{display:flex;align-items:center;gap:9px}
 
 /* hero */
-.hero{padding:148px 0 70px}
-.hero-inner{display:grid;grid-template-columns:1.05fr .95fr;gap:54px;align-items:center}
+.hero{padding:148px 0 70px;position:relative;overflow:hidden}
+.hero-mark{
+  position:absolute;right:-160px;top:-120px;width:640px;height:640px;
+  background:url('{% static "images/emblem-mark.png" %}') center/contain no-repeat;
+  opacity:.05;transform:rotate(8deg);pointer-events:none;z-index:0;
+}
+.hero-inner{position:relative;z-index:1;display:grid;grid-template-columns:1.05fr .95fr;gap:54px;align-items:center}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:.4rem .85rem;border-radius:999px;font-size:12.5px;font-weight:600;
   background:var(--paper2);border:1px solid var(--line);color:var(--muted);margin-bottom:24px}
 .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--skill)}
@@ -287,6 +296,7 @@ a{text-decoration:none;color:inherit}
   .wrap{padding:0 18px}
   .sec{padding:64px 0}
   .hero{padding:108px 0 56px}
+  .hero-mark{right:-140px;top:-80px;width:360px;height:360px;opacity:.04}
   .hero h1{font-size:clamp(27px,7.6vw,36px);line-height:1.4}
   .hero .lead{font-size:15.5px}
   .hero-actions{flex-direction:column;align-items:stretch}
@@ -383,6 +393,7 @@ a{text-decoration:none;color:inherit}
 
 <!-- HERO -->
 <header class="hero" id="top">
+  <div class="hero-mark" aria-hidden="true"></div>
   <div class="wrap hero-inner">
     <div class="rv">
       <span class="eyebrow"><span class="dot"></span>投資家の成長OS</span>
