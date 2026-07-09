@@ -49,7 +49,7 @@
     
     <!-- ファビコン設定 -->
     <link rel="icon" href="{% static 'favicon.ico' %}" sizes="any">
-    <link rel="icon" type="image/svg+xml" href="{% static 'images/icon-192.svg' %}">
+    <link rel="icon" type="image/svg+xml" href="{% static 'images/icon-192.svg' %}?v={{ STATIC_VERSION }}">
     
     <!-- Google Fonts: Noto Sans JP（UI）＋ Noto Serif JP（本文の読書体験用） -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -939,7 +939,7 @@
             <div class="container-fluid app-container px-3 px-lg-4">
                 <!-- ロゴ・サイト名 - 常に表示 -->
                   <a class="navbar-brand d-flex align-items-center" href="{% url 'landing_page' %}">
-                    <img src="{% static 'images/icon-192.svg' %}" width="30" height="30" class="me-2" alt="カブログ">
+                    <img src="{% static 'images/icon-192.svg' %}?v={{ STATIC_VERSION }}" width="30" height="30" class="me-2" alt="カブログ">
                     <span class="fw-bold">カブログ</span>
                 </a>
               
@@ -1049,7 +1049,7 @@
       <div class="col-lg-8 col-md-10 text-center">
         <div class="footer-branding mb-4">
           <a href="{% url 'landing_page' %}" class="footer-logo d-inline-flex align-items-center">
-            <img src="{% static 'images/icon-192.svg' %}" width="30" height="30" class="me-2" alt="カブログ">
+            <img src="{% static 'images/icon-192.svg' %}?v={{ STATIC_VERSION }}" width="30" height="30" class="me-2" alt="カブログ">
             <span class="fw-bold">カブログ</span>
           </a>
           <p class="text-muted mt-3 mb-0 footer-description mx-auto">
@@ -1106,7 +1106,7 @@
   <div class="fullscreen-menu" id="fullscreenMenu">
     <div class="menu-header">
         <div class="menu-title">
-            <img src="{% static 'images/icon-192.svg' %}" width="24" height="24" class="me-2" alt="カブログ">
+            <img src="{% static 'images/icon-192.svg' %}?v={{ STATIC_VERSION }}" width="24" height="24" class="me-2" alt="カブログ">
             カブログメニュー
         </div>
         <button class="menu-close" id="closeMenuButton" type="button" aria-label="メニューを閉じる">

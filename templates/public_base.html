@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block doc_title %}カブログ{% endblock %}</title>
 <link rel="icon" href="{% static 'favicon.ico' %}" sizes="any">
-<link rel="icon" type="image/svg+xml" href="{% static 'images/icon-192.svg' %}">
+<link rel="icon" type="image/svg+xml" href="{% static 'images/icon-192.svg' %}?v={{ STATIC_VERSION }}">
 <link rel="apple-touch-icon" href="{% static 'images/apple-touch-icon.png' %}?v={{ STATIC_VERSION }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -221,7 +221,7 @@ textarea.form-control{min-height:120px;resize:vertical}
 
 <nav class="nav">
   <div class="nav-inner">
-    <a class="brand" href="{% url 'landing_page' %}"><span class="mk"><img src="{% static 'images/icon-192.svg' %}" alt="カブログ"></span>カブログ</a>
+    <a class="brand" href="{% url 'landing_page' %}"><span class="mk"><img src="{% static 'images/icon-192.svg' %}?v={{ STATIC_VERSION }}" alt="カブログ"></span>カブログ</a>
     <div class="nav-cta">
       <a class="btn btn-line btn-sm" href="/users/login/">ログイン</a>
       <a class="btn btn-ink btn-sm" href="/users/signup/">無料で始める</a>
@@ -238,7 +238,7 @@ textarea.form-control{min-height:120px;resize:vertical}
 <footer class="footer">
   <div class="foot-top">
     <div>
-      <div class="foot-brand"><span class="mk"><img src="{% static 'images/icon-192.svg' %}" alt="カブログ"></span>カブログ</div>
+      <div class="foot-brand"><span class="mk"><img src="{% static 'images/icon-192.svg' %}?v={{ STATIC_VERSION }}" alt="カブログ"></span>カブログ</div>
       <p class="fd">投資判断を記録し、未来の自分が診察するための「投資家の成長OS」。損益ではなく、意思決定の質を磨くためのツールです。</p>
     </div>
     <div>

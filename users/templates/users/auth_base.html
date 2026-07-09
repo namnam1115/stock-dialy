@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block auth_title %}カブログ{% endblock %}</title>
 <link rel="icon" href="{% static 'favicon.ico' %}" sizes="any">
-<link rel="icon" type="image/svg+xml" href="{% static 'images/icon-192.svg' %}">
+<link rel="icon" type="image/svg+xml" href="{% static 'images/icon-192.svg' %}?v={{ STATIC_VERSION }}">
 <link rel="apple-touch-icon" href="{% static 'images/apple-touch-icon.png' %}?v={{ STATIC_VERSION }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -91,7 +91,7 @@ img{display:block;max-width:100%}
 </head>
 <body>
 <main class="auth-shell">
-  <a class="auth-logo" href="{% url 'landing_page' %}"><span class="mk"><img src="{% static 'images/icon-192.svg' %}" alt="カブログ"></span>カブログ</a>
+  <a class="auth-logo" href="{% url 'landing_page' %}"><span class="mk"><img src="{% static 'images/icon-192.svg' %}?v={{ STATIC_VERSION }}" alt="カブログ"></span>カブログ</a>
   <div class="auth-card">
     {% block auth_body %}{% endblock %}
   </div>

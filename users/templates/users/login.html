@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ログイン | カブログ</title>
 <link rel="icon" href="{% static 'favicon.ico' %}" sizes="any">
-<link rel="icon" type="image/svg+xml" href="{% static 'images/icon-192.svg' %}">
+<link rel="icon" type="image/svg+xml" href="{% static 'images/icon-192.svg' %}?v={{ STATIC_VERSION }}">
 <link rel="apple-touch-icon" href="{% static 'images/apple-touch-icon.png' %}?v={{ STATIC_VERSION }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -128,7 +128,7 @@ img{display:block;max-width:100%}
   <!-- LEFT — brand -->
   <aside class="brandside">
     <div class="paper-grain"></div>
-    <a class="bs-logo" href="{% url 'landing_page' %}"><span class="mk"><img src="{% static 'images/icon-192.svg' %}" alt="カブログ"></span>カブログ</a>
+    <a class="bs-logo" href="{% url 'landing_page' %}"><span class="mk"><img src="{% static 'images/icon-192.svg' %}?v={{ STATIC_VERSION }}" alt="カブログ"></span>カブログ</a>
 
     <div class="bs-main">
       <span class="bs-eyebrow"><span class="dot"></span>おかえりなさい</span>
@@ -159,7 +159,7 @@ img{display:block;max-width:100%}
   <!-- RIGHT — form -->
   <main class="formside">
     <div class="formwrap">
-      <a class="form-logo" href="{% url 'landing_page' %}"><span class="mk"><img src="{% static 'images/icon-192.svg' %}" alt="カブログ"></span>カブログ</a>
+      <a class="form-logo" href="{% url 'landing_page' %}"><span class="mk"><img src="{% static 'images/icon-192.svg' %}?v={{ STATIC_VERSION }}" alt="カブログ"></span>カブログ</a>
 
       <div class="fh">
         <h2 class="serif">おかえりなさい</h2>

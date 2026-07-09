@@ -8,7 +8,7 @@
 <meta name="description" content="証券口座は損益を記録する。カブログは「なぜ買い、なぜ売り、その判断は正しかったか」を記録する投資ノート。予想→結果→検証→学びのループで、意思決定の質を損益と分けて磨く。見立ての変遷を自動で残し、年間レビュー・投資家カルテ・知識ライブラリで読み返す。">
 
 <link rel="icon" href="{% static 'favicon.ico' %}" sizes="any">
-<link rel="icon" type="image/svg+xml" href="{% static 'images/icon-192.svg' %}">
+<link rel="icon" type="image/svg+xml" href="{% static 'images/icon-192.svg' %}?v={{ STATIC_VERSION }}">
 <link rel="apple-touch-icon" href="{% static 'images/apple-touch-icon.png' %}?v={{ STATIC_VERSION }}">
 
 {# ── OGP / Twitter カード ── #}
@@ -374,7 +374,7 @@ a{text-decoration:none;color:inherit}
 <!-- NAV -->
 <nav class="nav" id="nav">
   <div class="nav-inner">
-    <a class="brand" href="#top"><span class="mk"><img src="{% static 'images/icon-192.svg' %}" alt="カブログ"></span>カブログ</a>
+    <a class="brand" href="#top"><span class="mk"><img src="{% static 'images/icon-192.svg' %}?v={{ STATIC_VERSION }}" alt="カブログ"></span>カブログ</a>
     <div class="nav-links">
       <a href="#loop">検証ループ</a>
       <a href="#evolution">見立ての変遷</a>
@@ -750,7 +750,7 @@ a{text-decoration:none;color:inherit}
   <div class="wrap">
     <div class="foot-top">
       <div>
-        <div class="foot-brand"><span class="mk"><img src="{% static 'images/icon-192.svg' %}" alt="カブログ"></span>カブログ</div>
+        <div class="foot-brand"><span class="mk"><img src="{% static 'images/icon-192.svg' %}?v={{ STATIC_VERSION }}" alt="カブログ"></span>カブログ</div>
         <p class="fd">投資判断を記録し、未来の自分が診察するための「投資家の成長OS」。損益ではなく、意思決定の質を磨くためのツールです。</p>
       </div>
       <div>
