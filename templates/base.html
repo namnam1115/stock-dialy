@@ -36,12 +36,12 @@
     <meta property="og:title" content="{% block og_title %}カブログ — 「なぜ買ったか」を記録する投資日記{% endblock %}">
     <meta property="og:description" content="売買ではなく「思考」を残す投資日記。記録が、自分だけの投資知識ベースになる。">
     <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
-    <meta property="og:image" content="{% block og_image %}{{ request.scheme }}://{{ request.get_host }}{% static 'images/og-card.png' %}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ request.scheme }}://{{ request.get_host }}{% static 'images/og-card.png' %}?v={{ STATIC_VERSION }}{% endblock %}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="カブログ — 「なぜ買ったか」を記録する投資日記">
-    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/og-card.png' %}">
+    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/og-card.png' %}?v={{ STATIC_VERSION }}">
     {% endblock %}
 
     <!-- Google AdSense -->
