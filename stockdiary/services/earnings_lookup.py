@@ -83,15 +83,19 @@ def get_next_earnings_map(symbols, today=None) -> dict:
         EarningsSchedule.objects
         .filter(securities_code__in=candidate_codes(tickers),
                 earnings_date__gte=today)
-        .order_by('securities_code', 'earnings_date')
+        .order_by('earnings_date', 'securities_code')
         .values('securities_code', 'earnings_date', 'earnings_type', 'is_estimated')
     )
 
+    # 日付昇順ソート済みなので、銘柄ごとに最初に出現した行が最も近い未来日。
+    # securities_code優先のソートだと、同一銘柄が4桁/5桁の両表記で登録されて
+    # いるとき「近い方」ではなく「コード文字列順で先」を選んでしまうバグが
+    # あった（カレンダーと日記詳細で表示日がずれる原因）。
     result = {}
     for row in rows:
         ticker = to_ticker(row['securities_code'])
         if ticker in result:
-            continue  # ソート済みなので先頭＝最も近い未来日
+            continue
         days = (row['earnings_date'] - today).days
         result[ticker] = NextEarnings(
             date=row['earnings_date'],
@@ -120,15 +124,17 @@ def get_previous_earnings_map(symbols, today=None) -> dict:
         EarningsSchedule.objects
         .filter(securities_code__in=candidate_codes(tickers),
                 earnings_date__lt=today)
-        .order_by('securities_code', '-earnings_date')
+        .order_by('-earnings_date', 'securities_code')
         .values('securities_code', 'earnings_date', 'earnings_type', 'is_estimated')
     )
 
+    # 日付降順ソート済みなので、銘柄ごとに最初に出現した行が最も新しい過去日
+    # （get_next_earnings_map と同じ理由でsecurities_code優先ソートを避ける）。
     result = {}
     for row in rows:
         ticker = to_ticker(row['securities_code'])
         if ticker in result:
-            continue  # ソート済みなので先頭＝最も新しい過去日
+            continue
         result[ticker] = PreviousEarnings(
             date=row['earnings_date'],
             type=row['earnings_type'],

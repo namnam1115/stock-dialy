@@ -29,6 +29,7 @@ from earnings_analysis.services.earnings_calendar_api import (
 )
 from earnings_analysis.services import earnings_calendar_sync as sync
 from stockdiary import views_earnings
+from stockdiary.services.earnings_lookup import get_previous_earnings_map
 
 User = get_user_model()
 pytestmark = pytest.mark.django_db
@@ -269,6 +270,42 @@ def test_get_next_earnings_map_matches_4_and_5_digit():
     assert mapping['7203'].type == '第1四半期'
     assert mapping['7203'].days_until == 10
     assert mapping['6758'].date == today + timedelta(days=3)
+
+
+def test_get_next_earnings_map_picks_nearest_across_code_formats():
+    """同一銘柄が4桁/5桁の両表記でマスタに登録されていても最も近い日を採用する。
+
+    以前は ORDER BY securities_code, earnings_date でソートしてから銘柄ごとに
+    先頭行を採用していたため、コード文字列順で先に来る表記（例: '7203' が
+    '72030' より先）の行がそのまま採用されてしまい、実際にはもっと近い日が
+    もう一方の表記側にあっても無視されていた。その結果、決算カレンダー
+    （日付範囲を1クエリで引く箇所）と日記詳細（この関数を使う箇所）で
+    表示される「次回決算日」がずれるバグがあった。
+    """
+    today = date.today()
+    EarningsSchedule.objects.create(
+        securities_code='72030', earnings_date=today + timedelta(days=5),
+        earnings_type='本決算', is_estimated=False)
+    EarningsSchedule.objects.create(
+        securities_code='7203', earnings_date=today + timedelta(days=40),
+        earnings_type='第1四半期', is_estimated=True)
+
+    mapping = views_earnings.get_next_earnings_map({'7203'}, today=today)
+    assert mapping['7203'].date == today + timedelta(days=5)
+
+
+def test_get_previous_earnings_map_picks_nearest_across_code_formats():
+    """前回決算も同様に、4桁/5桁の表記に関わらず最も新しい過去日を採用する。"""
+    today = date.today()
+    EarningsSchedule.objects.create(
+        securities_code='72030', earnings_date=today - timedelta(days=3),
+        earnings_type='本決算', is_estimated=False)
+    EarningsSchedule.objects.create(
+        securities_code='7203', earnings_date=today - timedelta(days=40),
+        earnings_type='第3四半期', is_estimated=False)
+
+    mapping = get_previous_earnings_map({'7203'}, today=today)
+    assert mapping['7203'].date == today - timedelta(days=3)
 
 
 def test_get_next_earnings_map_picks_nearest_future():
