@@ -37,6 +37,9 @@ from .services.earnings_lookup import (  # noqa: F401
 # カレンダーの表示期間（当日からの日数）
 CALENDAR_WINDOW_DAYS = 90
 
+# カレンダーで遡れる過去の日数（直近の決算実績を確認できるように）
+CALENDAR_PAST_WINDOW_DAYS = 30
+
 # 月グリッドの曜日見出し（月曜始まり）
 WEEKDAY_HEADERS = ['月', '火', '水', '木', '金', '土', '日']
 
@@ -110,7 +113,7 @@ def earnings_calendar(request):
         scope = 'mine'
 
     today = date.today()
-    window_start = today
+    window_start = today - timedelta(days=CALENDAR_PAST_WINDOW_DAYS)
     window_end = today + timedelta(days=CALENDAR_WINDOW_DAYS)
     ws_first = window_start.replace(day=1)
     we_first = window_end.replace(day=1)
@@ -223,6 +226,7 @@ def earnings_calendar(request):
         'scope': scope,
         'today': today,
         'window_days': CALENDAR_WINDOW_DAYS,
+        'past_window_days': CALENDAR_PAST_WINDOW_DAYS,
         'holdings': holdings,
         'sold': sold,
         'watchlist': watchlist,

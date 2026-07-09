@@ -492,6 +492,31 @@ def test_calendar_selected_day_lists_that_days_earnings(client):
     assert 'トヨタ自動車'.encode() in resp.content
 
 
+def test_calendar_shows_recent_past_earnings(client):
+    """直近30日以内の過去の決算日も選択日パネルに表示できる。
+
+    以前は window_start=today に固定されており、当日より前の日付は
+    month/date パラメータで指定してもウィンドウ外としてクランプされ、
+    EarningsSchedule に履歴が残っていても確認できなかった（#決算カレンダー
+    過去参照要望）。過去分は sync 時に削除されず履歴として保持される設計
+    なので、表示側の制限だけを緩めれば見えるようになる。
+    """
+    user = User.objects.create_user('v_past', 'vpast@e.com', 'p')
+    client.force_login(user)
+    target = date.today() - timedelta(days=10)
+    EarningsSchedule.objects.create(
+        securities_code='7203', earnings_date=target, company_name='トヨタ自動車')
+
+    url = reverse('stockdiary:earnings_calendar')
+    resp = client.get(url, {
+        'scope': 'all',
+        'month': target.strftime('%Y-%m'),
+        'date': target.isoformat(),
+    })
+    assert resp.status_code == 200
+    assert 'トヨタ自動車'.encode() in resp.content
+
+
 def test_calendar_scope_mine_filters_to_recorded_symbols(client):
     """scope=mine は記録銘柄のみ、scope=all は全銘柄を選択日パネルに出す。"""
     user = User.objects.create_user('v2', 'v2@e.com', 'p')
