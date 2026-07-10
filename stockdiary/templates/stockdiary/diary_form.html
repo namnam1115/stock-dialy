@@ -232,6 +232,12 @@
           <p class="text-muted small mb-2">
             <i class="bi bi-lightbulb me-1"></i>冒頭の1〜2文が、1年後の想起カードやタイムラインに表示されます。テンプレートの「ひとこと要約」を使うと要点が整います。
           </p>
+          {% if not form.instance.pk %}
+          <!-- 書き分けガイド: 背景（ここ）／確認の目印（賭け）／継続記録（経過） -->
+          <p class="text-muted small mb-2">
+            <i class="bi bi-signpost me-1"></i>ここは「背景」＝どんな会社で、なぜ気になるか。結果を確かめたい読みは下の<strong>確認の目印</strong>に、買った後の経過は作成後の<strong>継続記録</strong>へ。
+          </p>
+          {% endif %}
 
           <!-- ========== テンプレート呼び出し ========== -->
           <div class="diary-template-picker mb-2">
@@ -305,6 +311,34 @@
               <div id="hashtag-chip-groups" style="display:none;"></div>
             </div>
           </div>
+
+          {% if not form.instance.pk %}
+          <!-- 検証ループの入口: 確認の目印（任意）。入力があれば保存時に仮説(Thesis)を自動作成 -->
+          <div class="mb-3 mt-3" id="thesisCheckpointField">
+            <label for="id_thesis_checkpoint" class="form-label">
+              <i class="bi bi-bullseye me-1"></i>確認の目印（任意）
+            </label>
+            <div class="row g-2">
+              <div class="col-7 col-md-8">
+                <input type="text" class="form-control" id="id_thesis_checkpoint"
+                       name="thesis_checkpoint" maxlength="200"
+                       placeholder="例: 次決算の営業利益率">
+              </div>
+              <div class="col-5 col-md-4">
+                <select class="form-select" name="thesis_checkpoint_direction" id="id_thesis_checkpoint_direction">
+                  <option value="">向き（任意）</option>
+                  {% for val, label in checkpoint_dir_choices %}
+                  <option value="{{ val }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <small class="form-text text-muted">
+              答え合わせで見るものを1つ（数字でなくてもOK）。書いておくと「仮説」として記録され、
+              次の決算のタイミングで答え合わせの想起が届きます。
+            </small>
+          </div>
+          {% endif %}
 
           <!-- 画像添付（旧 Step 4 から統合。理由の補足としてチャート画像等を添付） -->
           <div class="mb-3 mt-3">

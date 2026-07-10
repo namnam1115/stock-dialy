@@ -103,8 +103,8 @@
 
     <script src="{% static 'pwa-register.js' %}" defer></script>
     <script src="{% static 'js/diary-tabs.js' %}" defer></script>
-    <!-- HTMXを追加 -->
-    <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+    {# HTMX はローカル配信（検証ループ等のコア操作が CDN 障害・広告ブロッカーで無反応になるのを防ぐ） #}
+    <script src="{% static 'js/vendor/htmx.min.js' %}?v={{ STATIC_VERSION }}"></script>
     <!-- HTMX の全リクエストに CSRF トークンを自動付与（非GET時） -->
     <script>
       (function () {

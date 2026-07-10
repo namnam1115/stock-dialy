@@ -8,26 +8,39 @@
     <p class="karte-form-claim">「{{ thesis.claim }}」</p>
     {% if thesis.checkpoint %}
     <p class="karte-form-checkpoint">
-      <i class="bi bi-bullseye"></i>見張ると決めた目印：<strong>{{ thesis.checkpoint }}</strong>{% if thesis.checkpoint_direction %}（{{ thesis.get_checkpoint_direction_display }}）{% endif %} → 実際はどうでしたか？
+      <i class="bi bi-bullseye"></i><span>見張ると決めた目印：<strong>{{ thesis.checkpoint }}</strong>{% if thesis.checkpoint_direction %}（{{ thesis.get_checkpoint_direction_display }}）{% endif %} → 実際はどうでしたか？</span>
     </p>
     {% endif %}
 
+    {# 主質問は2つ（当否＋学び）。損益は取引記録から推定済みの初期値、残りは畳む #}
     <label class="karte-label">仮説は正しかったか <span class="karte-hint-inline">※損益とは別に評価</span></label>
-    <div class="karte-radio-row">{{ form.hypothesis_result }}</div>
+    <div class="karte-radio-cards">{{ form.hypothesis_result }}</div>
 
-    <label class="karte-label">損益の結果</label>
-    <div class="karte-radio-row">{{ form.pnl_result }}</div>
-
-    <label class="karte-label">この判断の質（再現したいほど高く）</label>
-    {{ form.decision_quality }}
-
-    <label class="karte-label">見落としていた要因</label>
-    {{ form.missed_factor }}
-
-    <label class="karte-check">{{ form.is_repeatable }} <span>この判断は再現したい</span></label>
-
-    <label class="karte-label">学び（次に活かす一文）</label>
+    <label class="karte-label">学び（次に活かす一文） <span class="karte-hint-inline">※任意</span></label>
     {{ form.learning }}
+
+    <label class="karte-label">損益の結果 <span class="karte-hint-inline">※取引記録から推定済み・違えば直す</span></label>
+    <div class="karte-radio-cards">{{ form.pnl_result }}</div>
+
+    <details class="karte-more">
+      <summary>もっと書く（判断の質・見落とし）</summary>
+
+      <label class="karte-label">この判断の質（再現したいほど高く）</label>
+      <div class="karte-stars-input" data-quality>
+        <input type="hidden" name="decision_quality" value="{{ form.decision_quality.value|default:3 }}">
+        <span class="karte-stars-btns">
+          {% for i in "12345" %}
+          <button type="button" class="karte-star" data-val="{{ forloop.counter }}" aria-label="{{ forloop.counter }}点">★</button>
+          {% endfor %}
+        </span>
+        <span class="karte-stars-caption" data-quality-caption></span>
+      </div>
+
+      <label class="karte-label">見落としていた要因</label>
+      {{ form.missed_factor }}
+
+      <label class="karte-check">{{ form.is_repeatable }} <span>この判断は再現したい</span></label>
+    </details>
 
     <div class="karte-form-actions">
       <button type="button" class="btn-quiet-ghost"
@@ -36,4 +49,26 @@
       <button type="submit" class="btn-quiet">検証を保存</button>
     </div>
   </form>
+
+  <script>
+  (function(){
+    var root = document.querySelector('#karte-block [data-quality]');
+    if(!root || root.dataset.init){ return; } root.dataset.init='1';
+    var input = root.querySelector('input[name=decision_quality]');
+    var stars = Array.prototype.slice.call(root.querySelectorAll('.karte-star'));
+    var caption = root.querySelector('[data-quality-caption]');
+    var LBL = {1:'低い', 2:'やや低い', 3:'ふつう', 4:'高い', 5:'とても高い'};
+    function current(){ return Math.max(1, Math.min(5, parseInt(input.value, 10) || 3)); }
+    function paint(n){
+      stars.forEach(function(s){ s.classList.toggle('is-on', Number(s.dataset.val) <= n); });
+      if(caption){ caption.textContent = LBL[n] || ''; }
+    }
+    stars.forEach(function(s){
+      s.addEventListener('click', function(){ input.value = s.dataset.val; paint(Number(s.dataset.val)); });
+      s.addEventListener('mouseenter', function(){ paint(Number(s.dataset.val)); });
+    });
+    root.addEventListener('mouseleave', function(){ paint(current()); });
+    paint(current());
+  })();
+  </script>
 </div>

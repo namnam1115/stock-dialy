@@ -53,7 +53,12 @@ class TestMetricsPure:
     def test_thresholds_are_sane(self):
         assert metrics.HIT_RATE_WEAK < metrics.HIT_RATE_STRONG
         assert metrics.THEME_MIN_VERDICTS >= 1
-        assert metrics.REPEATED_MISS_MIN >= 1
+        assert 0 < metrics.MISS_SIMILARITY_THRESHOLD <= 1
+
+    def test_is_similar_miss(self):
+        assert metrics.is_similar_miss('入るのが早い', '入るのが早い') is True
+        assert metrics.is_similar_miss('決算前に手仕舞いできず', '決算前に利確できず') is True
+        assert metrics.is_similar_miss('入るのが早い', '為替の影響を過小評価していた') is False
 
 
 @pytest.mark.django_db(transaction=True)

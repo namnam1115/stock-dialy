@@ -1,0 +1,113 @@
+{% comment %}
+仮説フォームの入力欄（新規シート/インライン編集で共有）。
+ID衝突回避のため prefix で要素IDを分けて両所から include する。
+前提コンテキスト: form, all_tags, prefix, tag_data_id（thesis は編集時のみ・任意）。
+{% endcomment %}
+<div id="{{ prefix }}ThesisFields">
+
+  <p class="karte-hint" style="margin-top:0">仮説＝答え合わせできる読み。企業の説明は「背景」、買った後の経過は「継続記録」へ。</p>
+
+  <label class="karte-label">確認の目印 <span class="karte-hint-inline">※答え合わせで見るものを1つ</span></label>
+  <div class="karte-form-2col">
+    <div>{{ form.checkpoint }}</div>
+    <div>{{ form.checkpoint_direction }}</div>
+  </div>
+  {% if form.checkpoint.errors %}<div class="karte-field-err">{{ form.checkpoint.errors.0 }}</div>{% endif %}
+  <p class="karte-hint">数字でなくてもOK（KPI・イベントの成否・定性チェックも可）。</p>
+
+  {# 目印から作られる主張のその場プレビュー #}
+  <p class="karte-preview" data-thesis-preview hidden>→ こう記録されます：<strong data-thesis-preview-text></strong></p>
+
+  <label class="karte-label">そう考えた理由 <span class="karte-hint-inline">※任意・なぜその目印がそう動くと思うか</span></label>
+  {{ form.basis }}
+  {% if form.basis.errors %}<div class="karte-field-err">{{ form.basis.errors.0 }}</div>{% endif %}
+
+  <label class="karte-label">最悪のケース <span class="karte-hint-inline">※どうなったら崩れるか</span></label>
+  {{ form.worst_case }}
+
+  <div class="karte-form-2col">
+    <div>
+      <label class="karte-label">想定検証期間</label>
+      {{ form.horizon }}
+    </div>
+    <div>
+      <label class="karte-label">検証予定日（空欄で自動設定）</label>
+      {{ form.review_due_date }}
+    </div>
+  </div>
+
+  <details class="karte-more">
+    <summary>もっと書く（主張を自分で書く・タグ）</summary>
+
+    <label class="karte-label">主張を自分で書く <span class="karte-hint-inline">※任意・空欄なら上の目印から作成</span></label>
+    {{ form.claim }}
+    {% if form.claim.errors %}<div class="karte-field-err">{{ form.claim.errors.0 }}</div>{% endif %}
+
+    <label class="karte-label">根拠の軸（タグ）</label>
+    <div class="tag-suggest" id="{{ prefix }}BasisTagSuggest">
+      <div class="tag-suggest-chips" id="{{ prefix }}BasisTagChips">
+        {% if thesis %}{% for t in thesis.basis_tags.all %}
+        <span class="tag-suggest-chip" data-id="{{ t.id }}">{{ t.name }}<button type="button" class="ts-x" aria-label="削除">×</button><input type="hidden" name="basis_tags" value="{{ t.id }}"></span>
+        {% endfor %}{% endif %}
+      </div>
+      <input type="text" class="tag-suggest-input" id="{{ prefix }}BasisTagInput" placeholder="タグ名で検索して追加…（複数可）" autocomplete="off">
+      <div class="tag-suggest-list" id="{{ prefix }}BasisTagList" hidden></div>
+    </div>
+    {{ all_tags|json_script:tag_data_id }}
+  </details>
+</div>
+
+<script>
+(function(){
+  var host = document.getElementById('{{ prefix }}ThesisFields');
+  if(!host || host.dataset.init){ return; } host.dataset.init='1';
+
+  // 目印→主張のその場プレビュー
+  var cp=host.querySelector('[name=checkpoint]'), dir=host.querySelector('[name=checkpoint_direction]'),
+      claim=host.querySelector('[name=claim]'),
+      box=host.querySelector('[data-thesis-preview]'), txt=host.querySelector('[data-thesis-preview-text]');
+  if(box && txt){
+    var LBL={up:'上がる',down:'下がる',flat:'横ばい',happened:'実現する',not_happened:'起きない'};
+    var compose=function(){
+      var c=((claim&&claim.value)||'').trim(); if(c){ return c; }
+      var k=((cp&&cp.value)||'').trim(); if(!k){ return ''; }
+      var l=LBL[(dir&&dir.value)]||''; return l ? k+'が'+l : k;
+    };
+    var render=function(){ var s=compose(); if(s){ txt.textContent=s; box.hidden=false; } else { box.hidden=true; } };
+    [cp,dir,claim].forEach(function(el){ if(el){ el.addEventListener('input',render); el.addEventListener('change',render); } });
+    render();
+  }
+
+  // 根拠の軸：タグサジェスト
+  var dataEl=document.getElementById('{{ tag_data_id }}');
+  var data=dataEl?JSON.parse(dataEl.textContent):[];
+  var chips=host.querySelector('[id$="BasisTagChips"]'),
+      input=host.querySelector('[id$="BasisTagInput"]'),
+      list=host.querySelector('[id$="BasisTagList"]');
+  if(chips && input && list){
+    var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+    var selected=function(){return Array.prototype.map.call(chips.querySelectorAll('input[name=basis_tags]'),function(i){return i.value;});};
+    var addChip=function(id,name){
+      if(selected().indexOf(String(id))!==-1){return;}
+      var sp=document.createElement('span'); sp.className='tag-suggest-chip'; sp.dataset.id=id;
+      sp.innerHTML=esc(name)+'<button type="button" class="ts-x" aria-label="削除">×</button><input type="hidden" name="basis_tags" value="'+esc(id)+'">';
+      sp.querySelector('.ts-x').addEventListener('click',function(){sp.remove();});
+      chips.appendChild(sp);
+    };
+    var renderTags=function(q){
+      var sel=selected(); q=(q||'').trim().toLowerCase();
+      var m=data.filter(function(t){return sel.indexOf(String(t.id))===-1 && (!q || t.name.toLowerCase().indexOf(q)!==-1);}).slice(0,8);
+      if(!m.length){list.hidden=true; list.innerHTML=''; return;}
+      list.innerHTML=m.map(function(t){return '<button type="button" class="ts-opt" data-id="'+esc(t.id)+'" data-name="'+esc(t.name)+'">'+esc(t.name)+'</button>';}).join('');
+      list.hidden=false;
+      Array.prototype.forEach.call(list.querySelectorAll('.ts-opt'),function(b){
+        b.addEventListener('click',function(){addChip(b.dataset.id,b.dataset.name); input.value=''; renderTags(''); input.focus();});
+      });
+    };
+    input.addEventListener('input',function(){renderTags(input.value);});
+    input.addEventListener('focus',function(){renderTags(input.value);});
+    input.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();var f=list.querySelector('.ts-opt'); if(f){f.click();}}});
+    document.addEventListener('click',function(e){if(!host.contains(e.target)){list.hidden=true;}});
+  }
+})();
+</script>

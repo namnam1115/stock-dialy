@@ -271,8 +271,9 @@
   border-radius: var(--radius-sm);
   font-size: 0.9375rem;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
 }
+.alert-info-improved .bi { flex-shrink: 0; margin-top: 0.15em; }
 
 .alert-warning-improved {
   background: var(--warning-light);

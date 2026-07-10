@@ -21,8 +21,8 @@ def test_seed_populates_thesis_verdict_and_karte(user):
     # 4象限すべてに分布
     counts = {q['key']: q['count'] for q in karte['quadrants']}
     assert all(counts[k] >= 1 for k in ('skill', 'unlucky', 'lucky', 'discipline'))
-    # 繰り返す見落とし（同一文言が2回）
-    assert any(m['text'] == '入るのが早い' and m['count'] >= 2 for m in karte['repeated_misses'])
+    # 繰り返す見落とし（同一文言が2回→似た内容として拾われる）
+    assert any(m['text'] == '入るのが早い' and m['similar'] for m in karte['recent_misses'])
 
 
 def test_seed_handles_duplicate_symbol_diaries(user):

@@ -14,6 +14,7 @@
 tags の *実現損益* の勝率（AggregateService の realized_profit > 0）とは
 **別の指標**である。両者を同じ語で語らないこと。
 """
+import difflib
 
 # ---------------------------------------------------------------------------
 # 仮説の当否（hypothesis_result）と損益（pnl_result）の意味づけ
@@ -81,5 +82,12 @@ LUCKY_WIN_SHARE_ALERT = 40
 #: テーマ別の的中傾向を集計対象にする最小検証件数
 THEME_MIN_VERDICTS = 2
 
-#: 同一の見落としを「繰り返す失敗」とみなす最小回数
-REPEATED_MISS_MIN = 2
+#: 見落とし（missed_factor）の類似判定のしきい値 [0.0-1.0]。
+#: difflib.SequenceMatcher.ratio() による表記の近さのみを見る（意味の近さではない）。
+#: 「何回目」という断定はせず、「似た内容がある」という控えめな気づきの目印に留める。
+MISS_SIMILARITY_THRESHOLD = 0.6
+
+
+def is_similar_miss(a, b):
+    """2つの見落とし（missed_factor）の表記が近いか（意味の類似ではない）。"""
+    return difflib.SequenceMatcher(None, a, b).ratio() >= MISS_SIMILARITY_THRESHOLD

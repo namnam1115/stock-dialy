@@ -88,14 +88,20 @@ def test_invalid_horizon_rejected(auth_settings, diary):
 
 
 def test_review_due_date_derived_from_horizon(auth_settings, diary):
-    """review_due_date 省略時は horizon から自動補完（6m=初回購入日+180日）。"""
+    """review_due_date 省略時は horizon から自動補完（6m=180日）。
+
+    基準は初回購入日だが、購入日起点の期日が過去になる場合（昔からの保有に
+    後から仮説を立てる）は今日起点に再アンカーされる。「作った瞬間から期限切れ」の
+    検証予定日を作らない不変条件（UIと同一ロジック・views_growth 側の回帰テストは
+    tests/test_earnings_calendar.py::test_thesis_due_date_never_in_the_past）。
+    フィクスチャの購入日(2026-01-01)+180日は既に過去のため、今日+180日になる。
+    """
     resp = api_analysis.add_thesis(
         _post('CRWD', {'claim': '長期でARR200億ドルへ', 'horizon': '6m'}), 'CRWD'
     )
     assert resp.status_code == 201
     body = json.loads(resp.content)
-    # 基準は first_purchase_date(2026-01-01) + 180日
-    assert body['review_due_date'] == (date(2026, 1, 1) + timedelta(days=180)).isoformat()
+    assert body['review_due_date'] == (date.today() + timedelta(days=180)).isoformat()
 
 
 def test_thesis_appears_in_diary_detail(auth_settings, diary, monkeypatch):

@@ -533,9 +533,8 @@ class VerdictForm(forms.ModelForm):
         widgets = {
             'hypothesis_result': forms.RadioSelect(),
             'pnl_result': forms.RadioSelect(),
-            'decision_quality': forms.Select(
-                choices=[(i, '★' * i + '☆' * (5 - i)) for i in range(1, 6)],
-                attrs={'class': 'form-select'}),
+            # decision_quality はテンプレート側で星タップUI（hidden input）として描画する。
+            # ここでウィジェットは指定しない（IntegerField として整数をそのまま受ける）。
             'missed_factor': forms.TextInput(attrs={
                 'class': 'form-control', 'maxlength': 300,
                 'placeholder': '例: 為替より米金利の影響を過小評価していた',
@@ -548,8 +547,14 @@ class VerdictForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for f in ('missed_factor', 'is_repeatable', 'learning'):
+        # 答え合わせの主質問は「仮説の当否＋学び」の2つ。それ以外は任意にして
+        # 最小入力で保存できるようにする（検証の心理的コストを下げる）
+        for f in ('missed_factor', 'is_repeatable', 'learning', 'decision_quality'):
             self.fields[f].required = False
         # RadioSelect の先頭の空選択肢（---------）を除去
         self.fields['hypothesis_result'].choices = Verdict.HYP_CHOICES
         self.fields['pnl_result'].choices = Verdict.PNL_CHOICES
+
+    def clean_decision_quality(self):
+        # 未入力はモデル既定の3（普通）に落とす
+        return self.cleaned_data.get('decision_quality') or 3

@@ -302,15 +302,23 @@ def _default_review_due_date(diary, horizon):
     （EarningsSchedule をコードで参照）があればそれを採用し、無ければ従来の
     概算45日にフォールバックする。これにより決算後の「答え合わせ待ち」想起が
     正確なタイミングで発火する。
+
+    購入日起点の計算が過去日になる場合（昔からの保有に後から仮説を立てる）は
+    今日を起点に再アンカーする。「作った瞬間から期限切れ」の仮説を作らない＝
+    想起（検証期日）の信頼性を守るための不変条件。
     """
+    today = timezone.localdate()
     if horizon == 'next_earnings' and diary.stock_symbol:
         from .services.earnings_lookup import get_next_earnings_map
         ne = get_next_earnings_map({diary.stock_symbol}).get(diary.stock_symbol)
         if ne:
             return ne.date
-    base = diary.first_purchase_date or timezone.localdate()
+    base = diary.first_purchase_date or today
     days = {'next_earnings': 45, '3m': 90, '6m': 180, '1y': 365, 'long': 365}.get(horizon, 180)
-    return base + timedelta(days=days)
+    due = base + timedelta(days=days)
+    if due <= today:
+        due = today + timedelta(days=days)
+    return due
 
 
 def _build_user_quadrants(user):
@@ -417,8 +425,17 @@ def thesis_verify(request, diary_id, thesis_id):
             verdict = form.save(commit=False)
             verdict.thesis = thesis
             verdict.save()
-            thesis.status = Thesis.STATUS_VERIFIED
-            thesis.save(update_fields=['status', 'updated_at'])
+            if verdict.pnl_result == Verdict.PNL_HOLDING:
+                # 中間検証: 保有中の答え合わせは仮説を閉じない。検証予定日を
+                # 先送りして見張りを続け、確定損益（利益/損失/変わらず）が出た
+                # 答え合わせで verified に閉じる。閉じてしまうと is_due の母集団から
+                # 外れ、保有継続中こそ必要な想起が二度と来なくなるため。
+                thesis.status = Thesis.STATUS_OPEN
+                thesis.review_due_date = _default_review_due_date(diary, thesis.horizon)
+                thesis.save(update_fields=['status', 'review_due_date', 'updated_at'])
+            else:
+                thesis.status = Thesis.STATUS_VERIFIED
+                thesis.save(update_fields=['status', 'updated_at'])
             return _render_karte_block(request, diary)
     else:
         initial = {} if instance else {'pnl_result': _suggest_pnl_result(diary)}

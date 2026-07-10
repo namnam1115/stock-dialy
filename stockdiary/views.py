@@ -446,6 +446,27 @@ class StockDiaryDetailView(ObjectNotFoundRedirectMixin, LoginRequiredMixin, Deta
         context['user_quadrants'] = _user_quadrants
         context['user_total_verdicts'] = _total_verdicts
 
+        # 想起・ライブラリの「答え合わせをする」(?verify=<thesis_id>) は、検証フォームを
+        # サーバー側で最初から描画する。JS の多段起動（タブ切替→HTMXボタンclick）に
+        # 依存すると、読み込みタイミング次第でフォームが開かず肩透かしになるため。
+        verify_id = self.request.GET.get('verify', '')
+        if verify_id.isdigit():
+            verify_thesis = (
+                self.object.theses.select_related('verdict')
+                .filter(pk=int(verify_id)).first()
+            )
+            if verify_thesis:
+                from django.core.exceptions import ObjectDoesNotExist
+                from .forms import VerdictForm
+                from .views_growth import _suggest_pnl_result
+                try:
+                    _v_instance = verify_thesis.verdict
+                except ObjectDoesNotExist:
+                    _v_instance = None
+                initial = {} if _v_instance else {'pnl_result': _suggest_pnl_result(self.object)}
+                context['verify_thesis'] = verify_thesis
+                context['verdict_form'] = VerdictForm(instance=_v_instance, initial=initial)
+
         # 取引・分割・継続記録を1本のイベント時系列に統合
         event_timeline = list(combined) + [
             {'type': 'note', 'date': n.date, 'data': n}
@@ -785,6 +806,26 @@ class StockDiaryCreateView(LoginRequiredMixin, CreateView):
 
         _sync_hashtag_tags(self.object, self.request.user)
         cache.delete(f'mention_map_u{self.request.user.id}')
+
+        # 検証ループの入口: 作成時に「確認の目印」が書かれていれば仮説(Thesis)を
+        # そのまま作成する。書く動機が最も高い瞬間にループの起点を置くため
+        # （後から詳細ページの仮説ビューを探して書きに行く負担をなくす）。
+        checkpoint = (self.request.POST.get('thesis_checkpoint') or '').strip()
+        if checkpoint:
+            from .models import Thesis
+            from .views_growth import _default_review_due_date
+            direction = (self.request.POST.get('thesis_checkpoint_direction') or '').strip()
+            if direction not in {c for c, _ in Thesis.CHECKPOINT_DIR_CHOICES}:
+                direction = ''
+            checkpoint = checkpoint[:200]
+            Thesis.objects.create(
+                diary=self.object,
+                claim=Thesis.compose_claim(checkpoint, direction),
+                checkpoint=checkpoint,
+                checkpoint_direction=direction,
+                horizon='next_earnings',
+                review_due_date=_default_review_due_date(self.object, 'next_earnings'),
+            )
         return response
 
     def get_success_url(self):
@@ -810,8 +851,12 @@ class StockDiaryCreateView(LoginRequiredMixin, CreateView):
             }
         ]
 
+        # 「確認の目印」の向き選択肢（作成時の仮説入口用）
+        from .models import Thesis
+        context['checkpoint_dir_choices'] = Thesis.CHECKPOINT_DIR_CHOICES
+
         return context
-    
+
 
 class StockDiaryUpdateView(ObjectNotFoundRedirectMixin, LoginRequiredMixin, UpdateView):
     model = StockDiary

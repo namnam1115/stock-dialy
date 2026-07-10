@@ -13,6 +13,7 @@
             {% if thesis.status == 'verified' %}<i class="bi bi-check2-circle"></i>検証済み
             {% elif thesis.status == 'abandoned' %}<i class="bi bi-x-circle"></i>取り下げ
             {% elif thesis.is_due %}<i class="bi bi-bell"></i>検証待ち
+            {% elif thesis.verdict %}<i class="bi bi-eye"></i>見張り中{# 中間検証済み・保有継続 #}
             {% else %}<i class="bi bi-hourglass-split"></i>未検証
             {% endif %}
           </span>

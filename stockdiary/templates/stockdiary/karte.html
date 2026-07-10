@@ -71,29 +71,37 @@
       </section>
       {% endif %}
 
-      {# 繰り返す失敗 #}
-      {% if karte.repeated_misses %}
-      <section class="rp-section">
-        <div class="rp-section-title">繰り返す失敗</div>
-        <div class="karte-kitems">
-          {% for m in karte.repeated_misses %}
-          <div class="karte-kitem karte-kitem--lucky">
-            <div class="karte-kitem-top">
-              <span class="karte-kitem-tag">繰り返す見落とし</span>
-              <span class="karte-kitem-count kbu-num">{{ m.count }}回</span>
-            </div>
-            <div class="karte-kitem-body">{{ m.text }}</div>
-          </div>
-          {% endfor %}
-        </div>
-      </section>
-      {% elif karte.recent_misses %}
+      {% comment %}
+      最近の見落とし。件数の断定はせず、表記が近い過去の見落としがあれば
+      控えめな目印だけ添える（同じ失敗かどうかの判断は本人に委ねる）
+      {% endcomment %}
+      {% if karte.recent_misses %}
       <section class="rp-section">
         <div class="rp-section-title">最近の見落とし</div>
         <div class="karte-kitems">
           {% for m in karte.recent_misses %}
           <div class="karte-kitem karte-kitem--lucky">
-            <div class="karte-kitem-body">{{ m }}</div>
+            <div class="karte-kitem-top">
+              <a class="karte-kitem-miss-src" href="{% url 'stockdiary:detail' m.diary.id %}">{{ m.diary.stock_name }}</a>
+              <span class="karte-kitem-date">{{ m.date|date:"Y/n/j" }}</span>
+            </div>
+            <div class="karte-kitem-body">{{ m.text }}</div>
+            {% if m.similar %}
+            <details class="karte-more">
+              <summary><i class="bi bi-arrow-repeat"></i> 似た内容があります（{{ m.similar|length }}件）</summary>
+              <div class="karte-kitems karte-kitems-nested">
+                {% for s in m.similar %}
+                <div class="karte-kitem karte-kitem--lucky">
+                  <div class="karte-kitem-top">
+                    <a class="karte-kitem-miss-src" href="{% url 'stockdiary:detail' s.diary.id %}">{{ s.diary.stock_name }}</a>
+                    <span class="karte-kitem-date">{{ s.date|date:"Y/n/j" }}</span>
+                  </div>
+                  <div class="karte-kitem-body">{{ s.text }}</div>
+                </div>
+                {% endfor %}
+              </div>
+            </details>
+            {% endif %}
           </div>
           {% endfor %}
         </div>

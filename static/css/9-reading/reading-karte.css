@@ -102,7 +102,7 @@ body.dark-mode, html[data-theme="dark"] {
   border-radius: 0.5rem; padding: 0.5rem 0.7rem; margin: 0 0 0.6rem;
   display: flex; gap: 0.4rem; align-items: baseline;
 }
-.reading-page .karte-form-checkpoint .bi { color: var(--accent-ink, var(--muted-ink)); }
+.reading-page .karte-form-checkpoint .bi { color: var(--accent-ink, var(--muted-ink)); flex-shrink: 0; }
 
 /* 検証（2×2） */
 .reading-page .karte-verdict {
@@ -237,7 +237,40 @@ body.dark-mode, html[data-theme="dark"] {
 .reading-page .karte-form-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
 .reading-page .karte-radio-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin-top: 0.2rem; }
 .reading-page .karte-radio-row label { font-size: 0.875rem; color: var(--ink-soft); display: inline-flex; align-items: center; gap: 0.3rem; }
+
+/* 選択肢はカード型のタップ行（縦積みのまま、行全体を押せる・選択が明快） */
+.reading-page .karte-radio-cards > div { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.3rem; }
+.reading-page .karte-radio-cards label {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md, 10px);
+  background: var(--paper);
+  cursor: pointer; font-size: 0.9375rem; color: var(--ink-soft);
+  transition: border-color .12s ease, background .12s ease, color .12s ease;
+}
+.reading-page .karte-radio-cards label:hover { border-color: var(--muted-ink); }
+.reading-page .karte-radio-cards label:has(input:checked) {
+  border-color: var(--ink); background: var(--paper-raised);
+  color: var(--ink); font-weight: var(--font-medium);
+}
+.reading-page .karte-radio-cards input[type="radio"] {
+  accent-color: var(--ink); width: 1.05rem; height: 1.05rem; flex-shrink: 0; margin: 0;
+}
 .reading-page .karte-check { display: flex; align-items: center; gap: 0.45rem; margin-top: 0.6rem; font-size: 0.875rem; color: var(--ink-soft); }
+
+/* 判断の質：星タップUI（<select> の置き換え） */
+.reading-page .karte-stars-input { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.2rem; }
+.reading-page .karte-stars-btns { display: inline-flex; gap: 0.1rem; }
+.reading-page .karte-star {
+  background: none; border: none; cursor: pointer;
+  padding: 0.2rem 0.15rem; line-height: 1;
+  font-size: 1.7rem; color: var(--hairline);
+  transition: color .12s ease, transform .12s ease;
+}
+.reading-page .karte-star:hover { transform: scale(1.12); }
+.reading-page .karte-star.is-on { color: var(--verdict-unlucky); }
+.reading-page .karte-stars-caption { font-size: 0.8rem; color: var(--muted-ink); }
 .reading-page .karte-field-err, .reading-page .karte-form-err {
   color: var(--verdict-lucky); font-size: 0.8125rem; margin-top: 0.3rem;
 }
@@ -307,6 +340,23 @@ body.dark-mode, html[data-theme="dark"] {
 #addThesisSheet .karte-field-err {
   color: var(--verdict-lucky); font-size: 0.8125rem; margin-top: 0.3rem;
 }
+#addThesisSheet .karte-hint-inline { font-size: 0.7rem; color: var(--faint-ink); font-weight: var(--font-regular); margin-left: 0.4rem; }
+#addThesisSheet .karte-hint {
+  font-size: 0.72rem; color: var(--faint-ink); line-height: 1.5;
+  margin: 0.25rem 0 0.5rem;
+}
+#addThesisSheet .karte-preview {
+  font-size: 0.85rem; line-height: 1.6; color: var(--ink-soft, var(--ink));
+  background: var(--paper-sunk, rgba(0,0,0,0.03));
+  border-radius: 0.5rem; padding: 0.45rem 0.7rem; margin: 0 0 0.6rem;
+}
+#addThesisSheet .karte-preview strong { font-weight: 600; color: var(--ink); }
+#addThesisSheet .karte-more { margin: 0.4rem 0 0.2rem; }
+#addThesisSheet .karte-more > summary {
+  cursor: pointer; font-size: 0.8rem; color: var(--muted-ink);
+  padding: 0.35rem 0; list-style: revert; user-select: none;
+}
+#addThesisSheet .karte-more[open] > summary { margin-bottom: 0.35rem; }
 #addThesisSheet .tag-suggest { position: relative; }
 #addThesisSheet .tag-suggest-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 #addThesisSheet .tag-suggest-chips:not(:empty) { margin-bottom: 0.45rem; }
@@ -440,11 +490,20 @@ body.dark-mode, html[data-theme="dark"] {
 .reading-page .karte-kitem--skill .karte-kitem-tag      { color: var(--verdict-skill); }
 .reading-page .karte-kitem--unlucky .karte-kitem-tag    { color: var(--verdict-unlucky); }
 .reading-page .karte-kitem--discipline .karte-kitem-tag { color: var(--verdict-discipline); }
-.reading-page .karte-kitem-count { font-family: var(--font-family-mono); font-size: 0.75rem; color: var(--muted-ink); }
 .reading-page .karte-kitem-src { font-size: 0.75rem; color: var(--faint-ink); margin-left: auto; }
 .reading-page a.karte-kitem:hover .karte-kitem-src { color: var(--muted-ink); }
 .reading-page .karte-kitem-body {
   font-family: var(--font-family-serif); font-size: 1.0625rem; line-height: 1.7; color: var(--ink-soft);
+}
+
+/* 見落とし: どの銘柄・いつの記録かへの導線（一覧の先頭に左寄せ） */
+.reading-page .karte-kitem-miss-src { font-size: 0.75rem; color: var(--muted-ink); font-weight: var(--font-medium); }
+.reading-page .karte-kitem-miss-src:hover { color: var(--ink); text-decoration: underline; }
+.reading-page .karte-kitem-date { font-size: 0.75rem; color: var(--faint-ink); margin-left: auto; }
+/* 似た内容があります（折りたたみ）。中の一覧は少し沈めて主体と区別する */
+.reading-page .karte-kitems-nested {
+  margin-top: 0.5rem; padding-left: 0.75rem; border-left: 2px solid var(--hairline-soft);
+  gap: 0.75rem; display: flex; flex-direction: column;
 }
 
 /* 2×2 マトリクス（左罫の独立カード） */

@@ -67,7 +67,12 @@
 
           <!-- 仮説ビュー: 検証ループ（仮説→結果→検証→学び）。概要タブから移設 -->
           <div class="notes-thesis-wrap" id="notes-view-thesis" hidden>
-            {% include "stockdiary/partials/_karte_block.html" %}
+            {% if verify_thesis %}
+              {# ?verify= 着地: 検証フォームを最初から描画（想起カードからの答え合わせ） #}
+              {% include "stockdiary/partials/_verdict_form.html" with thesis=verify_thesis form=verdict_form %}
+            {% else %}
+              {% include "stockdiary/partials/_karte_block.html" %}
+            {% endif %}
           </div>
 
           <!-- 活動ビュー: 取引・分割・継続記録を時系列で統合（旧「時系列」タブを移設） -->

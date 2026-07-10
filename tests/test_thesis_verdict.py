@@ -110,12 +110,158 @@ class TestThesisVerifyViews:
         assert thesis.verdict.quadrant == 'lucky'
         assert thesis.verdict.learning == '為替単独を根拠に投資しない'
 
+    def test_holding_verdict_keeps_thesis_open_and_reschedules(self, authenticated_client, sample_diary):
+        """保有中の答え合わせ（中間検証）は仮説を閉じず、期日を先送りして見張り続ける。
+
+        なぜこのテストがあるか:
+          pnl_result=保有中で検証すると無条件に status=verified になり、is_due の
+          母集団から外れて想起が二度と来なくなっていた。保有継続中こそ見張りが
+          必要なので、open のまま検証予定日を未来に更新する不変条件を固定する。
+          確定損益（profit/loss/flat）での検証は従来どおり verified に閉じる。
+        """
+        from datetime import date as _date, timedelta as _td
+        thesis = Thesis.objects.create(
+            diary=sample_diary, claim='c', horizon='6m',
+            review_due_date=_date.today() - _td(days=1))
+        url = reverse('stockdiary:thesis_verify', args=[sample_diary.id, thesis.id])
+        r = authenticated_client.post(url, {
+            'hypothesis_result': Verdict.HYP_HIT,
+            'pnl_result': Verdict.PNL_HOLDING,
+        }, HTTP_HX_REQUEST='true')
+        assert r.status_code == 200
+        thesis.refresh_from_db()
+        assert thesis.status == Thesis.STATUS_OPEN
+        assert thesis.review_due_date > _date.today()
+        assert thesis.verdict.pnl_result == Verdict.PNL_HOLDING
+        assert thesis.is_due is False  # 想起は次の期日まで静かになる
+
+        # 確定損益で見直すと閉じる
+        r = authenticated_client.post(url, {
+            'hypothesis_result': Verdict.HYP_HIT,
+            'pnl_result': Verdict.PNL_PROFIT,
+        }, HTTP_HX_REQUEST='true')
+        assert r.status_code == 200
+        thesis.refresh_from_db()
+        assert thesis.status == Thesis.STATUS_VERIFIED
+
+    def test_verify_saves_with_minimal_input(self, authenticated_client, sample_diary):
+        """答え合わせは最小2問（当否＋損益）で保存できる。
+
+        なぜこのテストがあるか:
+          検証フォームは6項目あり「答え合わせが重い」の一因だった。判断の質・
+          見落とし・再現フラグは折りたたみの任意入力とし、未送信でも保存できる
+          （decision_quality はモデル既定の3に落ちる）挙動を固定する。
+        """
+        thesis = Thesis.objects.create(diary=sample_diary, claim='主張')
+        url = reverse('stockdiary:thesis_verify', args=[sample_diary.id, thesis.id])
+        r = authenticated_client.post(url, {
+            'hypothesis_result': Verdict.HYP_HIT,
+            'pnl_result': Verdict.PNL_PROFIT,
+        }, HTTP_HX_REQUEST='true')
+        assert r.status_code == 200
+        thesis.refresh_from_db()
+        assert thesis.verdict.decision_quality == 3
+        assert thesis.verdict.quadrant == 'skill'
+
     def test_cannot_touch_others_diary(self, authenticated_client, another_user):
         from stockdiary.models import StockDiary
         other = StockDiary.objects.create(user=another_user, stock_name='他人', stock_symbol='9999')
         url = reverse('stockdiary:thesis_create', args=[other.id])
         r = authenticated_client.post(url, {'claim': 'x', 'horizon': '6m'}, HTTP_HX_REQUEST='true')
         assert r.status_code == 404
+
+
+class TestThesisEntryOnDiaryCreate:
+    """日記作成フォームの「確認の目印」から検証ループが始まる。
+
+    なぜこのテストがあるか:
+      仮説（Thesis）の入力が作成フローに無く、作成後に詳細ページ→記録タブ→
+      仮説ビューまで掘って書きに行く必要があった（ループの入口の欠落）。
+      書く動機が最も高い「作成の瞬間」に目印を1行書けば Thesis が自動作成される
+      挙動（claim 自動生成・horizon=next_earnings・検証予定日補完）を固定する。
+    """
+
+    def _post(self, client, **extra):
+        data = {
+            'stock_name': 'テスト製作所', 'stock_symbol': '9876',
+            'currency': 'JPY', 'reason': '本文',
+        }
+        data.update(extra)
+        return client.post(reverse('stockdiary:create'), data)
+
+    def test_checkpoint_on_create_makes_thesis(self, authenticated_client):
+        from datetime import date as _date
+        r = self._post(authenticated_client,
+                       thesis_checkpoint='次決算の営業利益率',
+                       thesis_checkpoint_direction='up')
+        assert r.status_code == 302
+        from stockdiary.models import StockDiary
+        diary = StockDiary.objects.get(stock_name='テスト製作所')
+        thesis = diary.theses.get()
+        assert thesis.checkpoint == '次決算の営業利益率'
+        assert thesis.checkpoint_direction == 'up'
+        assert thesis.claim == '次決算の営業利益率が上がる'
+        assert thesis.horizon == 'next_earnings'
+        assert thesis.review_due_date and thesis.review_due_date > _date.today()
+
+    def test_no_checkpoint_creates_no_thesis(self, authenticated_client):
+        r = self._post(authenticated_client)
+        assert r.status_code == 302
+        from stockdiary.models import StockDiary
+        diary = StockDiary.objects.get(stock_name='テスト製作所')
+        assert diary.theses.count() == 0
+
+    def test_invalid_direction_is_dropped(self, authenticated_client):
+        r = self._post(authenticated_client,
+                       thesis_checkpoint='増配の発表',
+                       thesis_checkpoint_direction='hacked')
+        assert r.status_code == 302
+        from stockdiary.models import StockDiary
+        thesis = StockDiary.objects.get(stock_name='テスト製作所').theses.get()
+        assert thesis.checkpoint_direction == ''
+        assert thesis.claim == '増配の発表'
+
+    def test_create_form_shows_checkpoint_field(self, authenticated_client):
+        r = authenticated_client.get(reverse('stockdiary:create'))
+        assert 'thesis_checkpoint' in r.content.decode()
+
+
+class TestVerifyDeepLink:
+    """?verify=<thesis_id> で検証フォームがサーバー側から描画される。
+
+    なぜこのテストがあるか:
+      想起カード・ライブラリの「答え合わせをする」は detail?verify=<id> に着地する。
+      以前は load 後にタブ切替→300ms 待って HTMX ボタンを JS で click する多段連鎖で
+      フォームを開いており、HTMX 未ロード（CDN 遮断）やタイミング競合で無反応になった。
+      答え合わせはループ最重要の導線なので、サーバー側で最初から描画する挙動を固定する。
+    """
+
+    def test_verify_param_renders_verdict_form(self, authenticated_client, sample_diary):
+        thesis = Thesis.objects.create(diary=sample_diary, claim='c')
+        url = reverse('stockdiary:detail', args=[sample_diary.id])
+        r = authenticated_client.get(f'{url}?verify={thesis.id}')
+        assert r.status_code == 200
+        html = r.content.decode()
+        verify_url = reverse('stockdiary:thesis_verify', args=[sample_diary.id, thesis.id])
+        assert f'hx-post="{verify_url}"' in html
+        assert '検証（答え合わせ）' in html
+
+    def test_invalid_verify_param_falls_back_to_karte_block(self, authenticated_client, sample_diary):
+        Thesis.objects.create(diary=sample_diary, claim='c')
+        url = reverse('stockdiary:detail', args=[sample_diary.id])
+        for param in ('999999', 'abc', ''):
+            r = authenticated_client.get(f'{url}?verify={param}')
+            assert r.status_code == 200
+            assert '検証（答え合わせ）' not in r.content.decode()
+
+    def test_verify_param_ignores_other_users_thesis(self, authenticated_client, sample_diary, another_user):
+        from stockdiary.models import StockDiary
+        other = StockDiary.objects.create(user=another_user, stock_name='他人', stock_symbol='9999')
+        other_thesis = Thesis.objects.create(diary=other, claim='x')
+        url = reverse('stockdiary:detail', args=[sample_diary.id])
+        r = authenticated_client.get(f'{url}?verify={other_thesis.id}')
+        assert r.status_code == 200
+        assert '検証（答え合わせ）' not in r.content.decode()
 
 
 class TestMemoDiaryThesis:

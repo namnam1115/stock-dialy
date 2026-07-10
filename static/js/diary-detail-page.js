@@ -26,18 +26,22 @@
 
 
 // 想起カードの「答え合わせをする」(?verify=<thesis_id>) で着地したとき、
-// 検証ループ(#karte-block)の検証フォームを自動で開く。HTMX のボタンを
-// プログラム的にクリックし、カルテへスクロールする。
+// 記録タブの『仮説』ビューを開いてカルテへスクロールする。検証フォーム自体は
+// サーバー側が ?verify= を見て最初から描画済み（HTMXボタンの起動連鎖には依存しない）。
 (function() {
   var vid = new URLSearchParams(window.location.search).get('verify');
   if (!vid) return;
   function openVerify() {
-    // 検証ループは記録タブの『仮説』ビューに移設済み。タブ＋ビューを開いてから検証フォームを起動。
+    var scrollToKarte = function() {
+      var block = document.getElementById('karte-block');
+      if (block) block.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+    // タブ切替（Bootstrap）は非同期。切替完了(shown.bs.tab)を待ってからスクロールする
+    var tabBtn = document.getElementById('notes-tab');
+    var needsSwitch = tabBtn && !tabBtn.classList.contains('active');
+    if (needsSwitch) { tabBtn.addEventListener('shown.bs.tab', scrollToKarte, { once: true }); }
     if (window.goToThesisView) { window.goToThesisView(); }
-    var block = document.getElementById('karte-block');
-    if (block) block.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    var btn = document.querySelector('#karte-block [hx-get*="/thesis/' + vid + '/verify/"]');
-    if (btn) setTimeout(function() { btn.click(); }, 300);
+    if (!needsSwitch) { scrollToKarte(); }
   }
   // switchNotesView は DOMContentLoaded 内で定義されるため、定義後に確実に走る load で実行する。
   window.addEventListener('load', openVerify);
@@ -1206,58 +1210,8 @@ window.showReportModal = function(el) {
 };
 
 
-  (function(){
-    var host = document.getElementById('addThesisSheet');
-    if(!host || host.dataset.previewInit){ return; } host.dataset.previewInit='1';
-    var cp=host.querySelector('[name=checkpoint]'), dir=host.querySelector('[name=checkpoint_direction]'),
-        claim=host.querySelector('[name=claim]'),
-        box=host.querySelector('[data-thesis-preview]'), txt=host.querySelector('[data-thesis-preview-text]');
-    if(!box||!txt){ return; }
-    var LBL={up:'上がる',down:'下がる',flat:'横ばい',happened:'実現する',not_happened:'起きない'};
-    function compose(){
-      var c=((claim&&claim.value)||'').trim(); if(c){ return c; }
-      var k=((cp&&cp.value)||'').trim(); if(!k){ return ''; }
-      var l=LBL[(dir&&dir.value)]||''; return l ? k+'が'+l : k;
-    }
-    function render(){ var s=compose(); if(s){ txt.textContent=s; box.hidden=false; } else { box.hidden=true; } }
-    [cp,dir,claim].forEach(function(el){ if(el){ el.addEventListener('input',render); el.addEventListener('change',render); } });
-    render();
-  })();
-
-
-// 仮説シートのタグ候補サジェスト（_thesis_form.html と同等。id 衝突回避のため sheet 専用 id）
-(function(){
-  var root=document.getElementById('sheetBasisTagSuggest');
-  if(!root||root.dataset.init){return;} root.dataset.init='1';
-  var dataEl=document.getElementById('sheetBasisTagData');
-  var data=dataEl?JSON.parse(dataEl.textContent):[];
-  var chips=document.getElementById('sheetBasisTagChips'),
-      input=document.getElementById('sheetBasisTagInput'),
-      list=document.getElementById('sheetBasisTagList');
-  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  function selected(){return Array.prototype.map.call(chips.querySelectorAll('input[name=basis_tags]'),function(i){return i.value;});}
-  function addChip(id,name){
-    if(selected().indexOf(String(id))!==-1){return;}
-    var sp=document.createElement('span'); sp.className='tag-suggest-chip'; sp.dataset.id=id;
-    sp.innerHTML=esc(name)+'<button type="button" class="ts-x" aria-label="削除">×</button><input type="hidden" name="basis_tags" value="'+esc(id)+'">';
-    sp.querySelector('.ts-x').addEventListener('click',function(){sp.remove();});
-    chips.appendChild(sp);
-  }
-  function render(q){
-    var sel=selected(); q=(q||'').trim().toLowerCase();
-    var m=data.filter(function(t){return sel.indexOf(String(t.id))===-1 && (!q || t.name.toLowerCase().indexOf(q)!==-1);}).slice(0,8);
-    if(!m.length){list.hidden=true; list.innerHTML=''; return;}
-    list.innerHTML=m.map(function(t){return '<button type="button" class="ts-opt" data-id="'+esc(t.id)+'" data-name="'+esc(t.name)+'">'+esc(t.name)+'</button>';}).join('');
-    list.hidden=false;
-    Array.prototype.forEach.call(list.querySelectorAll('.ts-opt'),function(b){
-      b.addEventListener('click',function(){addChip(b.dataset.id,b.dataset.name); input.value=''; render(''); input.focus();});
-    });
-  }
-  input.addEventListener('input',function(){render(input.value);});
-  input.addEventListener('focus',function(){render(input.value);});
-  input.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();var f=list.querySelector('.ts-opt'); if(f){f.click();}}});
-  document.addEventListener('click',function(e){if(!root.contains(e.target)){list.hidden=true;}});
-})();
+// 仮説シートのプレビュー・タグ候補サジェストは _thesis_form_fields.html 側の
+// 埋め込みスクリプトに一本化済み（#sheetThesisFields を自身のスコープとして初期化する）。
 
 
 /* ============================================

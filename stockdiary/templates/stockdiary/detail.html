@@ -582,50 +582,8 @@
     <div class="bottom-sheet-body">
       <form method="post" action="{% url 'stockdiary:thesis_create' diary.id %}" class="karte-form">
         {% csrf_token %}
-        <div class="alert-info-improved mb-3">
-          <i class="bi bi-info-circle me-2"></i>
-          答え合わせで見る「目印」を1つ決めると、後で検証できます。主張は目印から自動で作られます。
-        </div>
 
-        <label class="karte-label">確認の目印 <span class="karte-hint-inline">※答え合わせで見るものを1つ</span></label>
-        <div class="karte-form-2col">
-          <div>{{ thesis_form.checkpoint }}</div>
-          <div>{{ thesis_form.checkpoint_direction }}</div>
-        </div>
-        <p class="karte-hint">数字でなくてもOK（KPI・イベントの成否・定性チェックも可）。</p>
-
-        {# 目印から作られる主張のその場プレビュー #}
-        <p class="karte-preview" data-thesis-preview hidden>→ こう記録されます：<strong data-thesis-preview-text></strong></p>
-
-        <label class="karte-label">そう考えた理由 <span class="karte-hint-inline">※任意・なぜその目印がそう動くと思うか</span></label>
-        {{ thesis_form.basis }}
-
-        <label class="karte-label">最悪のケース <span class="karte-hint-inline">※どうなったら崩れるか</span></label>
-        {{ thesis_form.worst_case }}
-
-        <div class="karte-form-2col">
-          <div>
-            <label class="karte-label">想定検証期間</label>
-            {{ thesis_form.horizon }}
-          </div>
-          <div>
-            <label class="karte-label">検証予定日（空欄で自動設定）</label>
-            {{ thesis_form.review_due_date }}
-          </div>
-        </div>
-
-        <details class="karte-more">
-          <summary>もっと書く（主張を自分で書く・タグ）</summary>
-        <label class="karte-label">主張を自分で書く <span class="karte-hint-inline">※任意・空欄なら上の目印から作成</span></label>
-        {{ thesis_form.claim }}
-        <label class="karte-label">根拠の軸（タグ）</label>
-        <div class="tag-suggest" id="sheetBasisTagSuggest">
-          <div class="tag-suggest-chips" id="sheetBasisTagChips"></div>
-          <input type="text" class="tag-suggest-input" id="sheetBasisTagInput" placeholder="タグ名で検索して追加…（複数可）" autocomplete="off">
-          <div class="tag-suggest-list" id="sheetBasisTagList" hidden></div>
-        </div>
-        {{ thesis_all_tags|json_script:"sheetBasisTagData" }}
-        </details>
+        {% include "stockdiary/partials/_thesis_form_fields.html" with form=thesis_form all_tags=thesis_all_tags prefix="sheet" tag_data_id="sheetBasisTagData" only %}
 
         <div class="form-actions-improved mt-3">
           <button type="submit" class="btn btn-primary">

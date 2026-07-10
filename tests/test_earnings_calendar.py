@@ -660,10 +660,46 @@ def test_thesis_next_earnings_falls_back_without_schedule():
     from stockdiary.views_growth import _default_review_due_date
 
     user = User.objects.create_user('t_nf', 'tnf@e.com', 'p')
+    purchased = date.today() - timedelta(days=10)
     diary = StockDiary.objects.create(
         user=user, stock_name='A', stock_symbol='7203',
-        first_purchase_date=date(2026, 1, 1))
-    assert _default_review_due_date(diary, 'next_earnings') == date(2026, 1, 1) + timedelta(days=45)
+        first_purchase_date=purchased)
+    assert _default_review_due_date(diary, 'next_earnings') == purchased + timedelta(days=45)
+
+
+def test_thesis_due_date_never_in_the_past():
+    """検証予定日は必ず未来日になる（過去日への再アンカー）。
+
+    なぜこのテストがあるか:
+      _default_review_due_date は初回購入日を起点に horizon の日数を足していた
+      ため、昔から保有している銘柄に後から仮説を立てると検証予定日が過去日になり、
+      「仮説を作った瞬間から N日超過」の状態でホーム想起に出るバグがあった。
+      期日が最初から嘘だと「検証期日＝答え合わせ」の能動トリガー（継続の核）が
+      信頼されなくなるため、期日は今日起点に再アンカーする不変条件を固定する。
+    """
+    from stockdiary.views_growth import _default_review_due_date
+
+    user = User.objects.create_user('t_past', 'tpast@e.com', 'p')
+    diary = StockDiary.objects.create(
+        user=user, stock_name='A', stock_symbol='7203',
+        first_purchase_date=date.today() - timedelta(days=730))
+
+    for horizon, days in [('next_earnings', 45), ('3m', 90), ('6m', 180), ('1y', 365), ('long', 365)]:
+        due = _default_review_due_date(diary, horizon)
+        assert due == date.today() + timedelta(days=days), horizon
+        assert due > date.today(), horizon
+
+
+def test_thesis_due_date_keeps_purchase_anchor_when_future():
+    """購入日起点の期日が未来ならそのまま採用する（再アンカーしない）。"""
+    from stockdiary.views_growth import _default_review_due_date
+
+    user = User.objects.create_user('t_anchor', 'tanchor@e.com', 'p')
+    purchased = date.today() - timedelta(days=30)
+    diary = StockDiary.objects.create(
+        user=user, stock_name='A', stock_symbol='7203',
+        first_purchase_date=purchased)
+    assert _default_review_due_date(diary, '3m') == purchased + timedelta(days=90)
 
 
 # ---------------------------------------------------------------------------

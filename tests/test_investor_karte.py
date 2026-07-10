@@ -33,15 +33,32 @@ class TestKarteService:
         assert k['total_wins'] == 2
         assert k['lucky_share'] == 50  # 勝ち2件のうち1件が偶然
 
-    def test_repeated_misses(self, user):
+    def test_recent_misses_include_source_and_similar_entries(self, user):
+        """自然言語の自由記述は完全一致でしか数えられない（Counter方式は実運用でほぼ
+        発火しない）ため、正確な回数を主張するのをやめ、表記が近い過去の見落としが
+        あれば「どの銘柄の・いつの記録か」ごと similar に含めて実際に見られるようにした
+        （フラグだけでは何と似ているのか確認できないというフィードバックを受けて変更）。"""
         d1 = StockDiary.objects.create(user=user, stock_name='A', stock_symbol='1')
         d2 = StockDiary.objects.create(user=user, stock_name='B', stock_symbol='2')
         _verdict(d1, Verdict.HYP_MISS, Verdict.PNL_LOSS, missed_factor='入るのが早い')
         _verdict(d2, Verdict.HYP_MISS, Verdict.PNL_LOSS, missed_factor='入るのが早い')
         k = build_investor_karte(user)
-        assert k['repeated_misses']
-        assert k['repeated_misses'][0]['text'] == '入るのが早い'
-        assert k['repeated_misses'][0]['count'] == 2
+        assert k['recent_misses']
+        top = k['recent_misses'][0]
+        assert top['text'] == '入るのが早い'
+        assert top['diary'].id == d2.id  # 検証は新しい順
+        assert top['date'] is not None
+        assert len(top['similar']) == 1
+        assert top['similar'][0]['text'] == '入るのが早い'
+        assert top['similar'][0]['diary'].id == d1.id
+
+    def test_recent_misses_not_similar_when_unrelated(self, user):
+        d1 = StockDiary.objects.create(user=user, stock_name='A', stock_symbol='1')
+        d2 = StockDiary.objects.create(user=user, stock_name='B', stock_symbol='2')
+        _verdict(d1, Verdict.HYP_MISS, Verdict.PNL_LOSS, missed_factor='入るのが早い')
+        _verdict(d2, Verdict.HYP_MISS, Verdict.PNL_LOSS, missed_factor='為替の影響を過小評価していた')
+        k = build_investor_karte(user)
+        assert all(not m['similar'] for m in k['recent_misses'])
 
     def test_philosophy_prefers_repeatable(self, user):
         d1 = StockDiary.objects.create(user=user, stock_name='A', stock_symbol='1')
