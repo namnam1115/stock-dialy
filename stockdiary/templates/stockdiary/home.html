@@ -57,10 +57,10 @@
              placeholder="銘柄名・背景・継続記録・@タグ" name="query">
     </div>
 
-    <!-- 2. よく使う -->
+    <!-- 2. よく使う並び替え（下の「ソート」パネルと同じ設定のショートカット） -->
     <div class="sidebar-section">
       <label class="sidebar-label">
-        <i class="bi bi-star"></i> よく使う
+        <i class="bi bi-star"></i> よく使う並び替え
       </label>
       <div class="sidebar-preset-list">
         <button type="button" class="sidebar-preset-btn{% if request.GET.sort == 'date_desc' %} is-active{% endif %}"
@@ -547,6 +547,11 @@
   </div>
   {% endif %}{# /is_empty_state（検索・フィルター群） #}
 
+  <!-- 検索結果サマリー（diary_list.html の hx-swap-oob="true" の受け皿。
+       このdivが無いとhtmxはoobスワップ先が見つからず内容を破棄するため、
+       検索結果件数・クリアボタンが永久に表示されなかった） -->
+  <div id="search-result-info"></div>
+
   <!-- 日記コンテナ -->
   <div id="diary-container" class="home-diary-grid" style="scroll-margin-top: 80px;">
     {% include "stockdiary/partials/diary_list.html" with diaries=diaries page_obj=page_obj %}
@@ -631,6 +636,9 @@
 
 {% block extra_js %}
 <script src="{% static 'js/mobile-gestures.js' %}?v={{ STATIC_VERSION }}"></script>
+<!-- カード右スワイプ・フッター「追記」ボタンのバインド（setupFooterButtons 等）。
+     JS外部化の際にタグが漏れ、機能が無反応になっていたため復元。 -->
+<script src="{% static 'js/card-swipe-note.js' %}?v={{ STATIC_VERSION }}"></script>
 
 <script>
   /* 外部化した home-page.js が参照するページ固有の URL。ロジックは

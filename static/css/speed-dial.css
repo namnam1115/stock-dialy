@@ -45,6 +45,28 @@
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
 }
 
+/* ページ最下部付近、またはスクロール中はコンテンツと重ならないよう縮小・半透明化する
+   （一覧は無限スクロールで最下部にほぼ到達しないため、スクロール中の縮小が主動線） */
+.speed-dial-container.near-bottom .speed-dial-trigger,
+.speed-dial-container.is-scrolling .speed-dial-trigger {
+  width: 44px !important;
+  height: 44px !important;
+  opacity: 0.55;
+  transform: scale(0.9) translateZ(0);
+}
+
+.speed-dial-container.near-bottom .speed-dial-trigger:hover,
+.speed-dial-container.near-bottom .speed-dial-trigger:focus,
+.speed-dial-container.is-scrolling .speed-dial-trigger:hover,
+.speed-dial-container.is-scrolling .speed-dial-trigger:focus,
+.speed-dial-container.near-bottom.dial-open .speed-dial-trigger,
+.speed-dial-container.is-scrolling.dial-open .speed-dial-trigger {
+  width: 56px !important;
+  height: 56px !important;
+  opacity: 1;
+  transform: scale(1) translateZ(0);
+}
+
 /* アクティブ状態のトリガーボタン */
 .speed-dial-trigger.active {
   transform: rotate(45deg) translateZ(0);

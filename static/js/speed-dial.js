@@ -441,16 +441,32 @@ class SpeedDial {
     // スクロール時の処理
     let lastScrollTop = window.pageYOffset || document.documentElement.scrollTop;
     let scrollTimer = null;
-    
+    let scrollingStopTimer = null;
+
     window.addEventListener('scroll', () => {
+      // ページ最下部付近ではFABを縮小してコンテンツとの重なりを軽減する
+      this.updateNearBottomState();
+
+      // 無限スクロール一覧はページ最下部にほぼ到達しないため、
+      // スクロール中は常にFABを縮小し、止まったら元に戻す
+      if (this.container) {
+        this.container.classList.add('is-scrolling');
+      }
+      clearTimeout(scrollingStopTimer);
+      scrollingStopTimer = setTimeout(() => {
+        if (this.container) {
+          this.container.classList.remove('is-scrolling');
+        }
+      }, 500);
+
       if (scrollTimer !== null) return;
-      
+
       scrollTimer = setTimeout(() => {
         const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        
+
         // コンテキスト認識を更新
         this.detectContext();
-        
+
         // 大きくスクロールした場合は閉じる
         if (Math.abs(lastScrollTop - currentScrollTop) > 50) {
           if (this.isOpen) {
@@ -461,6 +477,21 @@ class SpeedDial {
         scrollTimer = null;
       }, 150);
     }, { passive: true });
+
+    // 初期表示時点でも判定する
+    this.updateNearBottomState();
+  }
+
+  // ページ最下部付近かどうかでFABの縮小状態を切り替える
+  updateNearBottomState() {
+    if (!this.container) return;
+
+    const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+    const isNearBottom = (windowHeight + scrollPosition) >= documentHeight - 80;
+
+    this.container.classList.toggle('near-bottom', isNearBottom);
   }
   
   toggle() {
@@ -477,7 +508,10 @@ class SpeedDial {
       
       this.trigger.classList.add('active');
       this.actions.classList.add('active');
-      
+      if (this.container) {
+        this.container.classList.add('dial-open');
+      }
+
       if (this.overlay && this.config.useOverlay) {
         this.overlay.classList.add('active');
       }
@@ -503,7 +537,10 @@ class SpeedDial {
       
       this.trigger.classList.remove('active');
       this.actions.classList.remove('active');
-      
+      if (this.container) {
+        this.container.classList.remove('dial-open');
+      }
+
       if (this.overlay && this.config.useOverlay) {
         this.overlay.classList.remove('active');
       }

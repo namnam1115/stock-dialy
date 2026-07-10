@@ -161,10 +161,10 @@ body.reading-app .app-footer .social-link:hover {
    2. 一覧（home）：管理画面 → 投資の歴史（ジャーナル）
    ============================================================ */
 
-/* 日付グルーピングの見出し（テンプレート側で .rp-day-group / .rp-day-label を挿入） */
-.reading-page .rp-day-group { margin-bottom: var(--space-10, 2.5rem); }
+/* 日付グルーピングの見出し（テンプレート側 home-page.js が .rp-day-label を挿入）。
+   以前は sticky にして固定表示していたが、吸着すると逆にスクロールしづらいという
+   フィードバックにより通常フローに戻した。 */
 .reading-page .rp-day-label {
-  grid-column: 1 / -1;   /* グリッド全幅にまたがる日付見出し */
   display: flex;
   align-items: baseline;
   gap: 0.6rem;
@@ -177,10 +177,6 @@ body.reading-app .app-footer .social-link:hover {
   padding: 0 0.25rem 0.75rem;
   margin-bottom: var(--space-5, 1.25rem);
   border-bottom: 1px solid var(--hairline-soft);
-  position: sticky;
-  top: 0;
-  background: linear-gradient(var(--paper) 70%, transparent);
-  z-index: 2;
 }
 .reading-page .rp-day-label .rp-day-count {
   font-weight: var(--font-regular);
@@ -233,6 +229,27 @@ body.reading-app .app-footer .social-link:hover {
 }
 /* スパイン分のガターを確保した広告・トリガーは全幅のまま見せる */
 .reading-page #diary-container .grid-column-span { margin-left: calc(-1 * var(--space-7, 1.75rem)); }
+
+/* 広告スロット：1本のスパイン線でつながる「静かな日誌」の意匠の中に、
+   AdSense の素の <ins> がそのまま挟まると異物として浮くため、紙×ヘアラインの
+   枠で「注釈」のように包む（<ins> 自体はAdSenseが操作するため中身には触れない）。 */
+.reading-page .diary-ad-slot {
+  margin: var(--space-6, 1.5rem) 0;
+  padding: var(--space-4, 1rem) var(--space-5, 1.25rem) var(--space-3, 0.75rem);
+  background: var(--paper-sunken);
+  border: 1px solid var(--hairline-soft);
+  border-radius: var(--radius-md);
+}
+.reading-page .diary-ad-slot::before {
+  content: "PR";
+  display: block;
+  font-family: var(--font-family-base);
+  font-size: 0.6875rem;
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.08em;
+  color: var(--faint-ink);
+  margin-bottom: 0.5rem;
+}
 
 /* エントリーは枠なし・ヘアライン区切りで“流れて読める”ように */
 .reading-page .home-diary-grid .diary-article {
@@ -872,6 +889,11 @@ body.writing-focus .pc-only-header:hover { opacity: 1; }
   border: 1px solid var(--hairline);
   border-radius: var(--radius-lg);
 }
+/* 継続バーの直後に「今日の想起」カードが続く場合、どちらも「過去を振り返らせる」
+   目的が重なる別モジュールなので、間隔を詰めて1つの塊として読ませる
+   （クイックリンク→継続バー→想起カード→検索、と本文前に4段積み重なって
+   一覧の主目的である日記が下に埋もれる問題への対策）。 */
+.reading-page .rp-continuity:has(+ .recall-zone) { margin-bottom: var(--space-4, 1rem); }
 /* 2要素目以降は上に細い区切りと余白を持たせ、呼吸させる */
 .reading-page .rp-continuity > * + * {
   padding-top: var(--space-5, 1.25rem);
@@ -929,7 +951,7 @@ body.writing-focus .pc-only-header:hover { opacity: 1; }
    カードにする（ZIP の RecallZone に倣う）。理由ピル＋セリフの仮説＋
    主アクション2つ＋ドットページネーション。墨×紙、損益は囁く程度。
    ============================================================ */
-.reading-page .recall-zone { margin-bottom: var(--space-9, 2.25rem); }
+.reading-page .recall-zone { margin-bottom: var(--space-7, 1.75rem); }
 .reading-page .recall-card {
   background: var(--paper-raised);
   border: 1px solid var(--hairline);

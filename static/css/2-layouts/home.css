@@ -1202,6 +1202,7 @@
 .page-subtitle-count {
   font-weight: 600;
   color: var(--text-100);
+  white-space: nowrap;
 }
 
 .dark-mode .page-subtitle,

@@ -45,7 +45,13 @@
 .tl-sub{font-size:14.5px;color:var(--tl-t2);margin-bottom:22px;max-width:640px}
 
 /* filters */
-.tl-filters{background:var(--tl-bg);border:1px solid var(--tl-line);border-radius:var(--tl-r-xl);box-shadow:var(--tl-shadow-sm);padding:16px 18px;margin-bottom:24px;display:flex;flex-direction:column;gap:13px}
+.tl-filters{background:var(--tl-bg);border:1px solid var(--tl-line);border-radius:var(--tl-r-xl);box-shadow:var(--tl-shadow-sm);padding:16px 18px;margin-bottom:24px}
+.tl-filters-body{display:flex;flex-direction:column;gap:13px}
+.tl-filters-summary{display:none;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:700;color:var(--tl-t1);list-style:none}
+.tl-filters-summary::-webkit-details-marker{display:none}
+.tl-filters-summary .tl-filters-chevron{margin-left:auto;transition:transform .18s;color:var(--tl-t3)}
+.tl-filters[open] .tl-filters-summary .tl-filters-chevron{transform:rotate(180deg)}
+.tl-filters-badge{font-size:11px;font-weight:700;color:var(--tl-accent);background:rgba(0,102,140,.1);padding:.15rem .55rem;border-radius:999px}
 .tl-frow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .tl-flabel{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--tl-t3);text-transform:uppercase;letter-spacing:.05em;width:56px;flex-shrink:0}
 .tl-chips{display:flex;gap:8px;flex-wrap:wrap}
@@ -117,6 +123,10 @@
   .tl-head-row{flex-direction:column;align-items:flex-start;gap:12px}
   .tl-flabel{width:100%}
   .tl-time{display:none}
+  .tl-filters{padding:14px 16px}
+  .tl-filters-summary{display:flex}
+  .tl-filters:not([open]) .tl-filters-body{display:none}
+  .tl-filters[open] .tl-filters-body{margin-top:14px;padding-top:14px;border-top:1px solid var(--tl-line)}
 }
 </style>
 {% endblock %}
@@ -130,7 +140,13 @@
   <p class="tl-sub">継続記録・振り返り・取引・日記作成を、銘柄を横断して1本の時系列に。「あの時期、自分は何を考えていたか」を見返す画面です。</p>
 
   <!-- フィルター -->
-  <div class="tl-filters">
+  <details class="tl-filters"{% if period != '3m' or etype != 'all' or tag_id or q %} open{% endif %}>
+    <summary class="tl-filters-summary">
+      <i class="bi bi-sliders"></i> フィルター
+      {% if period != '3m' or etype != 'all' or tag_id or q %}<span class="tl-filters-badge">絞り込み中</span>{% endif %}
+      <i class="bi bi-chevron-down tl-filters-chevron"></i>
+    </summary>
+    <div class="tl-filters-body">
     <div class="tl-frow">
       <span class="tl-flabel"><i class="bi bi-calendar3"></i>期間</span>
       <div class="tl-chips">
@@ -183,7 +199,8 @@
         {% endif %}
       </form>
     </div>
-  </div>
+    </div>
+  </details>
 
   {% if event_groups %}
   <!-- 結果メタ -->

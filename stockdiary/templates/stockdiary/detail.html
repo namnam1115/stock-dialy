@@ -345,10 +345,12 @@
         <!-- 取引履歴タブ -->
         <div class="tab-pane fade" id="transactions-content" role="tabpanel" aria-labelledby="transactions-tab">
           {% include "stockdiary/partials/detail/_tab_transactions.html" %}
+        </div>
 
         <!-- 継続記録タブ -->
         <div class="tab-pane fade" id="notes-content" role="tabpanel" aria-labelledby="notes-tab">
           {% include "stockdiary/partials/detail/_tab_notes.html" %}
+        </div>
 
         <!-- EDINETタブ: 開示書類 -->
         {% if diary.stock_symbol %}
