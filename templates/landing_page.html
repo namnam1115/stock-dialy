@@ -242,6 +242,7 @@ a{text-decoration:none;color:inherit}
 .cmp .us-col{background:rgba(63,122,95,.05)}
 .cmp .ok{color:var(--skill);font-size:17px} .cmp .no{color:#cfcabf;font-size:15px} .cmp .dash{color:var(--unlucky);font-size:15px}
 .cmp .free{color:var(--skill);font-weight:700}
+.cmp-hint{display:none;margin-top:12px}/* 横スクロール可能な旨のヒント。狭幅でテーブルが見切れる時のみ出す */
 
 /* quiet/world band */
 .band{background:var(--ink);color:var(--paper);border-radius:24px;padding:64px 40px;text-align:center;margin:0 auto;max-width:var(--maxw)}
@@ -305,7 +306,7 @@ a{text-decoration:none;color:inherit}
   .loop{grid-template-columns:1fr}
   .steps{grid-template-columns:1fr;gap:30px}
   .band{padding:48px 24px;border-radius:18px}
-  .cmp{overflow-x:auto} .cmp table{min-width:540px}
+  .cmp{overflow-x:auto} .cmp table{min-width:540px} .cmp-hint{display:block}
   .foot-top{grid-template-columns:1fr;text-align:center;gap:26px}
   .foot-brand{justify-content:center}.footer p.fd{margin:0 auto}
   .foot-bottom{justify-content:center;text-align:center}
@@ -721,6 +722,7 @@ a{text-decoration:none;color:inherit}
         </tbody>
       </table>
     </div>
+    <p class="cmp-hint rc-cap">← 横にスクロールして各アプリと比べる →</p>
   </div>
 </section>
 
