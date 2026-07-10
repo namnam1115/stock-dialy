@@ -55,7 +55,7 @@
                   title="次回決算予定：{{ diary.next_earnings.date|date:'Y年m月d日' }}{% if diary.next_earnings.type %}（{{ diary.next_earnings.type }}）{% endif %}">
               <i class="bi bi-calendar-event"></i>
               {% with d=diary.next_earnings.days_until %}
-                <span class="earnings-date">{% if d == 0 %}決算本日{% else %}決算まであと{{ d }}日{% endif %}</span>
+                <span class="earnings-date">{% if d == 0 %}決算本日{% else %}決算まで{{ d }}日{% endif %}</span>
               {% endwith %}
             </span>
           {% endif %}

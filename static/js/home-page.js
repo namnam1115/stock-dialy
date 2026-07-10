@@ -916,10 +916,12 @@ document.addEventListener('click', function(e) {
   const isPCView = window.innerWidth >= 992;
 
   // 初期状態を restore
-  // ジャーナル体験を主役にするため、PCでも既定は折りたたみ。
-  // ユーザーが明示的に開いた（'false'）場合のみ展開状態を尊重する。
+  // 既定は展開。折りたたみ既定だと本文が760px固定のため、初回訪問時に
+  // 左右の余白が広大な空白になり（1440pxで291px×2、1920pxではさらに広い）、
+  // 検索・フィルターも隠れてしまう。ユーザーが明示的に閉じた（'true'）場合のみ
+  // 折りたたみ状態を尊重する。
   function restoreState() {
-    const isCollapsed = localStorage.getItem(STORAGE_KEY) !== 'false';
+    const isCollapsed = localStorage.getItem(STORAGE_KEY) === 'true';
     if (isCollapsed) {
       collapseSidebar();
     } else {

@@ -190,7 +190,14 @@ body.reading-app .app-footer .social-link:hover {
 
 /* === Phase 1: 一覧を1カラムの縦ジャーナルに（読み返す歴史） === */
 /* 本文・見出し・継続バーすべてを 1本の読書カラム幅に揃える */
-.reading-page.home-layout .home-main { max-width: 760px; }
+/* container-type: PCサイドバー開閉はJS状態でありビューポート幅と連動しないため、
+   rp-quicklinks 等の折返し判定はビューポートではなくこの実際の描画幅を基準にする
+   （サイドバー展開時の中間幅で3列カードが潰れて折り返す問題の対策） */
+.reading-page.home-layout .home-main {
+  max-width: 760px;
+  container-type: inline-size;
+  container-name: home-main;
+}
 .reading-page .home-diary-grid {
   grid-template-columns: 1fr !important;
   gap: 0 !important;
@@ -327,11 +334,28 @@ body.reading-app .app-footer .social-link:hover {
   color: var(--profit-up-quiet) !important;
 }
 
-/* メタ行を静かに */
+/* メタ行を静かに。日付・状態・決算を1行の落ち着いた列に整える（詰めすぎない列間） */
 .reading-page .diary-meta-row {
   color: var(--muted-ink);
   font-size: 0.8125rem;
   margin-top: 0.25rem;
+  gap: 0.35rem 0.7rem;
+}
+/* 決算予定は「枠付きピル」から日付と同格の静かなテキストへ（重さの不一致と折返しの浮きを解消）。
+   数字は等幅で揃え、行に収まりやすく。行頭に淡い区切り点を置いて一連のメタとして読ませる。 */
+.reading-page .diary-meta-row .earnings-indicator {
+  background: transparent !important;
+  border: none !important;
+  color: var(--muted-ink) !important;
+  padding: 0 !important;
+  font-variant-numeric: tabular-nums;
+  gap: 0.3rem;
+}
+.reading-page .diary-meta-row .earnings-indicator .bi { opacity: .7; }
+/* 近接（決算が近い）ときだけ、ごく淡く注意色を差す（色に頼りすぎない） */
+.reading-page .diary-meta-row .earnings-indicator--imminent,
+.reading-page .diary-meta-row .earnings-indicator--soon {
+  color: var(--profit-down-quiet, #a8635c) !important;
 }
 
 /* 損益ピル：囁く程度に（地は透明・損益色は淡く） */
@@ -1185,12 +1209,23 @@ body.writing-focus .pc-only-header:hover { opacity: 1; }
    保有中バッジだけ小さく角ばって見える不整合（tag-pill=999px/0.8125rem に対し
    status-badge=6px/0.7rem だった）を解消する。詳細ページに波及しないよう
    ホームカードの meta 行に限定する。 */
-.reading-page .diary-meta-row .status-badge-improved,
 .reading-page .diary-title-row .diary-profit-pill .badge {
   border-radius: 999px;
   padding: 0.3rem 0.7rem;
   font-size: 0.78rem;
   line-height: 1.2;
+}
+/* メタ行は「日付 ・ 状態 ・ 決算」を同じ格の静かなテキストで一連に読ませる。
+   状態も枠付きピルをやめてテキスト化し、素テキストの日付・決算との重さの不揃いを解消
+   （＝銘柄名/日付/決算のバランスの是正）。中黒で区切って一行の帯にする。
+   このフラット化はホームカードの meta 行だけ（詳細ページの状態ピルは従来どおり）。 */
+.reading-page .diary-meta-row .status-badge-improved {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  font-size: 0.8125rem;
+  line-height: 1.4;
 }
 
 /* アクティブなフィルター（status-tab / filter-chip）を青 → 墨に */
@@ -1423,6 +1458,12 @@ body.writing-focus .pc-only-header:hover { opacity: 1; }
 .reading-page .rp-quicklink:hover .rp-quicklink-chev { color: var(--muted-ink); }
 
 @media (max-width: 640px) {
+  .reading-page .rp-quicklinks { grid-template-columns: 1fr; gap: 0.5rem; }
+  .reading-page .rp-quicklink-chev { margin-left: auto; }
+}
+/* サイドバー展開時の中間幅（例: 1024px幅でサイドバーを開くと本文が656pxまで縮む）で
+   3列のまま単語途中で折り返す崩れを防ぐ。実描画幅基準なのでビューポート幅では拾えない。 */
+@container home-main (max-width: 620px) {
   .reading-page .rp-quicklinks { grid-template-columns: 1fr; gap: 0.5rem; }
   .reading-page .rp-quicklink-chev { margin-left: auto; }
 }

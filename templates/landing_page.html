@@ -43,25 +43,37 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:var(--sans);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.7;overflow-x:hidden}
+body{font-family:var(--sans);background-color:var(--paper);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
+  color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.7;overflow-x:hidden;text-rendering:optimizeLegibility}
 a{text-decoration:none;color:inherit}
+/* 日本語の約物（「」、。）を詰めて見出しの所作を整える */
+.serif,.hero h1,.shead h2,.split h2,.cta-in h2,.band h2,.kx-claim,.kx-learn{font-feature-settings:"palt" 1;font-kerning:normal}
+/* 固定ナビ下にアンカーが隠れないように */
+[id]{scroll-margin-top:86px}
 .serif{font-family:var(--serif);font-weight:600}
 .wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
 
 /* reveal */
 .rv{opacity:0;transform:translateY(20px);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
 .rv.in{opacity:1;transform:none}
-@media(prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}}
+/* 読み込み時の階段状フェード（同じ列の要素を少しずつ遅らせて所作を出す） */
+.hero-inner>.rv:last-child{transition-delay:.14s}
+.loop .rv:nth-child(2),.fgrid .rv:nth-child(2),.steps .rv:nth-child(2){transition-delay:.1s}
+.loop .rv:nth-child(3),.fgrid .rv:nth-child(3),.steps .rv:nth-child(3){transition-delay:.2s}
+.loop .rv:nth-child(4){transition-delay:.3s}
+@media(prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}
+  .hero-inner>.rv:last-child,.loop .rv,.fgrid .rv,.steps .rv{transition-delay:0s}}
 
 /* buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;border:none;cursor:pointer;font-family:inherit;
   font-weight:600;font-size:15px;border-radius:11px;padding:.72rem 1.3rem;transition:background .2s,color .2s,border-color .2s,transform .2s;white-space:nowrap}
 .btn-sm{padding:.5rem .95rem;font-size:13.5px;border-radius:9px}
 .btn-lg{padding:.95rem 1.7rem;font-size:16px;border-radius:12px}
-.btn-ink{background:var(--ink);color:var(--paper)}
-.btn-ink:hover{background:#000;transform:translateY(-1px)}
+.btn-ink{background:var(--ink);color:var(--paper);box-shadow:0 1px 2px rgba(32,32,29,.14)}
+.btn-ink:hover{background:#000;transform:translateY(-1px);box-shadow:0 10px 24px -10px rgba(32,32,29,.5)}
 .btn-line{background:transparent;color:var(--ink);border:1px solid var(--line)}
-.btn-line:hover{border-color:var(--muted)}
+.btn-line:hover{border-color:var(--muted);background:rgba(32,32,29,.02)}
 
 /* nav */
 .nav{position:fixed;top:0;left:0;right:0;z-index:60;background:rgba(252,251,248,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid transparent;transition:border-color .3s}
@@ -70,12 +82,18 @@ a{text-decoration:none;color:inherit}
 .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px;letter-spacing:-.01em;color:var(--ink)}
 .brand .mk{width:30px;height:30px;border-radius:8px;background:#0000;display:flex;}
 .nav-links{display:flex;align-items:center;gap:26px}
-.nav-links a{color:var(--muted);font-size:14px;font-weight:500;transition:color .2s}
+.nav-links a{position:relative;color:var(--muted);font-size:14px;font-weight:500;transition:color .2s}
+.nav-links a::after{content:"";position:absolute;left:0;right:100%;bottom:-5px;height:1px;background:var(--ink);transition:right .35s cubic-bezier(.16,1,.3,1)}
 .nav-links a:hover{color:var(--ink)}
+.nav-links a:hover::after{right:0}
 .nav-cta{display:flex;align-items:center;gap:9px}
 
 /* hero */
 .hero{padding:148px 0 70px;position:relative;overflow:hidden}
+/* 紙に落ちる淡い光。平面の背景に奥行きと温度を与える（極薄） */
+.hero::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(58% 52% at 74% 16%,rgba(154,123,63,.06),transparent 62%),
+             radial-gradient(46% 44% at 12% 96%,rgba(91,107,134,.045),transparent 60%)}
 .hero-mark{
   position:absolute;right:-160px;top:-120px;width:640px;height:640px;
   background:url('{% static "images/emblem-mark.webp" %}') center/contain no-repeat;
@@ -115,7 +133,8 @@ a{text-decoration:none;color:inherit}
 /* section */
 .sec{padding:96px 0;border-top:1px solid var(--line2)}
 .sec.alt{background:var(--paper2)}
-.stag{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.stag{display:inline-flex;align-items:center;gap:.75em;font-size:11.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.stag::before{content:"";width:22px;height:1px;background:currentColor;opacity:.45}
 .shead{max-width:680px;margin:0 auto 56px;text-align:center}
 .shead h2{font-family:var(--serif);font-size:clamp(25px,3.2vw,36px);font-weight:700;line-height:1.5;letter-spacing:.01em;margin-bottom:16px}
 .shead p{font-size:16px;color:var(--muted);line-height:1.9}
@@ -220,6 +239,10 @@ a{text-decoration:none;color:inherit}
 .fcard h3{font-family:var(--serif);font-size:18px;font-weight:700;margin-bottom:9px}
 .fcard p{font-size:14px;color:var(--muted);line-height:1.85}
 .fcard p strong{color:var(--ink);font-weight:600}
+/* 土台の機能：左揃えの編集的な流れの中にあるので見出しも左寄せに揃える（中央寄せの唐突さを解消） */
+#features .shead{text-align:left;max-width:none;margin:0 0 40px}
+#features .shead .stag{justify-content:flex-start}
+#features .shead p{max-width:540px}
 
 /* steps */
 .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:36px}
@@ -400,7 +423,7 @@ a{text-decoration:none;color:inherit}
     <div class="rv">
       <span class="eyebrow"><span class="dot"></span>投資家の成長OS</span>
       <h1><span class="nb">「いくら儲けたか」</span><span class="nb">ではなく、</span><span class="nb">「なぜ、</span><span class="nb">そう判断したか」。</span></h1>
-      <p class="lead">証券口座は<strong>損益</strong>を記録する。カブログは、<strong>なぜ買い、なぜ売り、その判断は正しかったか</strong>を記録する投資ノート。──10年後のあなたが、今日の投資判断を正確に診察できる場所。</p>
+      <p class="lead">証券口座は<strong>損益</strong>を記録する。カブログは<strong>なぜ買い、なぜ売り、その判断は正しかったか</strong>を記録する投資ノート。</p>
       <div class="hero-actions">
         <form method="post" action="{% url 'users:demo_login' %}" style="margin:0" data-demo-cta="lp">
           {% csrf_token %}
@@ -462,7 +485,7 @@ a{text-decoration:none;color:inherit}
     <div class="shead rv">
       <span class="stag">検証ループ</span>
       <h2>投資を「予想 → 結果 → 検証 → 学び」のループにする。</h2>
-      <p>多くの投資家は「何を買ったか」は覚えていても、「なぜ買い、その仮説は正しかったか」を忘れてしまう。カブログは仮説に<strong>検証予定日</strong>を持たせ、答え合わせまで連れ戻す。</p>
+      <p>「何を買ったか」は覚えていても、「なぜ買い、正しかったか」は忘れる。カブログは仮説に<strong>検証予定日</strong>を持たせ、答え合わせまで連れ戻す。</p>
     </div>
     <div class="loop">
       <div class="lstep rv"><div class="ln">01 — 予想</div><h3>仮説を残す</h3><p>「なぜ買うか」を一文の主張に。根拠の軸と、最悪のケースも一緒に。</p></div>
@@ -495,8 +518,7 @@ a{text-decoration:none;color:inherit}
     <div class="rv">
       <span class="stag">継続記録</span>
       <h2>買った日で、終わらせない。<br>テーマごとに、積み上げる。</h2>
-      <p class="p">決算のたび、ニュースのたび、ふと感じた違和感。買ったあとの思考を<strong>継続記録</strong>に残すと、時系列だけでなく「決算」「リスク」といった<strong>テーマごとのスレッド</strong>にまとまる。答え合わせのときは、その銘柄の「決算の記録」だけを一気に読み返せばいい。</p>
-      <p class="p" style="margin-bottom:0">仮説（予想）と答え合わせ（検証）の間を埋める、<strong>観察の層</strong>。ここが厚いほど、検証は正確になる。——なお、背景に書いた企業の見方も上書きでは消えない。保存のたび、前の版が自動で残る。</p>
+      <p class="p" style="margin-bottom:0">決算やニュースのたび、買ったあとの思考を<strong>継続記録</strong>に残すと、「決算」「リスク」などテーマ別のスレッドに自動でまとまる。仮説と答え合わせの間を埋める<strong>観察の層</strong>——ここが厚いほど、検証は正確になる。</p>
     </div>
   </div>
 </section>
@@ -507,8 +529,7 @@ a{text-decoration:none;color:inherit}
     <div class="rv">
       <span class="stag">判断の質</span>
       <h2>損益と、判断の質は、別物だ。</h2>
-      <p class="p">仮説は正しかったのに、株価は下がることがある。仮説は外れたのに、偶然儲かることもある。カブログは<strong>仮説の当否と損益を分けて記録</strong>し、あなたの「再現できる勝ち」と「危険な勝ち」を可視化する。</p>
-      <p class="p" style="margin-bottom:0"><strong>偶然の勝ちを、実力と勘違いしない。</strong>これが、長く勝ち続けるための最初の一歩。</p>
+      <p class="p" style="margin-bottom:0">仮説は当たったのに損する。外れたのに儲かる。カブログは<strong>仮説の当否と損益を分けて記録</strong>し、<strong>偶然の勝ちを実力と勘違いしない</strong>ようにする。長く勝ち続けるための、最初の一歩。</p>
     </div>
     <div class="rv vis">
       <div class="mx" aria-label="意思決定の質 × 結果 の2×2">
@@ -570,8 +591,7 @@ a{text-decoration:none;color:inherit}
     <div class="rv">
       <span class="stag">想起</span>
       <h2>ホームを開くと、損益ではなく、過去の自分が現れる。</h2>
-      <p class="p">評価損益は変動で一喜一憂を生む。カブログのホームに並ぶのは、<strong>答え合わせを待つ仮説</strong>・<strong>1年前の今日</strong>・<strong>最近の学び</strong>。毎日ひらくたび、忘れていた思考と再会する。</p>
-      <p class="p" style="margin-bottom:0">過去の記録を死蔵させない。検証予定日が、あなたを静かに連れ戻す。</p>
+      <p class="p" style="margin-bottom:0">評価損益は一喜一憂を生む。カブログのホームに並ぶのは、<strong>答え合わせを待つ仮説</strong>・<strong>1年前の今日</strong>・<strong>最近の学び</strong>。検証予定日が、忘れた思考へ静かに連れ戻す。</p>
     </div>
   </div>
 </section>
@@ -582,8 +602,7 @@ a{text-decoration:none;color:inherit}
     <div class="rv">
       <span class="stag">自己理解</span>
       <h2>あなたが「どういう投資家か」を、言葉で返す。</h2>
-      <p class="p">成績表ではなく、自己診断のカルテ。<strong>得意なテーマ・苦手なテーマ</strong>、<strong>繰り返す失敗</strong>、再現したい<strong>勝ち筋</strong>。検証の蓄積から、あなたの投資哲学が立ち上がる。</p>
-      <p class="p" style="margin-bottom:0">「勝率」より「あなたは仮説は当てるが、利確が早い」——成長に効くのは、後者の言葉だ。</p>
+      <p class="p" style="margin-bottom:0">成績表ではなく、自己診断のカルテ。<strong>得意なテーマ・繰り返す失敗・勝ち筋</strong>が、検証の蓄積から立ち上がる。「勝率」より「仮説は当てるが利確が早い」——成長に効くのは、後者の言葉だ。</p>
     </div>
     <div class="rv vis">
       <div class="shot">
@@ -647,8 +666,7 @@ a{text-decoration:none;color:inherit}
     <div class="rv">
       <span class="stag">探索</span>
       <h2>テーマひとつから、<br>関連する銘柄へ辿っていく。</h2>
-      <p class="p">「半導体」を選ぶと、<strong>AI半導体・半導体装置</strong>といった小さな要素と、そのテーマで書いた<strong>銘柄</strong>が広がる。銘柄をタップすれば、その銘柄が関わる<strong>別のテーマ</strong>へ。全部を一度に見せず、<strong>タップで1段ずつ</strong>掘り下げる探索。</p>
-      <p class="p" style="margin-bottom:0">過去に書いた判断は、探しにいける。だから記録が死蔵しない。</p>
+      <p class="p" style="margin-bottom:0">「半導体」を選ぶと、<strong>AI半導体・半導体装置</strong>などの要素と、そのテーマで書いた<strong>銘柄</strong>が広がる。<strong>タップで1段ずつ</strong>掘り下げれば、過去に書いた判断はいつでも探しにいける。</p>
     </div>
   </div>
 </section>
@@ -675,7 +693,7 @@ a{text-decoration:none;color:inherit}
     <div class="band rv">
       <span class="stag">設計思想</span>
       <h2>静かに、長く、読み返したくなるように。</h2>
-      <p>墨と紙の落ち着いた画面、セリフ体の本文、余白で呼吸するレイアウト。数値分析の道具ではなく、思考が静かに積み上がる場所として設計しています。何年も使い続けたくなる、投資家のための書斎。</p>
+      <p>墨と紙、セリフ体、余白で呼吸するレイアウト。数値分析の道具ではなく、思考が静かに積み上がる——投資家のための書斎。</p>
       <div class="refs"><span>書くことが楽しい</span><span>過去と再会できる</span><span>静かで飽きない</span></div>
     </div>
   </div>
