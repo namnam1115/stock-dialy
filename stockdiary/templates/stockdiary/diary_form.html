@@ -225,17 +225,14 @@
             </small>
           </h4>
 
-          <!-- タグ機能のヘルプ (コンパクト版) -->
-          <p class="text-muted small mb-2"><code style="font-size:0.8em;">@AI</code> などと書くと保存時に自動タグ付けされます。チップをクリックして挿入できます。</p>
-
-          <!-- 要約の役割ヒント（冒頭の1〜2文が想起・タイムラインに表示される。テンプレは任意） -->
+          <!-- タグ機能・要約ヒントを1行に集約（冗長な説明を削減） -->
           <p class="text-muted small mb-2">
-            <i class="bi bi-lightbulb me-1"></i>冒頭の1〜2文が、1年後の想起カードやタイムラインに表示されます。テンプレートの「ひとこと要約」を使うと要点が整います。
+            <code style="font-size:0.8em;">@テーマ</code> で分類。冒頭の1〜2文が想起カード・タイムラインに表示されます。
           </p>
           {% if not form.instance.pk %}
           <!-- 書き分けガイド: 背景（ここ）／確認の目印（賭け）／継続記録（経過） -->
           <p class="text-muted small mb-2">
-            <i class="bi bi-signpost me-1"></i>ここは「背景」＝どんな会社で、なぜ気になるか。結果を確かめたい読みは下の<strong>確認の目印</strong>に、買った後の経過は作成後の<strong>継続記録</strong>へ。
+            <i class="bi bi-signpost me-1"></i>ここは<strong>背景</strong>。確かめたい読みは下の<strong>確認の目印</strong>、買った後の経過は<strong>継続記録</strong>へ。
           </p>
           {% endif %}
 
@@ -253,12 +250,12 @@
             </a>
           </div>
 
+          {# 下書きは diary-form.js に一本化（diary-draft.js の data-draft-key は付けない＝二重表示回避） #}
           <textarea class="form-control"
                     name="reason"
                     id="id_reason"
                     rows="10"
-                    maxlength="5000"
-                    data-draft-key="reason-{{ form.instance.pk|default:'new' }}">{{ form.reason.value|default:'' }}</textarea>
+                    maxlength="5000">{{ form.reason.value|default:'' }}</textarea>
           <div class="d-flex justify-content-end align-items-center mt-1">
             <div class="character-count" id="reasonCharCount">0 / 5000文字</div>
           </div>

@@ -1445,3 +1445,229 @@ body.writing-focus .pc-only-header:hover { opacity: 1; }
   /* モバイルは sticky を解除。ただし日付スパインの節を anchor するため relative は保つ */
   .reading-page .rp-day-label { position: relative; top: auto; }
 }
+
+/* ============================================================
+   9x. 詳細ページ 編集的リファインメント（frontend-design）
+   既存の Quiet Journal トーン（墨/紙・罫線主体・静音）を保ったまま、
+   入場の間・見出しのリズム・数値の格を上質化する加筆レイヤー。
+   すべて .reading-page スコープ。構造 HTML は変更しない。
+   ============================================================ */
+
+/* --- (1) 読み込みの一手：扉→タブ→本文の順に静かに立ち上がる --- */
+.reading-page .diary-header-improved {
+  animation: rp-fade-in var(--duration-500, 460ms) var(--ease-out, ease) both;
+}
+.reading-page .tabs-section {
+  animation: rp-fade-in var(--duration-400, 380ms) var(--ease-out, ease) both;
+  animation-delay: 90ms;
+}
+.reading-page #basic-content > * {
+  animation: rp-fade-in var(--duration-400, 380ms) var(--ease-out, ease) both;
+}
+.reading-page #basic-content > *:nth-child(1) { animation-delay: 170ms; }
+.reading-page #basic-content > *:nth-child(2) { animation-delay: 235ms; }
+.reading-page #basic-content > *:nth-child(3) { animation-delay: 300ms; }
+.reading-page #basic-content > *:nth-child(4) { animation-delay: 365ms; }
+.reading-page #basic-content > *:nth-child(n+5) { animation-delay: 430ms; }
+
+/* --- (2) セクション見出しを編集的な kicker に統一（ページ全体のリズム） --- */
+.reading-page .info-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--muted-ink);
+  padding-bottom: 0.6rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.reading-page .info-card-title > i:first-child,
+.reading-page .info-card-title > .bi:first-child {
+  font-size: 0.82rem;
+  color: var(--faint-ink);
+}
+/* 見出し内の操作（全画面で読む 等）は kicker 変形の対象外にして右へ寄せる */
+.reading-page .info-card-title .reason-expand-btn {
+  margin-left: auto;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* --- (3) 取引サマリーのタイル：装飾アイコンを鎮め、数字を主役に --- */
+.reading-page .info-icon-improved {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--faint-ink) !important;
+}
+.reading-page .info-label-improved {
+  letter-spacing: 0.04em;
+  color: var(--muted-ink) !important;
+}
+.reading-page .info-value-improved {
+  color: var(--ink) !important;
+  font-weight: var(--font-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- (4) マストヘッドの損益／ポジションを「台帳の数字」に --- */
+/* 二つの箱をやめ、右寄せ・罫線で仕切った figures にする（塗り面は出さない） */
+.reading-page .price-summary .profit-hero-card,
+.reading-page .price-summary .position-card {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  text-align: right;
+}
+.reading-page .price-summary .profit-hero-card::before { display: none !important; }
+.reading-page .price-summary .position-card {
+  border-top: 1px solid var(--hairline) !important;
+  padding-top: 0.7rem !important;
+  margin-top: 0.1rem;
+}
+.reading-page .price-summary .profit-label,
+.reading-page .price-summary .position-sub-label {
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-size: 0.66rem;
+  color: var(--muted-ink) !important;
+}
+.reading-page .price-summary .profit-value {
+  font-size: 1.55rem;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  justify-content: flex-end;
+}
+.reading-page .price-summary .position-headline,
+.reading-page .price-summary .position-qty,
+.reading-page .price-summary .position-price,
+.reading-page .price-summary .position-sub-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- (5) 銘柄名を扉の見出しらしく（わずかに大きく・締める） --- */
+.reading-page .stock-title {
+  font-size: 1.72rem;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+/* 日付・ステータスのメタ行を字間広めの静かな一行に */
+.reading-page .header-meta-info {
+  letter-spacing: 0.01em;
+}
+
+/* ============================================================
+   9z. 記録フォーム（diary_form）編集的リファインメント（frontend-design）
+   詳細ページで確立した編集言語（kicker 見出し・暖かい墨のボタン・静かな面）
+   に記録フォームを揃え、アプリを一つの落ち着いた系にする。
+   すべて .reading-page スコープの加筆。構造 HTML は変更しない。
+   ============================================================ */
+
+/* --- (1) 扉（マストヘッド）：タイトルを大きく締め、リード＋罫線で仕切る --- */
+.reading-page .page-header {
+  padding-bottom: var(--space-5, 1.25rem);
+  margin-bottom: var(--space-8, 2rem);
+  border-bottom: 1px solid var(--hairline);
+  animation: rp-fade-in var(--duration-500, 460ms) var(--ease-out, ease) both;
+}
+.reading-page .page-title {
+  font-size: 1.72rem;
+  font-weight: var(--font-bold);
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  gap: 0.55rem;
+}
+.reading-page .page-title > i,
+.reading-page .page-title > .bi { color: var(--faint-ink) !important; font-size: 1.1rem; }
+.reading-page .page-subtitle {
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+/* --- (2) セクション見出しを編集的 kicker に（詳細ページの info-card-title と統一） --- */
+.reading-page .form-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--muted-ink);
+  padding-bottom: 0.6rem;
+  margin-bottom: 1.1rem;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.reading-page .form-section-title > i:first-child,
+.reading-page .form-section-title > .bi:first-child {
+  font-size: 0.82rem;
+  color: var(--faint-ink);
+}
+/* 見出し内の補足（Markdown対応 等）は kicker 変形の対象外にして右へ */
+.reading-page .form-section-title small {
+  margin-left: auto !important;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* --- (3) ボタンを暖かい墨へ（青緑アクセントを排し、過度な浮きも鎮める） --- */
+.reading-page .btn-diary { box-shadow: none; }
+.reading-page .btn-diary:hover { transform: none; box-shadow: none; }
+.reading-page .btn-diary-primary {
+  background-color: var(--ink) !important;
+  border-color: var(--ink) !important;
+  color: var(--paper) !important;
+}
+.reading-page .btn-diary-primary:hover {
+  background-color: var(--ink-soft) !important;
+  border-color: var(--ink-soft) !important;
+  color: var(--paper) !important;
+}
+.reading-page .btn-diary-outline {
+  color: var(--ink-soft) !important;
+  border: 1px solid var(--hairline) !important;
+  background-color: transparent !important;
+}
+.reading-page .btn-diary-outline:hover {
+  background-color: var(--paper-sunken) !important;
+  border-color: var(--muted-ink) !important;
+  color: var(--ink) !important;
+}
+/* 銘柄検索の実行ボタン（input-group 内 .btn-primary）も墨に */
+.reading-page .input-group .btn-primary {
+  background-color: var(--ink) !important;
+  border-color: var(--ink) !important;
+  color: var(--paper) !important;
+  box-shadow: none !important;
+}
+/* 注: 右下のフローティング保存（チェック丸）・スピードダイヤル（＋）は
+   アプリ全体で共有する既存アクセントのため、本フォーム限定の刷新では触れない
+   （片方だけ墨にすると対で不揃いになる）。 */
+
+/* --- (4) 情報アラートを紙の面へ（新規作成の青箱を鎮める） --- */
+.reading-page .alert-info {
+  background: var(--paper-sunken) !important;
+  border: 1px solid var(--hairline) !important;
+  color: var(--ink-soft) !important;
+}
+.reading-page .alert-info .bi,
+.reading-page .alert-info a { color: var(--ink) !important; }
+
+/* --- (5) フォームラベルのアイコンを faint に（文字を主役に） --- */
+.reading-page .form-label > .bi:first-child { color: var(--faint-ink); }
+
+/* --- (6) 読み込みの一手：扉→各セクションが順に立ち上がる --- */
+.reading-page .diary-form .form-section {
+  animation: rp-fade-in var(--duration-400, 380ms) var(--ease-out, ease) both;
+}
+.reading-page .diary-form .form-section:nth-of-type(1) { animation-delay: 90ms; }
+.reading-page .diary-form .form-section:nth-of-type(2) { animation-delay: 160ms; }
+.reading-page .diary-form .form-section:nth-of-type(n+3) { animation-delay: 230ms; }

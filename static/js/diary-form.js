@@ -502,6 +502,14 @@ window.initReasonEasyMDE = function initReasonEasyMDE() {
   window.easyMDE.codemirror.on('change', updateEasyMDECharCount);
   updateEasyMDECharCount();
 
+  // ウィザードの Step1 下書きバナーで「続きから書く」された内容を、
+  // 背景(Step2)の EasyMDE が初期化されたこの時点で反映する。
+  if (window.__pendingDraftReason) {
+    window.easyMDE.value(window.__pendingDraftReason);
+    window.__pendingDraftReason = null;
+    updateEasyMDECharCount();
+  }
+
   // ========== Phase 2: 集中モード ＋ 下書き自動保存（localStorage・正直な復元） ==========
   (function setupWritingExperience() {
     const cm = window.easyMDE.codemirror;
@@ -546,8 +554,11 @@ window.initReasonEasyMDE = function initReasonEasyMDE() {
     });
 
     // --- 復元バナー: 既存の下書きがあり、現在の本文と異なる場合のみ提示 ---
+    // 新規作成（ウィザード）では背景が Step2 で初期非表示のため、復元導線は Step1 側の
+    // 先頭バナー（下記 setupWizardDraftNotice）に一本化する。ここ（エディタ直前）には
+    // 出さない（二重表示の回避）。編集モードは本文が見えているのでここで提示する。
     try {
-      const raw = localStorage.getItem(DRAFT_KEY);
+      const raw = !window.DIARY_FORM_CONFIG.isCreate && localStorage.getItem(DRAFT_KEY);
       if (raw) {
         const draft = JSON.parse(raw);
         const current = window.easyMDE.value();
@@ -762,6 +773,54 @@ window.initReasonEasyMDE = function initReasonEasyMDE() {
 // 編集モード: 要素が表示済みのため即時初期化
 if (!window.DIARY_FORM_CONFIG.isCreate) {
   window.initReasonEasyMDE();
+}
+
+// 新規作成（ウィザード）: 背景(Step2)は初期非表示で EasyMDE も未初期化のため、
+// 下書きの存在を Step1 で知らせる。load 時に localStorage を直接見て、フォーム先頭
+// （Step1 で最初に目に入る位置）に復元バナーを出す。復元内容は Step2 初期化時に反映。
+if (window.DIARY_FORM_CONFIG.isCreate) {
+  // このスクリプトは DOM 構築後（body 末尾）に実行されるため DOMContentLoaded は
+  // 既に発火済みのことがある。編集モードの初期化（上）と同じく同期実行する。
+  (function setupWizardDraftNotice() {
+    const form = document.getElementById('diaryForm');
+    if (!form) return;
+    const DRAFT_KEY = 'kabulog_draft:' + location.pathname;
+    let draft = null;
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) draft = JSON.parse(raw);
+    } catch (e) { return; }
+    if (!draft || !draft.reason || !draft.reason.trim()) return;
+
+    const when = new Date(draft.ts || Date.now());
+    const banner = document.createElement('div');
+    banner.className = 'rp-draft-banner';
+    banner.innerHTML =
+      '<span><i class="bi bi-clock-history me-1"></i>' +
+      when.toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) +
+      ' の未送信の下書きがあります</span>' +
+      '<span class="rp-draft-actions">' +
+      '<button type="button" class="btn-quiet btn-quiet--primary rp-draft-restore">続きから書く</button>' +
+      '<button type="button" class="btn-quiet rp-draft-dismiss">破棄</button></span>';
+    form.insertBefore(banner, form.firstChild);
+
+    banner.querySelector('.rp-draft-restore').addEventListener('click', function () {
+      if (window.easyMDE) {
+        window.easyMDE.value(draft.reason);
+      } else {
+        // Step2 で EasyMDE が初期化されたときに反映される
+        window.__pendingDraftReason = draft.reason;
+      }
+      // 背景は非表示のため復元しても画面変化がない。復元できたことを確認表示する。
+      banner.innerHTML =
+        '<span><i class="bi bi-check-circle me-1"></i>背景の下書きを復元しました。銘柄名を入力して「次へ」で続けられます。</span>';
+      setTimeout(function () { banner.remove(); }, 5000);
+    });
+    banner.querySelector('.rp-draft-dismiss').addEventListener('click', function () {
+      try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+      banner.remove();
+    });
+  })();
 }
 
 // ============================================
@@ -1710,9 +1769,14 @@ if (window.DIARY_FORM_CONFIG.isCreate) {
     var panel = document.getElementById('suggested-themes-panel');
     var chips = document.getElementById('suggested-themes-chips');
     if (!panel || !chips) return;
-    var themeTags = hashtags.filter(function(h) { return h.axis === 'theme'; });
+    // @ オートコンプリートでも呼べるため、チップは「よく使う数個」だけに絞る
+    // （マイラベルと同方針。多すぎると主役の本文を圧迫するため）。
+    var MAX_SUGGESTED = 6;
+    var themeTags = hashtags
+      .filter(function(h) { return h.axis === 'theme'; })
+      .sort(function(a, b) { return (b.count || 0) - (a.count || 0); });
     if (themeTags.length === 0) return;
-    themeTags.slice(0, 12).forEach(function(t) {
+    themeTags.slice(0, MAX_SUGGESTED).forEach(function(t) {
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'hashtag-chip';
@@ -1733,8 +1797,14 @@ if (window.DIARY_FORM_CONFIG.isCreate) {
     const analysisToggle = document.getElementById('hashtag-analysis-toggle');
     if (!panel || !container) return;
 
-    // custom 軸（マイラベル）と分析タグに分離
-    const customTags = hashtags.filter(function(h) { return h.axis === 'custom' && h.count > 0; });
+    // custom 軸（マイラベル）と分析タグに分離。
+    // マイラベルは @ オートコンプリートでも呼べるため、チップは「よく使う数個」だけに絞る
+    // （全ラベルを並べると多すぎて主役の本文を圧迫するため。上限超過分は @ で入力）。
+    const MAX_MY_LABELS = 6;
+    const customTags = hashtags
+      .filter(function(h) { return h.axis === 'custom' && h.count > 0; })
+      .sort(function(a, b) { return (b.count || 0) - (a.count || 0); })
+      .slice(0, MAX_MY_LABELS);
     const analysisTags = hashtags.filter(function(h) { return h.axis !== 'custom'; });
 
     // マイラベルセクション
