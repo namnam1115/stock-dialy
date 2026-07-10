@@ -972,3 +972,56 @@ class TestMainNavSingleSource:
         html = authenticated_client.get(reverse('stockdiary:home')).content.decode()
         assert html.count('class="nav-item"') == 5
         assert html.count('menu-item primary') == 5
+
+
+@pytest.mark.django_db
+class TestCSRFFailurePageIsCurrent:
+    """CSRF失敗ページの案内が実態と合っていることの回帰テスト。
+
+    なぜこの変更をしたか: settings.TEST_ACCOUNT_SETTINGS には test1/test2/demo1〜3
+    という複数テストアカウント案が残っていたが、これらのユーザーは実際には一切
+    作成されておらず（実際のデモは reset_demo が作る単一共有 demo アカウントのみ）、
+    CSRF失敗画面が「存在しないアカウントでログインし直す」よう案内していた。
+    ログインフォーム送信時にセッション期限切れでCSRFが落ちるのが最もよくある
+    実際の発生経路（未ログイン状態）なので、その汎用ケースで壊れた案内が出ないこと
+    を確認する。
+    """
+
+    def test_anonymous_csrf_failure_does_not_mention_nonexistent_test_accounts(self, settings):
+        from django.test import Client
+
+        client = Client(enforce_csrf_checks=True)
+        response = client.post(reverse('users:login'), {
+            'username': 'someone',
+            'password': 'wrongpass',
+        })
+        assert response.status_code == 403
+        html = response.content.decode()
+        for stale_account in ['test1', 'test2', 'test3', 'demo1', 'demo2', 'demo3']:
+            assert stale_account not in html
+        assert 'テストアカウント' not in html
+
+    def test_demo_account_csrf_failure_redirects_with_shared_account_message(self, settings, rf):
+        from django.contrib.auth import get_user_model
+        from django.contrib.messages.middleware import MessageMiddleware
+        from django.contrib.sessions.middleware import SessionMiddleware
+        from stockdiary.views import csrf_failure_view
+
+        User = get_user_model()
+        demo_username = getattr(settings, 'DEMO_USERNAME', 'demo')
+        demo_user = User.objects.create_user(username=demo_username, password='x')
+
+        request = rf.post('/whatever/')
+        SessionMiddleware(lambda r: None).process_request(request)
+        request.session.save()
+        MessageMiddleware(lambda r: None).process_request(request)
+        request.user = demo_user
+
+        response = csrf_failure_view(request, reason='CSRF token missing')
+
+        assert response.status_code == 302
+        assert response.url == reverse('stockdiary:home')
+        messages = list(request._messages)
+        assert any('共有' in str(m) for m in messages)
+        for stale_account in ['test1', 'test2', 'demo1', 'demo2']:
+            assert not any(stale_account in str(m) for m in messages)

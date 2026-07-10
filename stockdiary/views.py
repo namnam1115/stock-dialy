@@ -1661,20 +1661,20 @@ def search_suggestion(request):
 
 def csrf_failure_view(request, reason=""):
     """CSRF失敗時のカスタムハンドラー"""
-    if (hasattr(request, 'user') and 
-        request.user.is_authenticated and 
-        request.user.username in getattr(settings, 'TEST_ACCOUNT_SETTINGS', {}).get('USERNAMES', [])):
-        
+    demo_username = getattr(settings, 'DEMO_USERNAME', 'demo')
+    if (hasattr(request, 'user') and
+        request.user.is_authenticated and
+        request.user.username == demo_username):
+
         messages.warning(
-            request, 
-            "テストアカウントの同時利用により一時的なエラーが発生しました。"
-            "ページを更新するか、別のテストアカウント（test1, test2, demo1等）をお試しください。"
+            request,
+            "デモアカウントは共有のため、一時的なエラーが発生することがあります。"
+            "ページを更新するか、もう一度お試しください。"
         )
         return redirect('stockdiary:home')
-    
+
     return render(request, 'errors/csrf_failure.html', {
         'reason': reason,
-        'test_accounts': settings.TEST_ACCOUNT_SETTINGS.get('USERNAMES', [])
     }, status=403)
 
 
