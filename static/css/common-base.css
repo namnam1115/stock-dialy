@@ -386,6 +386,14 @@ select {
   z-index: 1040 !important;
 }
 
+@media (min-width: 992px) {
+  /* PC でもスマホと同じフルスクリーンメニューを使う（設定系導線はここにしかない）。
+     ただし pc-only-header の高さ分だけ下げて、プロフィールボタンとの重なりを避ける。 */
+  .floating-nav-button {
+    top: 76px !important;
+  }
+}
+
 /* ========== 通知 ========== */
 .notification-item {
   transition: all 0.2s ease;
