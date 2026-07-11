@@ -9,31 +9,27 @@
 /* ===== タイムライン（思考の時系列）===== */
 .tl-page{
   max-width:900px;margin:0 auto;
-  --tl-accent:#00668c;--tl-accent-100:#71c4ef;
-  --tl-bg:#fffefb;--tl-bg2:#f5f4f1;--tl-bg3:#e7e5e0;--tl-line:#e9e6df;
-  --tl-t1:#1a2026;--tl-t2:#566069;--tl-t3:#9aa1aa;
-  --tl-grad:linear-gradient(135deg,#71c4ef 0%,#00668c 100%);
-  --tl-grad-txt:linear-gradient(120deg,#00668c,#37a4d4);
+  /* 画面固有の水色→グローバルのアクセント/紙/墨トークンへ一本化（画面ごとの配色再発明をやめる）。
+     色・角丸・影は reading-tokens 由来にし、ライト/ダークも全画面と同じ切替に従わせる。 */
+  --tl-accent:var(--accent);--tl-accent-100:var(--accent-soft, var(--accent));
+  --tl-bg:var(--paper-raised);--tl-bg2:var(--paper-sunken);--tl-bg3:var(--hairline);--tl-line:var(--hairline);
+  --tl-t1:var(--ink);--tl-t2:var(--muted-ink);--tl-t3:var(--faint-ink);
+  --tl-grad:var(--accent);
+  --tl-grad-txt:var(--ink);
   /* イベント種別カラーの単一ソース（CH6）。KIND_UI（views_timeline.py）と
-     種類チップはこの変数を参照する。色変更はここだけを直す */
-  --tl-k-note:#0891b2;
-  --tl-k-retrospective:#7c3aed;
-  --tl-k-buy:#10b981;
-  --tl-k-sell:#ef4444;
-  --tl-k-diary:#d97706;
-  --tl-shadow-sm:0 2px 8px rgba(20,40,60,.05);
-  --tl-shadow-md:0 8px 24px rgba(20,40,60,.08);
-  --tl-r-md:14px;--tl-r-lg:18px;--tl-r-xl:22px;
+     種類チップはこの変数を参照する。買い/売りは損益の意味色に一致させる */
+  --tl-k-note:var(--muted-ink);
+  --tl-k-retrospective:var(--accent);
+  --tl-k-buy:var(--profit-up-quiet);
+  --tl-k-sell:var(--profit-down-quiet);
+  --tl-k-diary:var(--faint-ink);
+  --tl-shadow-sm:var(--shadow-sm);
+  --tl-shadow-md:var(--shadow-md);
+  --tl-r-md:var(--radius-md);--tl-r-lg:var(--radius-lg);--tl-r-xl:var(--radius-lg);
 }
-.dark-mode .tl-page,[data-theme="dark"] .tl-page{
-  --tl-accent:#71c4ef;--tl-accent-100:#37a4d4;
-  --tl-bg:#2b3035;--tl-bg2:#1e2125;--tl-bg3:#3a4047;--tl-line:#3a4047;
-  --tl-t1:#e9ecef;--tl-t2:#adb5bd;--tl-t3:#7a828a;
-  --tl-grad-txt:linear-gradient(120deg,#71c4ef,#a9dcf5);
-  --tl-shadow-sm:0 2px 8px rgba(0,0,0,.25);
-  --tl-shadow-md:0 8px 24px rgba(0,0,0,.35);
-}
-.tl-page .grad-txt{background:var(--tl-grad-txt);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+/* ライト/ダークはグローバルトークン（--paper/--ink/--accent 等）が切替を担うため、
+   タイムライン側でのダーク再定義は不要になった（唯一のブランド色に収斂） */
+.tl-page .grad-txt{color:var(--ink)}
 .tl-page .mono{font-variant-numeric:tabular-nums}
 
 /* header */

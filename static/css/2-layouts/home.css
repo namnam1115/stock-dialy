@@ -48,7 +48,7 @@
 .main-search-input:focus {
   outline: none;
   border-color: var(--accent-200);
-  box-shadow: 0 0 0 3px rgba(0, 102, 140, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .main-search-input::placeholder {
@@ -225,7 +225,7 @@
 .sort-option.active {
   color: var(--accent-200);
   font-weight: 600;
-  background-color: rgba(0, 102, 140, 0.06);
+  background-color: color-mix(in srgb, var(--accent) 6%, transparent);
 }
 
 /* ── ステータス選択ドロップダウン ── */
@@ -240,7 +240,7 @@
   color: #fff;
   font-size: 0.875rem;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 102, 140, 0.3);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent);
   white-space: nowrap;
   cursor: pointer;
 }
@@ -465,7 +465,7 @@
 
 .form-select:focus {
   border-color: var(--accent-200);
-  box-shadow: 0 0 0 3px rgba(0, 102, 140, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
   outline: none;
 }
 
@@ -510,7 +510,7 @@
 
 .btn-filter-apply:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 102, 140, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 /* インジケーター */
@@ -635,7 +635,7 @@
 .dark-mode .main-search-input:focus,
 [data-theme="dark"] .main-search-input:focus {
   border-color: var(--dm-primary);
-  box-shadow: 0 0 0 3px rgba(113, 196, 239, 0.2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .dark-mode .search-suggestions,
@@ -649,7 +649,7 @@
 
 .dark-mode .suggestion-item:hover,
 [data-theme="dark"] .suggestion-item:hover {
-  background-color: rgba(113, 196, 239, 0.1);
+  background-color: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .dark-mode .suggestion-text,
@@ -699,7 +699,7 @@
 [data-theme="dark"] .status-dropdown-btn {
   background: var(--accent-100);
   color: #0d1117;
-  box-shadow: 0 2px 8px rgba(113, 196, 239, 0.3);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .dark-mode .status-dropdown-btn .status-tab-count,
@@ -718,7 +718,7 @@
 [data-theme="dark"] .status-tab.active {
   background: var(--accent-100);
   color: #0d1117;
-  box-shadow: 0 2px 8px rgba(113, 196, 239, 0.3);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent);
   font-weight: 600;
 }
 
@@ -735,7 +735,7 @@
 }
 
 .dark-mode .sort-option:hover,
-[data-theme="dark"] .sort-option:hover { background-color: rgba(113, 196, 239, 0.1); }
+[data-theme="dark"] .sort-option:hover { background-color: color-mix(in srgb, var(--accent) 10%, transparent); }
 
 .dark-mode .sort-option.active,
 [data-theme="dark"] .sort-option.active { color: var(--dm-primary); }
@@ -1243,7 +1243,7 @@
 }
 
 .sidebar-preset-btn.is-active {
-  background: rgba(0, 102, 140, 0.08);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
   border-color: var(--accent-200);
   color: var(--accent-200);
 }
@@ -1281,7 +1281,7 @@
 .sidebar-status-option:hover { background: var(--bg-200); }
 
 .sidebar-status-option.is-selected {
-  background: rgba(0, 102, 140, 0.08);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
   color: var(--accent-200);
   font-weight: 600;
 }

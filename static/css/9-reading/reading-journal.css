@@ -285,6 +285,41 @@ body.reading-app .app-footer .social-link:hover {
    本文と同じ背景（透明）に揃え、タイトル帯だけが浮いて見える問題を解消する。 */
 .reading-page .diary-header-inner { background: transparent; border-radius: var(--radius-md); }
 
+/* ============================================================
+   広告スロット：白い異物 → テーマに馴染む「スポンサーリンク」カード
+   - 高さを予約して CLS と白抜けを防ぐ
+   - ラベルで広告と明示（AdSense ポリシー準拠の日本語ラベル）
+   ============================================================ */
+.ad-slot,
+.ad-container {
+  background: var(--paper-sunken);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md, 10px);
+  padding: 0.5rem 0.6rem 0.6rem;
+  margin: 1rem 0 1.25rem;
+  min-height: 120px;
+  overflow: hidden;
+}
+.ad-slot::before,
+.ad-container::before {
+  content: "スポンサーリンク";
+  display: block;
+  text-align: left;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: var(--faint-ink, var(--muted-ink));
+  margin: 0 0 0.35rem 0.2rem;
+}
+.ad-slot ins.adsbygoogle,
+.ad-container ins.adsbygoogle { border-radius: calc(var(--radius-md, 10px) - 4px); overflow: hidden; }
+/* 未配信(unfilled)の広告は本体ごと非表示（inline height=280px の白抜けを根絶） */
+ins.adsbygoogle[data-ad-status="unfilled"] { display: none !important; }
+/* 広告が無い・未配信のときは額縁ごと畳む（空の枠とラベルを見せない） */
+.ad-slot:not(:has(ins.adsbygoogle)),
+.ad-container:not(:has(ins.adsbygoogle)),
+.ad-slot:has(> ins.adsbygoogle[data-ad-status="unfilled"]),
+.ad-container:has(> ins.adsbygoogle[data-ad-status="unfilled"]) { display: none; }
+
 /* 件数チップ行（継続・取引を脇役に） */
 .reading-page .diary-meta-chips {
   display: flex;
@@ -293,8 +328,19 @@ body.reading-app .app-footer .social-link:hover {
   margin-top: 0.6rem;
 }
 
-/* 本文抜粋（理由）は読書セリフ・3行クリップ */
-.reading-page .diary-excerpt { margin-top: 0.7rem; }
+/* ============================================================
+   カード内の縦リズム：ブロック間は 16px 一律
+   （body下パディング＋markdown <p> 末尾余白＋次ブロックの上マージンの
+     三重加算で 20〜45px に揺れていたのを解消）
+   ============================================================ */
+.reading-page .home-diary-grid .card-body-inner { padding-bottom: 0; }
+.reading-page .home-diary-grid .diary-header { margin-bottom: 0; }
+.reading-page .home-diary-grid .diary-meta-row { margin-bottom: 0; }
+.reading-page .diary-excerpt { margin-top: 1rem; margin-bottom: 0; }
+.reading-page .diary-excerpt p { margin-bottom: 0.6em; }
+.reading-page .diary-excerpt p:last-child { margin-bottom: 0; }
+.reading-page .home-diary-grid .diary-tags-row--footer { margin-top: 1rem; margin-bottom: 0; }
+.reading-page .home-diary-grid .diary-footer { margin-top: 1rem; }
 
 /* ============================================================
    3. 日記カード：浮いた部品 → 静かなジャーナル行

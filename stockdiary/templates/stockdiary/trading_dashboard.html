@@ -17,28 +17,21 @@
 /* ===== 取引分析ダッシュボード ===== */
 .dashboard-container{
   max-width:1240px;margin:0 auto;padding:0 12px;
-  --accent-200:#00668c;--accent-100:#71c4ef;
-  --bg-100:#fffefb;--bg-200:#f5f4f1;--bg-300:#e7e5e0;--line:#e9e6df;
-  --t1:#1a2026;--t2:#566069;--t3:#9aa1aa;
-  --grad:linear-gradient(135deg,#71c4ef 0%,#00668c 100%);
-  --grad-txt:linear-gradient(120deg,#00668c,#37a4d4);
-  --hold:#10b981;--sold:#ef4444;
-  --primary:#3b82f6;--secondary:#8b5cf6;--accent:#f59e0b;
-  --shadow-sm:0 2px 8px rgba(20,40,60,.05);
-  --shadow-md:0 8px 24px rgba(20,40,60,.08);
-  --shadow-lg:0 18px 44px rgba(20,40,60,.12);
-  --r-md:14px;--r-lg:18px;--r-xl:22px;
+  /* 画面固有色→グローバルのアクセント/紙/墨トークンへ一本化（配色の画面別再発明をやめる）。
+     KPIアイコンの装飾多色（青/紫/琥珀）はアクセント1色に集約し、意味色は損益(hold/sold)のみ残す。 */
+  --accent-200:var(--accent);--accent-100:var(--accent-soft, var(--accent));
+  --bg-100:var(--paper-raised);--bg-200:var(--paper-sunken);--bg-300:var(--hairline);--line:var(--hairline);
+  --t1:var(--ink);--t2:var(--muted-ink);--t3:var(--faint-ink);
+  --grad:var(--accent);
+  --grad-txt:var(--ink);
+  --hold:var(--profit-up-quiet);--sold:var(--profit-down-quiet);
+  --primary:var(--accent);--secondary:var(--accent);
+  --shadow-sm:var(--shadow-sm);
+  --shadow-md:var(--shadow-md);
+  --shadow-lg:var(--shadow-lg);
+  --r-md:var(--radius-md);--r-lg:var(--radius-lg);--r-xl:var(--radius-lg);
 }
-.dark-mode .dashboard-container,[data-theme="dark"] .dashboard-container{
-  --accent-200:#71c4ef;--accent-100:#37a4d4;
-  --bg-100:#222830;--bg-200:#1a1f24;--bg-300:#3a4047;--line:#3a4047;
-  --t1:#e9ecef;--t2:#adb5bd;--t3:#7a828a;
-  --grad-txt:linear-gradient(120deg,#71c4ef,#a9dcf5);
-  --shadow-sm:0 2px 8px rgba(0,0,0,.25);
-  --shadow-md:0 8px 24px rgba(0,0,0,.35);
-  --shadow-lg:0 18px 44px rgba(0,0,0,.45);
-}
-.dashboard-container .grad-txt{background:var(--grad-txt);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.dashboard-container .grad-txt{color:var(--ink)}
 .dashboard-container .mono{font-variant-numeric:tabular-nums}
 
 /* header */
@@ -56,16 +49,18 @@
 .metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px}
 .metric{background:var(--bg-100);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px;box-shadow:var(--shadow-sm);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;transition:all .22s}
 .metric:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--accent-100)}
-.metric.hero{background:var(--grad);border:none;color:#fff;box-shadow:0 12px 30px rgba(0,102,140,.3);position:relative;overflow:hidden}
-.metric.hero::after{content:"";position:absolute;top:-40%;right:-10%;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.16),transparent 70%)}
+/* hero KPI はアクセント塗り。文字はアクセント上文字色(--accent-on)にして、
+   明地=白/暗地=黒 の両モードで十分なコントラストを確保する（夜の明るいティール上で白が沈む問題の解消） */
+.metric.hero{background:var(--grad);border:none;color:var(--accent-on,#fff);box-shadow:var(--shadow-md);position:relative;overflow:hidden}
+.metric.hero::after{content:"";position:absolute;top:-40%;right:-10%;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb, var(--accent-on,#fff) 18%, transparent),transparent 70%)}
 .m-label{font-size:11.5px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.04em}
-.metric.hero .m-label{color:rgba(255,255,255,.9)}
+.metric.hero .m-label{color:color-mix(in srgb, var(--accent-on,#fff) 88%, transparent)}
 .m-value{font-size:1.7rem;font-weight:800;line-height:1.1;margin-top:8px;color:var(--t1)}
-.metric.hero .m-value{color:#fff}
+.metric.hero .m-value{color:var(--accent-on,#fff)}
 .m-sub{font-size:11.5px;color:var(--t3);margin-top:5px;font-weight:500}
-.metric.hero .m-sub{color:rgba(255,255,255,.82)}
+.metric.hero .m-sub{color:color-mix(in srgb, var(--accent-on,#fff) 80%, transparent)}
 .m-ico{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
-.metric.hero .m-ico{background:rgba(255,255,255,.2);color:#fff}
+.metric.hero .m-ico{background:color-mix(in srgb, var(--accent-on,#fff) 20%, transparent);color:var(--accent-on,#fff)}
 .m-value.pos{color:var(--hold)}.m-value.neg{color:var(--sold)}
 
 /* layout */
@@ -80,7 +75,7 @@
 .chart-tabs{display:inline-flex;gap:4px;background:var(--bg-200);padding:4px;border-radius:12px;margin-bottom:16px}
 .chart-tab{border:none;background:transparent;padding:.45rem 1.1rem;border-radius:9px;font-size:13.5px;font-weight:700;color:var(--t2);transition:all .18s}
 .chart-tab:hover{color:var(--t1)}
-.chart-tab.active{background:var(--accent-200);color:#fff;box-shadow:0 2px 8px rgba(0,102,140,.3)}
+.chart-tab.active{background:var(--accent-200);color:#fff;box-shadow:var(--shadow-sm)}
 .dark-mode .chart-tab.active,[data-theme="dark"] .chart-tab.active{color:#0f1417}
 .chart-box{position:relative;height:340px}
 .chart-hint{text-align:center;margin-top:12px;font-size:12px;color:var(--t3);display:flex;align-items:center;justify-content:center;gap:6px}
@@ -122,7 +117,7 @@
 
 /* empty state */
 .empty-state{text-align:center;padding:60px 24px}
-.empty-state .ei{width:74px;height:74px;margin:0 auto 16px;border-radius:50%;background:rgba(0,102,140,.08);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--accent-200)}
+.empty-state .ei{width:74px;height:74px;margin:0 auto 16px;border-radius:50%;background:var(--accent-quiet);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--accent-200)}
 .empty-state-text{font-size:1.15rem;font-weight:700;margin-bottom:8px;color:var(--t1)}
 .empty-state-subtext{font-size:14px;color:var(--t2);margin-bottom:14px}
 
@@ -183,7 +178,7 @@
         <div class="m-value mono">{{ total_transactions|intcomma }}</div>
         <div class="m-sub">すべての銘柄</div>
       </div>
-      <span class="m-ico" style="background:rgba(59,130,246,.16);color:var(--primary)"><i class="bi bi-arrow-left-right"></i></span>
+      <span class="m-ico" style="background:var(--accent-quiet);color:var(--primary)"><i class="bi bi-arrow-left-right"></i></span>
     </div>
 
     <div class="metric">
@@ -192,7 +187,7 @@
         <div class="m-value mono">{{ holding_count|intcomma }}</div>
         <div class="m-sub">現在保有中</div>
       </div>
-      <span class="m-ico" style="background:rgba(139,92,246,.16);color:var(--secondary)"><i class="bi bi-briefcase-fill"></i></span>
+      <span class="m-ico" style="background:var(--accent-quiet);color:var(--secondary)"><i class="bi bi-briefcase-fill"></i></span>
     </div>
 
     <div class="metric hero">
@@ -210,7 +205,7 @@
         <div class="m-value mono {% if avg_profit_rate >= 0 %}pos{% else %}neg{% endif %}">{% if avg_profit_rate > 0 %}+{% endif %}{{ avg_profit_rate|floatformat:1 }}%</div>
         <div class="m-sub">売却済み銘柄の平均</div>
       </div>
-      <span class="m-ico" style="background:rgba(245,158,11,.16);color:var(--accent)"><i class="bi bi-bullseye"></i></span>
+      <span class="m-ico" style="background:var(--accent-quiet);color:var(--accent)"><i class="bi bi-bullseye"></i></span>
     </div>
 
     <div class="metric">
@@ -232,7 +227,7 @@
   <div class="two-col">
     <div class="card">
       <div class="sec-title">
-        <span class="sec-ico" style="background:rgba(245,158,11,.16);color:var(--accent)"><i class="bi bi-bar-chart-fill"></i></span>
+        <span class="sec-ico" style="background:var(--accent-quiet);color:var(--accent)"><i class="bi bi-bar-chart-fill"></i></span>
         <span class="sec-h">ROI ランキング</span>
       </div>
       <div class="chart-tabs">
@@ -251,7 +246,7 @@
 
     <div class="card">
       <div class="sec-title">
-        <span class="sec-ico" style="background:rgba(59,130,246,.16);color:var(--primary)"><i class="bi bi-tags-fill"></i></span>
+        <span class="sec-ico" style="background:var(--accent-quiet);color:var(--primary)"><i class="bi bi-tags-fill"></i></span>
         <span class="sec-h">タグ別成績<span class="hint">思考の分類 × 結果</span></span>
       </div>
       <div class="rows">
@@ -276,7 +271,7 @@
   <!-- sector analysis -->
   <div class="card" style="margin-bottom:18px">
     <div class="sec-title">
-      <span class="sec-ico" style="background:rgba(139,92,246,.16);color:var(--secondary)"><i class="bi bi-pie-chart-fill"></i></span>
+      <span class="sec-ico" style="background:var(--accent-quiet);color:var(--secondary)"><i class="bi bi-pie-chart-fill"></i></span>
       <span class="sec-h">業種別分析</span>
     </div>
     <div class="rows">

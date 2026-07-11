@@ -1009,10 +1009,13 @@
 
     <!-- メインコンテンツラッパー -->
     <div class="content-wrapper">
-      <!-- ヘッダー広告 -->
+      {% comment %}ヘッダー広告。ページ側で header_ad ブロックを空定義すると抑止できる。
+         ホームは一等地を想起・クイックアクションに譲り、代わりにリスト境目の in-feed 枠を使う{% endcomment %}
+      {% block header_ad %}
       {% if show_ads %}
           {% show_placement_ad "header" %}
       {% endif %}
+      {% endblock %}
 
       <!-- メインコンテンツ -->
       <div class="container-fluid app-container px-3 px-lg-4 mt-4">

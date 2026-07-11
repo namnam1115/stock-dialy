@@ -18,6 +18,9 @@
 <link rel="stylesheet" href="{% static 'css/2-layouts/home.css' %}?v={{ STATIC_VERSION }}">
 {% endblock %}
 
+{# ホームはヘッダー広告を抑止（最初の一瞥は想起・クイックアクションへ。広告枠はリスト境目の in-feed に集約） #}
+{% block header_ad %}{% endblock %}
+
 {% block content %}
 {% csrf_token %}
 
@@ -26,11 +29,8 @@
   <i class="bi bi-wifi-off me-1"></i> オフライン状態です
 </div>
 
-<!-- コンテンツ上部の広告 -->
-{% if show_ads %}
-  {% show_template_ad "diary_top" %}
-{% endif %}
-
+{% comment %}広告はページ最上部から撤去し、ヘッダーゾーンとカード列の間（自然な区切り）へ移設。
+   最初の一瞥は想起・クイックアクションに渡し、収益枠は維持する（→ diary-container 直前）{% endcomment %}
 <div class="home-layout reading-page">
 
 <!-- PC用フィルターサイドバー -->
@@ -552,6 +552,14 @@
        検索結果件数・クリアボタンが永久に表示されなかった） -->
   <div id="search-result-info"></div>
 
+  {% comment %}収益枠（旧: ページ最上部）。HTMX 置換範囲(diary-container)の外に置き、
+     フィルタ操作での広告再pushを避ける。枠はテーマに馴染む「スポンサーリンク」カードとして描画{% endcomment %}
+  {% if show_ads %}
+  <div class="ad-slot ad-slot--infeed">
+    {% show_template_ad "diary_top" %}
+  </div>
+  {% endif %}
+
   <!-- 日記コンテナ -->
   <div id="diary-container" class="home-diary-grid" style="scroll-margin-top: 80px;">
     {% include "stockdiary/partials/diary_list.html" with diaries=diaries page_obj=page_obj %}
@@ -562,7 +570,9 @@
 
 <!-- コンテンツ下部の広告 -->
 {% if show_ads %}
+<div class="ad-slot ad-slot--bottom" style="max-width:1120px;margin-left:auto;margin-right:auto;">
   {% show_template_ad "diary_bottom" %}
+</div>
 {% endif %}
 
 {% include 'speed_dial.html' with actions=form_actions %}

@@ -222,19 +222,20 @@
   color: white;
 }
 
+/* 主アクションはブランドアクセント1色（機能ごとの多色装飾は廃止。識別はアイコンが担う） */
 .speed-dial-btn.action-quick-add {
-  background-color: var(--warning-color);
-  color: white;
+  background-color: var(--accent, #1f5a6b);
+  color: var(--accent-on, #fff);
 }
 
 .speed-dial-btn.action-quick-add:hover {
-  background-color: var(--warning-dark, #d97706);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  filter: brightness(1.08);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent, #1f5a6b) 40%, transparent);
 }
 
 .speed-dial-btn.action-modal {
-  background-color: var(--warning-color);
-  color: white;
+  background-color: var(--accent, #1f5a6b);
+  color: var(--accent-on, #fff);
 }
 
 .speed-dial-btn.action-edit {
@@ -272,19 +273,14 @@
   color: white;
 }
 
-/* 詳細画面の追加アクション（記録/取引/分割/仮説）を機能ごとに配色。
-   いずれも type が bottom-sheet/action で同色になるため data-action-id で塗り分ける。 */
-.speed-dial-action[data-action-id="add-note"] .speed-dial-btn {
-  background-color: var(--info-color); color: #fff;
-}
-.speed-dial-action[data-action-id="add-transaction"] .speed-dial-btn {
-  background-color: var(--success-color); color: #fff;
-}
-.speed-dial-action[data-action-id="add-split"] .speed-dial-btn {
-  background-color: var(--warning-color); color: #fff;
-}
+/* 詳細画面の追加アクション（記録/取引/分割/仮説）。
+   旧: 機能ごとの多色（info/success/warning/紫）→ アクセント1色に統一。
+   機能の識別はアイコンとラベルが担う（色は「意味」があるときだけ使う）。 */
+.speed-dial-action[data-action-id="add-note"] .speed-dial-btn,
+.speed-dial-action[data-action-id="add-transaction"] .speed-dial-btn,
+.speed-dial-action[data-action-id="add-split"] .speed-dial-btn,
 .speed-dial-action[data-action-id="add-thesis"] .speed-dial-btn {
-  background-color: #7c3aed; color: #fff;
+  background-color: var(--accent, #1f5a6b); color: var(--accent-on, #fff);
 }
 
 /* ラベル表示 */

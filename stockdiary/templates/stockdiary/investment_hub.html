@@ -19,8 +19,8 @@
 
 /* ---- ページヘッダー ---- */
 .hub-header {
-    background: linear-gradient(135deg, var(--primary-color), #6366f1);
-    color: #fff;
+    background: var(--accent);
+    color: var(--accent-on, #fff);
     border-radius: var(--radius-sm);
     padding: 24px 28px;
     margin-bottom: 20px;
@@ -29,7 +29,7 @@
     align-items: center;
     gap: 16px;
     flex-wrap: wrap;
-    box-shadow: 0 8px 24px rgba(59,130,246,0.25);
+    box-shadow: var(--shadow-md);
 }
 .hub-header-text h1 {
     font-size: 1.5rem;
@@ -506,14 +506,14 @@ table.hub-table {
     align-items: center;
     gap: 8px;
 }
-.ai-title i { color: #6366f1; }
+.ai-title i { color: var(--accent); }
 .btn-ai-analyze {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     padding: 10px 22px;
-    background: linear-gradient(135deg, var(--primary-color), #6366f1);
-    color: #fff;
+    background: var(--accent);
+    color: var(--accent-on, #fff);
     border: none;
     border-radius: 8px;
     font-size: var(--text-sm);
@@ -538,8 +538,8 @@ table.hub-table {
 /* AI 結果エリア */
 #ai-result { display: none; }
 .ai-summary-box {
-    background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(59,130,246,0.06));
-    border: 1px solid rgba(99,102,241,0.2);
+    background: var(--accent-quiet);
+    border: 1px solid var(--hairline);
     border-radius: 10px;
     padding: 16px 18px;
     margin-bottom: 16px;
@@ -551,8 +551,8 @@ table.hub-table {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: linear-gradient(135deg, #f59e0b, #f97316);
-    color: #fff;
+    background: var(--accent);
+    color: var(--accent-on, #fff);
     padding: 6px 14px;
     border-radius: var(--radius-full);
     font-weight: var(--font-bold);
@@ -775,7 +775,7 @@ table.hub-table {
     width: 52px; height: 52px;
     border-radius: 50%;
     background: var(--primary-color);
-    color: #fff;
+    color: var(--accent-on, #fff);
     border: none; cursor: pointer;
     box-shadow: 0 4px 16px rgba(var(--primary-rgb), 0.4);
     display: flex; align-items: center; justify-content: center;
@@ -833,7 +833,7 @@ table.hub-table {
 }
 .speed-dial-item:hover .speed-dial-item-btn {
     background: var(--primary-color);
-    color: #fff; border-color: var(--primary-color);
+    color: var(--accent-on, #fff); border-color: var(--primary-color);
 }
 .speed-dial-item.sd-disabled {
     opacity: 0.35; cursor: not-allowed; pointer-events: none;

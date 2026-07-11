@@ -64,7 +64,42 @@
   --shadow-lg: 0 6px 18px rgba(32, 32, 29, 0.07);
   --card-shadow: var(--shadow-xs);
   --card-shadow-hover: var(--shadow-sm);
+
+  /* ---- アクセント（唯一の主色）: 落ち着いたティール ----
+     装飾・状態・リンク・アクティブ表現はこの1系統のみで行う。
+     意味色（損益・検証2×2）は上記の quiet/verdict 系に隔離し、装飾に使わない。
+     旧: --accent-100 #71c4ef（明るい青）/ --accent-200 #00668c（深い青）は
+     ここで同系のティールに再マップして、画面ごとの配色乱立を止める。 */
+  --accent:        #1f5a6b;               /* 主アクション・アクティブ */
+  --accent-soft:   #7fb3c4;               /* 淡いアクセント（アイコン・補助） */
+  --accent-quiet:  rgba(31, 90, 107, .10); /* 淡面（選択背景・チップ地） */
+  --accent-on:     #ffffff;               /* accent 上の文字色 */
+  --accent-100: var(--accent-soft);
+  --accent-200: var(--accent);
+
+  /* ---- 余白スケール（0.25rem × n）----
+     既存コードの var(--space-6, 1.5rem) 等のフォールバック慣行を正式定義に昇格。
+     ブロック間は --space-4(16px) を既定とする（8pxグリッド） */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-12: 3rem;    /* 48px */
+
+  /* ---- 数値タイポ（データの「格」3段階）----
+     その画面で最も重要な数値だけ lg。単位は数字よりワンサイズ小さく muted で */
+  --text-data-lg: 2rem;      /* 32px / 700 / tabular-nums */
+  --text-data-md: 1.25rem;   /* 20px / 600 / tabular-nums */
+  --text-data-sm: 0.9375rem; /* 15px / 500 / tabular-nums */
+
+  --radius-full: 999px;
 }
+
+/* 数値は常に桁が揃うように（データ表示の基本姿勢） */
+.tabular-nums { font-variant-numeric: tabular-nums; }
 
 /* ---- ダークモード（夜の書斎） ---- */
 body.dark-mode,
@@ -103,4 +138,22 @@ html[data-theme="dark"] body {
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.45);
   --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.55);
+
+  /* 夜側のアクセント：同系ティールを明るく持ち上げる（暗地での可読性確保） */
+  --accent:        #6fa9bb;
+  --accent-soft:   #4d7787;
+  --accent-quiet:  rgba(111, 169, 187, .14);
+  --accent-on:     #10181b;
+  --accent-100: var(--accent-soft);
+  --accent-200: var(--accent);
+
+  /* ダークモードの青系プライマリ（--dm-primary-*）もアクセントへ一本化。
+     旧: スチールブルー #3b82f6/#60a5fa 系がタグアイコン・リンク等に残っていた */
+  --dm-primary: var(--accent);
+  --dm-primary-hover: color-mix(in srgb, var(--accent) 82%, white);
+  --dm-primary-active: color-mix(in srgb, var(--accent) 82%, black);
+  --dm-primary-100: color-mix(in srgb, var(--accent) 70%, black);
+  --dm-primary-200: var(--accent);
+  --dm-primary-300: color-mix(in srgb, var(--accent) 45%, white);
+  --dm-info: var(--accent);
 }
