@@ -163,6 +163,93 @@ class EarningsCalendarAPIService:
         logger.info('決算履歴API取得: 生%s件 → 正規化%s件', len(raw), len(normalized))
         return normalized
 
+    def resolve_edinet_code(self, sec_code: str):
+        """証券コードから edinet_code を検索して解決する（1リクエスト）。
+
+        /v1/search は企業名だけでなく証券コードでの完全一致検索にも使える
+        （q=証券コード）。/v1/calendar には code によるフィルタが無いため、
+        個社エンドポイント（/companies/{edinet_code}/...）を呼ぶ前段として使う。
+        """
+        code4 = (sec_code or '').strip()
+        if len(code4) == 5 and code4.endswith('0'):
+            code4 = code4[:4]
+        if not code4:
+            return None
+        try:
+            resp = self.session.get(
+                f'{self.base_url}/v1/search', params={'q': code4}, timeout=self.timeout)
+        except requests.exceptions.RequestException as e:
+            logger.warning('edinet_code解決失敗（通信エラー・code=%s）: %s', code4, e)
+            return None
+        if resp.status_code != 200:
+            return None
+        try:
+            data = resp.json()
+        except ValueError:
+            return None
+        rows = data.get('data') if isinstance(data, dict) else None
+        if not isinstance(rows, list):
+            return None
+        for row in rows:
+            row_sec = str(row.get('sec_code') or '').strip()
+            if row_sec in (code4, code4 + '0'):
+                return row.get('edinet_code')
+        return None
+
+    def fetch_latest_disclosure(self, edinet_code: str):
+        """個社の直近の決算短信（実績）を1件取得する（1リクエスト）。
+
+        /v1/calendar（横断フィード）は提供元側のインデックス漏れがあり、実際に
+        開示済みの銘柄が丸ごと出てこないことがある（実例: 8267 イオンの
+        2026-07-10開示）。この個社エンドポイントは決算短信そのものを見るため
+        正確だが、1銘柄=1リクエストで無料枠(100/日)を消費するため、全銘柄には
+        使わず「予想と食い違っていそうな銘柄だけ」の答え合わせに限定して使う。
+
+        Returns:
+            dict | None: {earnings_date(date), quarter, fiscal_year_end} また
+            は取得失敗・データ無しで None。
+        """
+        if not edinet_code:
+            return None
+        try:
+            resp = self.session.get(
+                f'{self.base_url}/v1/companies/{edinet_code}/earnings',
+                params={'limit': 1}, timeout=self.timeout)
+        except requests.exceptions.RequestException as e:
+            logger.warning('個社決算実績取得失敗（通信エラー・edinet_code=%s）: %s',
+                           edinet_code, e)
+            return None
+        if resp.status_code != 200:
+            return None
+        try:
+            data = resp.json()
+        except ValueError:
+            return None
+        inner = data.get('data') if isinstance(data, dict) else None
+        rows = inner.get('earnings') if isinstance(inner, dict) else None
+        if not rows:
+            return None
+        item = rows[0]
+        d = self._parse_disclosure_date(item.get('disclosure_date'))
+        if d is None:
+            return None
+        return {
+            'earnings_date': d,
+            'quarter': item.get('quarter'),
+            'fiscal_year_end': item.get('fiscal_year_end'),
+        }
+
+    @staticmethod
+    def _parse_disclosure_date(value):
+        """'Fri, 10 Jul 2026 00:00:00 GMT' 等のRFC1123形式を date に変換。"""
+        if not value:
+            return None
+        from email.utils import parsedate_to_datetime
+        try:
+            return parsedate_to_datetime(str(value)).date()
+        except (TypeError, ValueError):
+            return EarningsCalendarAPIService._parse_date(str(value))
+
     # 1回の取得（fetch_window / fetch_history）での最大リクエスト数。
     # 無料枠100/日に対し、日次同期は window(〜3) + history(〜15) = 〜18 程度。
     MAX_REQUESTS = 40

@@ -26,6 +26,9 @@ from .earnings_calendar_sync import (
     fan_out_earnings_reminders,
 )
 
+# 決算予想日の個社API答え合わせ
+from .earnings_calendar_verify import verify_estimates_via_company_api
+
 __all__ = [
     'EdinetAPIClient',
     'EdinetDocumentService',
@@ -36,4 +39,5 @@ __all__ = [
     'update_diary_disclosure_status',
     'sync_earnings_calendar',
     'fan_out_earnings_reminders',
+    'verify_estimates_via_company_api',
 ]

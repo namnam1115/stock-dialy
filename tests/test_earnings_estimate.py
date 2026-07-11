@@ -113,6 +113,73 @@ def test_build_estimates_never_precedes_known_confirmed():
     assert q1 == []
 
 
+def test_build_roster_computes_per_company_offset_from_own_history():
+    """会社ごとの実発表日から「四半期末→発表日」の日数(中央値)を逆算する。
+
+    なぜこのテストがあるか:
+      全社一律「四半期末+43日」で予想すると、fiscalYearEnd が同じ会社（3月決算の
+      大半）が同一日に団子状態で集中してしまい、かつ開示が速い会社（例: イオンは
+      実績40日）の予想日が実際より数日遅れて出る不具合があった。会社自身の過去の
+      実発表日（history）から個社の開示ペースを逆算し、標本が十分あればそちらを
+      優先するよう修正した。
+    """
+    history = [
+        # イオン(8267): 2月決算、実績は四半期末から一貫して40日で開示
+        {'securities_code': '8267', 'fiscal_year_end': '2026-02-28',
+         'company_name': 'イオン', 'market_segment': 'プライム',
+         'earnings_date': date(2025, 7, 10), 'earnings_type': '第１四半期'},
+        {'securities_code': '8267', 'fiscal_year_end': '2026-02-28',
+         'company_name': 'イオン', 'market_segment': 'プライム',
+         'earnings_date': date(2025, 10, 9), 'earnings_type': '第２四半期'},
+    ]
+    roster = build_roster(history)
+    # 第1四半期末(2025-05-31)+40日=2025-07-10 / 第2四半期末(2025-08-31)+40日=2025-10-10（1日近似）
+    assert roster['8267']['offset_days'] in (39, 40)
+
+
+def test_build_roster_uses_single_sample_offset():
+    """自社実績が1件でも、個社オフセットを優先して使う。
+
+    提供元の履歴APIは直近1件（多くは本決算）しか返さない会社が大半（実測:
+    全社の約9割が1件のみ）。2件以上を要求すると大半の会社が個社実績を使えず、
+    fiscalYearEndが同じ会社（3月決算の大半）が全社共通43日で同一日に団子状態に
+    集中してしまう。1件でも自社実績の方が無関係な他社の中央値より信頼できる。
+    """
+    history = [
+        {'securities_code': '7203', 'fiscal_year_end': '2026-03-31',
+         'company_name': 'トヨタ', 'market_segment': 'プライム',
+         'earnings_date': date(2025, 8, 5), 'earnings_type': '第１四半期'},
+    ]
+    roster = build_roster(history)
+    # 第1四半期末(2025-06-30)からの実績日数 = 36日（全社共通43日ではない）
+    assert roster['7203']['offset_days'] == 36
+
+
+def test_build_roster_falls_back_to_default_offset_without_earnings_date():
+    """実発表日(earnings_date)を持たない履歴しか無い会社は、全社共通の43日を使う。"""
+    history = [
+        {'securities_code': '7203', 'fiscal_year_end': '2026-03-31',
+         'company_name': 'トヨタ', 'market_segment': 'プライム'},
+    ]
+    roster = build_roster(history)
+    assert roster['7203']['offset_days'] == ANNOUNCE_OFFSET_DAYS
+
+
+def test_build_estimates_uses_personalized_offset():
+    """個社オフセットが求まっていれば、予想日はそのオフセットで算出される。
+
+    イオン(8267)は実績40日開示のため、全社共通43日より3日早い予想日になる。
+    """
+    roster = {'8267': {'fye': date(2026, 2, 28), 'company_name': 'イオン',
+                       'market_segment': 'プライム', 'offset_days': 40}}
+    base = date(2026, 7, 5)
+    ests = build_estimates(roster, {}, base, horizon_days=90)
+    q1 = [e for e in ests if e['earnings_type'] == '第１四半期']
+    assert len(q1) == 1
+    # 第1四半期末 2026-05-31 + 40日 = 2026-07-10
+    assert q1[0]['earnings_date'] == date(2026, 5, 31) + timedelta(days=40)
+
+
 def test_build_roster_picks_latest_fiscal_year_end():
     """同一コードの履歴からは最も新しい会計年度末を採用する。"""
     history = [
@@ -181,8 +248,9 @@ def test_sync_estimates_reassociate_diary_without_confirmed_date(settings):
     mapping = get_next_earnings_map(['7203'], today=base)
     assert '7203' in mapping
     assert mapping['7203'].is_estimated is True
-    # 第1四半期末 6/30 + 43日 = 8/12
-    assert mapping['7203'].date == date(2026, 6, 30) + timedelta(days=ANNOUNCE_OFFSET_DAYS)
+    # 7203 は本決算の実績(2026-05-08 = 期末2026-03-31+38日)から個社オフセット38日を
+    # 逆算し、それを使って第1四半期末 6/30 + 38日 = 8/7 と予想する（全社共通43日ではない）
+    assert mapping['7203'].date == date(2026, 6, 30) + timedelta(days=38)
 
 
 @pytest.mark.django_db

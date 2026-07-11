@@ -10,10 +10,14 @@
 ここでは各社の fiscalYearEnd（会計年度末）と決算種別から、四半期末＋一定日数で
 次回以降の発表予想日を自前で算出し、確定分と合わせて EarningsSchedule を埋める。
 
-オフセット（期末→発表までの日数）は履歴実測の中央値 43 日（第1〜3四半期・本決算の
-全種別で 40〜45 日に収束。TSE の「四半期末後45日以内開示」ルールに整合）。毎回の
-同期でゼロから再生成するため、洗い替え方式のまま予想日が陳腐化しない。
+オフセット（期末→発表までの日数）は、各社自身の過去の実発表日から逆算した中央値を
+優先して使う（同じ会社は毎回似た日数で開示する傾向があるため）。自社実績が乏しい
+（標本2件未満）会社だけ、全社共通の中央値43日（TSEの「四半期末後45日以内開示」
+ルールに整合）にフォールバックする。これにより、開示が速い/遅い会社ごとの予想日の
+バラつきを反映し、全社が同一日に団子状態で集中するのを緩和する。毎回の同期でゼロ
+から再生成するため、洗い替え方式のまま予想日が陳腐化しない。
 """
+import statistics
 from datetime import date, datetime, timedelta
 
 # 決算種別 → 会計年度末から見た四半期末までの遡り月数
@@ -36,6 +40,16 @@ CONFIRMED_SUPPRESS_DAYS = 30
 
 # fiscalYearEnd を将来へ転がして次回以降の四半期末を探す年数
 _ROLL_YEARS = 3
+
+# 自社実績オフセットを採用するための最低サンプル数。
+# 提供元の履歴APIは直近1件（多くは本決算）しか返さない会社が大半（実測: 全社の
+# 約9割が1件のみ）のため、2件以上を要求すると大半の会社が個社実績を使えず
+# 全社共通の中央値43日にフォールバックしてしまう（=団子状態が解消しない）。
+# 1件でも自社の実績値の方が無関係な他社の中央値より信頼できるため、1件から採用する。
+_MIN_OFFSET_SAMPLES = 1
+# 自社実績オフセットとして妥当とみなす範囲（外れ値の取り違え防止）
+_OFFSET_MIN_DAYS = 0
+_OFFSET_MAX_DAYS = 90
 
 
 def _parse_date(value):
@@ -75,13 +89,35 @@ def _plus_years(d: date, years: int) -> date:
         return d.replace(year=d.year + years, day=28)
 
 
+def _closest_quarter_end(fye, period, near_date):
+    """fye を年単位でロールし、near_date に最も近い四半期末を選ぶ。
+
+    過去の実発表record（earnings_date・earnings_type）から「その発表がどの
+    四半期末に対応するか」を fye だけから逆算するための補助。
+    """
+    qmonths = PERIOD_QUARTER_OFFSET_MONTHS.get(period)
+    if qmonths is None or near_date is None:
+        return None
+    best, best_diff = None, None
+    for k in range(-_ROLL_YEARS, _ROLL_YEARS + 1):
+        quarter_end = _minus_months(_plus_years(fye, k), qmonths)
+        diff = abs((near_date - quarter_end).days)
+        if best_diff is None or diff < best_diff:
+            best, best_diff = quarter_end, diff
+    return best
+
+
 def build_roster(history_items) -> dict:
     """履歴（正規化済み item 群）から予想算出用の名簿を作る。
 
     Returns:
         dict: securities_code -> {'fye': date, 'company_name': str,
-                                  'market_segment': str}
+                                  'market_segment': str, 'offset_days': int}
         各コードは最も新しい会計年度末を持つ履歴を採用する（社名・市場区分も最新）。
+        offset_days は、その会社自身の過去の実発表日から「四半期末→発表日」の
+        日数を逆算した中央値（標本が少なければ全社共通の中央値 ANNOUNCE_OFFSET_DAYS
+        にフォールバック）。会社ごとに開示の早さが異なるため、個社実績があれば
+        それを優先する。
     """
     roster = {}
     for item in history_items:
@@ -95,7 +131,29 @@ def build_roster(history_items) -> dict:
                 'fye': fye,
                 'company_name': item.get('company_name', ''),
                 'market_segment': item.get('market_segment', ''),
+                'offset_days': ANNOUNCE_OFFSET_DAYS,
             }
+
+    # 2周目: 各社自身の実発表日から「四半期末→発表日」のオフセットを逆算する。
+    offsets_by_code = {}
+    for item in history_items:
+        code = item.get('securities_code')
+        info = roster.get(code)
+        earnings_date = _parse_date(item.get('earnings_date'))
+        period = item.get('earnings_type')
+        if info is None or earnings_date is None:
+            continue
+        quarter_end = _closest_quarter_end(info['fye'], period, earnings_date)
+        if quarter_end is None:
+            continue
+        offset = (earnings_date - quarter_end).days
+        if _OFFSET_MIN_DAYS <= offset <= _OFFSET_MAX_DAYS:
+            offsets_by_code.setdefault(code, []).append(offset)
+
+    for code, offsets in offsets_by_code.items():
+        if len(offsets) >= _MIN_OFFSET_SAMPLES:
+            roster[code]['offset_days'] = round(statistics.median(offsets))
+
     return roster
 
 
@@ -119,6 +177,7 @@ def build_estimates(roster, confirmed_by_code, base_date,
 
     for code, info in roster.items():
         fye = info['fye']
+        offset_days = info.get('offset_days', ANNOUNCE_OFFSET_DAYS)
         confirmed_dates = confirmed_by_code.get(code, ())
         upcoming_confirmed = [cd for cd in confirmed_dates if cd >= base_date]
         earliest_confirmed = min(upcoming_confirmed) if upcoming_confirmed else None
@@ -126,7 +185,7 @@ def build_estimates(roster, confirmed_by_code, base_date,
             base_fye = _plus_years(fye, k)
             for period, qmonths in PERIOD_QUARTER_OFFSET_MONTHS.items():
                 quarter_end = _minus_months(base_fye, qmonths)
-                predicted = quarter_end + timedelta(days=ANNOUNCE_OFFSET_DAYS)
+                predicted = quarter_end + timedelta(days=offset_days)
                 if to_business_day is not None:
                     predicted = to_business_day(predicted)
                 if not (base_date <= predicted <= window_end):
