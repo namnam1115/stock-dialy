@@ -285,6 +285,26 @@ body.reading-app .app-footer .social-link:hover {
    本文と同じ背景（透明）に揃え、タイトル帯だけが浮いて見える問題を解消する。 */
 .reading-page .diary-header-inner { background: transparent; border-radius: var(--radius-md); }
 
+/* 状態サマリー（ホーム見出し下）。金額を出さず件数だけで方向感を示す＝成長OSの思想。 */
+.reading-page .rp-statline {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 0.5rem 1.1rem; margin: 0.5rem 0 0.25rem;
+}
+.reading-page .rp-stat {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.8125rem; color: var(--muted-ink); white-space: nowrap;
+}
+.reading-page .rp-stat .rp-stat-num {
+  font-family: var(--font-family-mono, monospace); font-variant-numeric: tabular-nums;
+  font-weight: 700; font-size: 0.95rem; color: var(--ink);
+}
+.reading-page .rp-stat--muted,
+.reading-page .rp-stat--muted .rp-stat-num { color: var(--muted-ink); }
+/* 答え合わせ待ちだけは行動対象なのでアクセントで少し立てる（それでも静かに） */
+.reading-page .rp-stat--action { color: var(--accent); text-decoration: none; transition: opacity .15s ease; }
+.reading-page .rp-stat--action .rp-stat-num { color: var(--accent); }
+.reading-page .rp-stat--action:hover { opacity: 0.75; }
+
 /* ============================================================
    広告スロット：白い異物 → テーマに馴染む「スポンサーリンク」カード
    - 高さを予約して CLS と白抜けを防ぐ
@@ -442,6 +462,24 @@ ins.adsbygoogle[data-ad-status="unfilled"] { display: none !important; }
 }
 
 /* タブ：色面 → 罫線の静かな切替 */
+/* ============================================================
+   ボタンの視覚言語（3段階）— reading テーマの確立規約に沿う
+   Primary  = 墨(ink) 塗り（1画面に1つ。定義は下部 .btn-primary＝墨）
+   Secondary= 枠線のみ（副次アクション）= .btn-outline-primary（枠はブランドのアクセント）
+   Ghost    = 背景なしのテキスト（弱いアクション）
+   ＝ 墨=行動 / ティール=アクセント（選択・リンク・情報面）の2役に統一。
+   意味色（success/danger）は「削除」「売却」など意味があるときだけ。 */
+.reading-page .btn-outline-primary {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  background: transparent !important;
+}
+.reading-page .btn-outline-primary:hover:not(:disabled) {
+  background: var(--accent-quiet) !important;
+  color: var(--accent) !important;
+  box-shadow: none !important;
+}
+
 .reading-page .diary-tabs {
   border-bottom: 1px solid var(--hairline-soft);
   gap: 0.25rem;
@@ -657,6 +695,9 @@ ins.adsbygoogle[data-ad-status="unfilled"] { display: none !important; }
   color: var(--faint-ink);
   white-space: nowrap;
   padding: 0 0.7rem;
+  cursor: help;                    /* title 説明が出ることを示唆 */
+  text-decoration: underline dotted var(--hairline);
+  text-underline-offset: 3px;
 }
 .reading-page .improved-tabs .improved-tab-lead .improved-tab-grouptext { padding-left: 0.25rem; }
 @media (max-width: 767px) {

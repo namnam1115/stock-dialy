@@ -127,9 +127,15 @@ def test_overview_tag_dedup_and_thesis_relocated_to_notes_tab(authenticated_clie
     旧仕様では検証ループを概要タブの投資理由直後に固めていたが、記録系の導線（テーマ別・活動）
     と並べた方が自然なため記録タブへ移した。概要側の目次・本文に仮説ブロックが残っていると
     「隠れたタブ内要素へジャンプする死にリンク」になるため、その回帰も防ぐ。
+
+    注: サイドバー目次は本文（背景）が長い記録でだけ表示する仕様になったため
+    （短い記録では飛ぶ意味が薄くカードを畳む・Phase3-4）、目次リンクの回帰確認は
+    背景を十分長くした状態で行う。
     """
     from tags.models import Tag
     sample_diary.tags.add(Tag.objects.create(user=user, name='長期投資'))
+    sample_diary.reason = 'この銘柄の背景。' * 80  # 目次が出る長さ（>400字）にする
+    sample_diary.save(update_fields=['reason'])
 
     html = authenticated_client.get(
         reverse('stockdiary:detail', kwargs={'pk': sample_diary.pk})

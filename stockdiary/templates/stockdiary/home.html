@@ -237,11 +237,22 @@
         <i class="bi bi-journal-richtext"></i>
         <span>投資ノート</span>
       </h1>
-      <p class="page-subtitle">
-        あなたの思考と経験が積み上がる場所
-        <span class="page-subtitle-dot">·</span>
-        <span class="page-subtitle-count">{{ total_diary_count }}件の記録</span>
-      </p>
+      <p class="page-subtitle">あなたの思考と経験が積み上がる場所</p>
+      {% if not is_empty_state %}
+      {% comment %}状態サマリー（方向感）。損益は出さない＝成長OSの思想（一喜一憂を生まない）。
+         金額ではなく「保有・答え合わせ待ち・記録」の件数だけで今の立ち位置を示す。{% endcomment %}
+      <div class="rp-statline" aria-label="今の状態">
+        {% if active_holdings_count %}
+        <span class="rp-stat"><span class="rp-stat-num">{{ active_holdings_count }}</span>銘柄 保有中</span>
+        {% endif %}
+        {% if recall.due_theses %}
+        <a class="rp-stat rp-stat--action" href="#recallCard">
+          <i class="bi bi-bell"></i><span class="rp-stat-num">{{ recall.due_theses|length }}</span>件 答え合わせ待ち
+        </a>
+        {% endif %}
+        <span class="rp-stat rp-stat--muted"><span class="rp-stat-num">{{ total_diary_count }}</span>件の記録</span>
+      </div>
+      {% endif %}
       {% if not is_empty_state %}
       <nav class="rp-quicklinks" aria-label="読み返す">
         <a href="{% url 'stockdiary:annual_review' %}" class="rp-quicklink">

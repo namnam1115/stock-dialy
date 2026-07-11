@@ -77,6 +77,11 @@
   --accent-100: var(--accent-soft);
   --accent-200: var(--accent);
 
+  /* Primaryボタンはアクセント単色塗り（グラデ廃止）。影も青→中立に。
+     旧: --gradient-primary が青グラデ／--button-shadow が青。ここで全画面に効かせる */
+  --gradient-primary: var(--accent);
+  --button-shadow: 0 1px 2px rgba(32, 32, 29, 0.14);
+
   /* ---- 余白スケール（0.25rem × n）----
      既存コードの var(--space-6, 1.5rem) 等のフォールバック慣行を正式定義に昇格。
      ブロック間は --space-4(16px) を既定とする（8pxグリッド） */
@@ -156,4 +161,8 @@ html[data-theme="dark"] body {
   --dm-primary-200: var(--accent);
   --dm-primary-300: color-mix(in srgb, var(--accent) 45%, white);
   --dm-info: var(--accent);
+
+  /* ダークでも Primary はアクセント単色（旧: 青グラデ #3b82f6→#2563eb） */
+  --gradient-primary: var(--accent);
+  --button-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }

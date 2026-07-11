@@ -145,51 +145,64 @@
         width: 100%;
       }  
       
+      /* メニュー（右上フロート）：意味の伝わる「アイコン＋ラベル」の中立ピル。
+         主行動の FAB（アクセント）と色で競合しないよう、紙面サーフェス＋墨で静かに。 */
       .nav-btn {
-        width: 42px;
-        height: 42px;
-        border-radius: 50%;
-        background-color: rgba(79, 70, 229, 0.5);
-        color: white;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        display: flex;
+        height: 40px;
+        padding: 0 14px;
+        border-radius: var(--radius-full, 999px);
+        background-color: var(--paper-raised, #fff);
+        color: var(--ink, #20201d);
+        box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+        border: 1px solid var(--hairline, #e7e4dc);
+        display: inline-flex;
         align-items: center;
-        justify-content: center;
-        transition: all 0.3s ease;
-        border: none;
+        gap: 7px;
+        transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
       }
-      
+
       .nav-btn:hover, .nav-btn:focus {
-        background-color: rgba(79, 70, 229, 0.85);
-        transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        color: white;
+        background-color: var(--paper-raised, #fff);
+        border-color: var(--muted-ink, #6b6a64);
+        color: var(--ink, #20201d);
+        transform: translateY(-1px);
       }
-      
+
       .nav-btn i {
-        font-size: 1.25rem;
+        font-size: 1.15rem;
+      }
+      .nav-btn-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+      /* 極小画面ではラベルを畳んでアイコンのみに */
+      @media (max-width: 380px) {
+        .nav-btn { padding: 0; width: 40px; justify-content: center; }
+        .nav-btn-label { display: none; }
       }
 
       /* ダークモード切り替えボタン */
+      /* テーマ切替：他のヘッダーアイコン（通知ベル等）と同じ中立の丸ボタンに。
+         旧: インディゴ rgba(79,70,229) の塗り円を廃止し、静かなアイコンボタンへ */
       .theme-toggle-btn {
         width: 42px;
         height: 42px;
         border-radius: 50%;
-        background-color: rgba(79, 70, 229, 0.5);
-        color: white;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        background-color: transparent;
+        color: var(--muted-ink, #6b6a64);
+        box-shadow: none;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.3s ease;
+        transition: background-color 0.2s ease, color 0.2s ease;
         border: none;
         cursor: pointer;
       }
 
       .theme-toggle-btn:hover {
-        background-color: rgba(79, 70, 229, 0.85);
-        transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        background-color: var(--paper-sunken, rgba(0,0,0,.05));
+        color: var(--ink, #20201d);
       }
 
       .theme-toggle-btn i {
@@ -608,7 +621,7 @@
         width: 36px;
         height: 36px;
         border-radius: 50%;
-        background-color: rgba(79, 70, 229, 0.1);
+        background-color: var(--accent-quiet);
         color: var(--primary-color);
         transition: all 0.2s ease;
       }
@@ -831,25 +844,31 @@
         color: var(--dm-destructive);
       }
 
-      /* ナビゲーションボタン（浮動） */
+      /* ナビゲーションボタン（浮動）：ダークでも紙面サーフェス＋墨の中立ピルに揃える
+         （旧: 青 rgba(59,130,246) を廃止） */
       .dark-mode .nav-btn,
       [data-theme="dark"] .nav-btn {
-        background-color: rgba(59, 130, 246, 0.6);
+        background-color: var(--paper-raised);
+        border-color: var(--hairline);
+        color: var(--ink);
       }
 
       .dark-mode .nav-btn:hover,
       [data-theme="dark"] .nav-btn:hover {
-        background-color: rgba(59, 130, 246, 0.9);
+        background-color: var(--paper-raised);
+        border-color: var(--muted-ink);
       }
 
       .dark-mode .theme-toggle-btn,
       [data-theme="dark"] .theme-toggle-btn {
-        background-color: rgba(59, 130, 246, 0.6);
+        background-color: transparent;
+        color: var(--muted-ink);
       }
 
       .dark-mode .theme-toggle-btn:hover,
       [data-theme="dark"] .theme-toggle-btn:hover {
-        background-color: rgba(59, 130, 246, 0.9);
+        background-color: var(--paper-sunken);
+        color: var(--ink);
       }
 
       /* 画像関連 */
@@ -1100,8 +1119,10 @@
   <!-- 右上に配置する半透明ナビゲーションボタン -->
   {% if user.is_authenticated %}
   <div class="floating-nav-button">
-      <button class="nav-btn" id="openMenuButton" type="button" aria-label="メニューを開く">
-          <i class="bi bi-grid"></i>
+      {# 意味の伝わらないグリッドアイコン→「メニュー」を明示するハンバーガー＋ラベル #}
+      <button class="nav-btn" id="openMenuButton" type="button" aria-label="メニューを開く" title="メニュー">
+          <i class="bi bi-list"></i>
+          <span class="nav-btn-label">メニュー</span>
       </button>
   </div>
 

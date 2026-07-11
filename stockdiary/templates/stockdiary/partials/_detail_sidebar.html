@@ -1,6 +1,9 @@
 {% load humanize %}
 {% load stockdiary_filters %}
 
+{% comment %}目次は本文（背景）が長いときだけ出す。短い記録では飛ぶ意味が薄く、
+   カード1枚分の場所を食うだけなので非表示にして「投資ステータス」を繰り上げる。{% endcomment %}
+{% if diary.reason and diary.reason|length > 400 %}
 <nav class="detail-sidebar-toc" id="overview-toc" aria-label="概要タブの目次">
   <div class="detail-sidebar-card-title">
     <i class="bi bi-list-ul"></i> 目次
@@ -23,6 +26,7 @@
     </a></li>
   </ul>
 </nav>
+{% endif %}
 
 {% if not diary.is_memo and diary.average_purchase_price or diary.realized_profit %}
 <div class="detail-sidebar-card">
