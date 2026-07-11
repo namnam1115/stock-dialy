@@ -604,7 +604,7 @@ class DiaryGraphView(LoginRequiredMixin, TemplateView):
 class ExploreGraphView(LoginRequiredMixin, TemplateView):
     """ドリルダウン探索グラフ（TG-DD）。
 
-    空から要素（タグ）を1つ選び、近傍API（`api_graph_neighbors`）で1段ずつ
+    空から要素（タグ・業種）を1つ選び、近傍API（`api_graph_neighbors`）で1段ずつ
     深掘りする専用ページ。既存 diary_graph とは独立。
     設計: docs/graph_drilldown_redesign.md
     """
@@ -613,7 +613,7 @@ class ExploreGraphView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-        # 入口の検索用に、タグ（要素）と銘柄の両方を埋め込む。
+        # 入口の検索用に、タグ（要素）・業種（要素）・銘柄を埋め込む。
         # クライアント側で部分一致検索し、選んだ要素/銘柄を起点に展開する。
         tags = (
             Tag.objects.filter(user=user, stockdiary__user=user)
@@ -626,6 +626,18 @@ class ExploreGraphView(LoginRequiredMixin, TemplateView):
             {'id': f"tag:{t['id']}", 'label': t['name'], 'type': 'tag', 'axis': t['axis']}
             for t in tags
         ]
+        # 業種（distinct）
+        sectors = (
+            StockDiary.objects.filter(user=user)
+            .exclude(sector__isnull=True).exclude(sector='')
+            .order_by('sector')
+            .values_list('sector', flat=True)
+            .distinct()
+        )
+        items.extend(
+            {'id': f'sector:{name}', 'label': name, 'type': 'sector'}
+            for name in sectors
+        )
         # 銘柄（symbol 単位で distinct）。銘柄コード・銘柄名どちらでも検索できるよう symbol も持たせる。
         seen = set()
         for symbol, name in (
