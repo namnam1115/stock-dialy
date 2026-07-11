@@ -21,6 +21,7 @@ from unittest.mock import patch
 import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
 
 from stockdiary.models import StockDiary, NotificationLog
 from earnings_analysis.models import EarningsSchedule
@@ -195,7 +196,7 @@ def test_sync_skips_when_unconfigured(settings):
 def test_sync_replaces_future_keeps_past(settings):
     """同期は未来分を洗い替えし、過去分（履歴）は残す。"""
     settings.EARNINGS_CALENDAR_API_SETTINGS = {'API_KEY': 'k'}
-    today = date.today()
+    today = timezone.localdate()
 
     # 既存: 過去1件 + 未来1件（未来分は洗い替え対象）
     EarningsSchedule.objects.create(
@@ -225,7 +226,7 @@ def test_sync_replaces_future_keeps_past(settings):
 def test_sync_base_date_controls_window_and_cutoff(settings):
     """base_date を指定すると取得起点と洗い替え境界がその日になる（失敗日リカバリ）。"""
     settings.EARNINGS_CALENDAR_API_SETTINGS = {'API_KEY': 'k'}
-    today = date.today()
+    today = timezone.localdate()
     base = today + timedelta(days=10)
 
     # base より前（=today+5）は base 基準では「過去」扱い → 残る
@@ -257,7 +258,7 @@ def test_sync_base_date_controls_window_and_cutoff(settings):
 
 def test_get_next_earnings_map_matches_4_and_5_digit():
     """4桁の日記コードに対し、4桁/末尾0付き5桁どちらの予定も照合できる。"""
-    today = date.today()
+    today = timezone.localdate()
     EarningsSchedule.objects.create(
         securities_code='7203', earnings_date=today + timedelta(days=10),
         earnings_type='第1四半期')
@@ -282,7 +283,7 @@ def test_get_next_earnings_map_picks_nearest_across_code_formats():
     （日付範囲を1クエリで引く箇所）と日記詳細（この関数を使う箇所）で
     表示される「次回決算日」がずれるバグがあった。
     """
-    today = date.today()
+    today = timezone.localdate()
     EarningsSchedule.objects.create(
         securities_code='72030', earnings_date=today + timedelta(days=5),
         earnings_type='本決算', is_estimated=False)
@@ -296,7 +297,7 @@ def test_get_next_earnings_map_picks_nearest_across_code_formats():
 
 def test_get_previous_earnings_map_picks_nearest_across_code_formats():
     """前回決算も同様に、4桁/5桁の表記に関わらず最も新しい過去日を採用する。"""
-    today = date.today()
+    today = timezone.localdate()
     EarningsSchedule.objects.create(
         securities_code='72030', earnings_date=today - timedelta(days=3),
         earnings_type='本決算', is_estimated=False)
@@ -310,7 +311,7 @@ def test_get_previous_earnings_map_picks_nearest_across_code_formats():
 
 def test_get_next_earnings_map_picks_nearest_future():
     """過去の予定は無視し、当日以降で最も近い予定を採用する。"""
-    today = date.today()
+    today = timezone.localdate()
     EarningsSchedule.objects.create(
         securities_code='7203', earnings_date=today - timedelta(days=5))
     EarningsSchedule.objects.create(
@@ -324,14 +325,14 @@ def test_get_next_earnings_map_picks_nearest_future():
 
 def test_get_next_earnings_map_ignores_non_jp_codes():
     """4桁数字以外（外国株など）はマスタ照合の対象外。"""
-    today = date.today()
+    today = timezone.localdate()
     assert views_earnings.get_next_earnings_map({'AAPL', ''}, today=today) == {}
 
 
 def test_attach_next_earnings_sets_attribute(db):
     """attach_next_earnings は各日記へ next_earnings（無ければ None）を付与する。"""
     user = User.objects.create_user('u_at', 'uat@e.com', 'p')
-    today = date.today()
+    today = timezone.localdate()
     d1 = StockDiary.objects.create(user=user, stock_name='A', stock_symbol='7203')
     d2 = StockDiary.objects.create(user=user, stock_name='B', stock_symbol='6758')
     EarningsSchedule.objects.create(
@@ -383,7 +384,7 @@ def test_fan_out_earnings_reminders_one_per_user_no_duplicate():
     # 同一銘柄の日記が2件あってもユーザーへの通知は1通
     StockDiary.objects.create(user=user, stock_name='A', stock_symbol='7203')
     StockDiary.objects.create(user=user, stock_name='A(別記録)', stock_symbol='7203')
-    tomorrow = date.today() + timedelta(days=1)
+    tomorrow = timezone.localdate() + timedelta(days=1)
     EarningsSchedule.objects.create(
         securities_code='7203', earnings_date=tomorrow, earnings_type='本決算')
 
@@ -409,7 +410,7 @@ def test_reminder_survives_schedule_wash_replace():
     """
     user = User.objects.create_user('u_wash', 'uw@e.com', 'p')
     StockDiary.objects.create(user=user, stock_name='A', stock_symbol='7203')
-    tomorrow = date.today() + timedelta(days=1)
+    tomorrow = timezone.localdate() + timedelta(days=1)
     schedule = EarningsSchedule.objects.create(
         securities_code='7203', earnings_date=tomorrow)
 
@@ -428,7 +429,7 @@ def test_fan_out_excludes_excluded_diary():
     user = User.objects.create_user('u4', 'u4@e.com', 'p')
     StockDiary.objects.create(
         user=user, stock_name='A', stock_symbol='7203', is_excluded=True)
-    tomorrow = date.today() + timedelta(days=1)
+    tomorrow = timezone.localdate() + timedelta(days=1)
     EarningsSchedule.objects.create(securities_code='7203', earnings_date=tomorrow)
 
     assert sync.fan_out_earnings_reminders() == 0
@@ -445,7 +446,7 @@ def test_calendar_view_renders_without_calling_api(client):
     """
     user = User.objects.create_user('v1', 'v1@e.com', 'p')
     client.force_login(user)
-    today = date.today()
+    today = timezone.localdate()
 
     holding = StockDiary.objects.create(
         user=user, stock_name='保有株', stock_symbol='7203',
@@ -479,7 +480,7 @@ def test_calendar_summary_has_three_tabs_matching_diary_status(client):
     """
     user = User.objects.create_user('v_3tab', 'v3tab@e.com', 'p')
     client.force_login(user)
-    today = date.today()
+    today = timezone.localdate()
 
     holding = StockDiary.objects.create(
         user=user, stock_name='保有株', stock_symbol='7203',
@@ -515,7 +516,7 @@ def test_calendar_selected_day_lists_that_days_earnings(client):
     """?date= で指定した日の決算が選択日パネルに一覧される。"""
     user = User.objects.create_user('v_day', 'vd@e.com', 'p')
     client.force_login(user)
-    target = date.today() + timedelta(days=5)
+    target = timezone.localdate() + timedelta(days=5)
     EarningsSchedule.objects.create(
         securities_code='7203', earnings_date=target, company_name='トヨタ自動車')
 
@@ -540,7 +541,7 @@ def test_calendar_shows_recent_past_earnings(client):
     """
     user = User.objects.create_user('v_past', 'vpast@e.com', 'p')
     client.force_login(user)
-    target = date.today() - timedelta(days=10)
+    target = timezone.localdate() - timedelta(days=10)
     EarningsSchedule.objects.create(
         securities_code='7203', earnings_date=target, company_name='トヨタ自動車')
 
@@ -558,7 +559,7 @@ def test_calendar_scope_mine_filters_to_recorded_symbols(client):
     """scope=mine は記録銘柄のみ、scope=all は全銘柄を選択日パネルに出す。"""
     user = User.objects.create_user('v2', 'v2@e.com', 'p')
     client.force_login(user)
-    target = date.today() + timedelta(days=5)
+    target = timezone.localdate() + timedelta(days=5)
     StockDiary.objects.create(user=user, stock_name='保有株', stock_symbol='7203')
 
     EarningsSchedule.objects.create(
@@ -581,7 +582,7 @@ def test_calendar_day_panel_only_swap_via_htmx(client):
     """panel=day のHTMXリクエストは選択日パネルのみ返す（グリッドを含まない）。"""
     user = User.objects.create_user('v_panel', 'vp@e.com', 'p')
     client.force_login(user)
-    target = date.today() + timedelta(days=5)
+    target = timezone.localdate() + timedelta(days=5)
     EarningsSchedule.objects.create(
         securities_code='7203', earnings_date=target, company_name='トヨタ自動車')
 
@@ -622,7 +623,7 @@ def test_calendar_htmx_nav_refreshes_summary_oob(client):
     StockDiary.objects.create(
         user=user, stock_name='トヨタ自動車', stock_symbol='7203',
         current_quantity=100)
-    target = date.today() + timedelta(days=10)
+    target = timezone.localdate() + timedelta(days=10)
     EarningsSchedule.objects.create(
         securities_code='7203', earnings_date=target,
         company_name='トヨタ自動車', is_estimated=False)
@@ -649,7 +650,7 @@ def test_thesis_next_earnings_uses_actual_date():
     diary = StockDiary.objects.create(
         user=user, stock_name='A', stock_symbol='7203',
         first_purchase_date=date(2026, 1, 1))
-    earnings = date.today() + timedelta(days=20)
+    earnings = timezone.localdate() + timedelta(days=20)
     EarningsSchedule.objects.create(securities_code='7203', earnings_date=earnings)
 
     assert _default_review_due_date(diary, 'next_earnings') == earnings
@@ -660,7 +661,7 @@ def test_thesis_next_earnings_falls_back_without_schedule():
     from stockdiary.views_growth import _default_review_due_date
 
     user = User.objects.create_user('t_nf', 'tnf@e.com', 'p')
-    purchased = date.today() - timedelta(days=10)
+    purchased = timezone.localdate() - timedelta(days=10)
     diary = StockDiary.objects.create(
         user=user, stock_name='A', stock_symbol='7203',
         first_purchase_date=purchased)
@@ -682,12 +683,12 @@ def test_thesis_due_date_never_in_the_past():
     user = User.objects.create_user('t_past', 'tpast@e.com', 'p')
     diary = StockDiary.objects.create(
         user=user, stock_name='A', stock_symbol='7203',
-        first_purchase_date=date.today() - timedelta(days=730))
+        first_purchase_date=timezone.localdate() - timedelta(days=730))
 
     for horizon, days in [('next_earnings', 45), ('3m', 90), ('6m', 180), ('1y', 365), ('long', 365)]:
         due = _default_review_due_date(diary, horizon)
-        assert due == date.today() + timedelta(days=days), horizon
-        assert due > date.today(), horizon
+        assert due == timezone.localdate() + timedelta(days=days), horizon
+        assert due > timezone.localdate(), horizon
 
 
 def test_thesis_due_date_keeps_purchase_anchor_when_future():
@@ -695,7 +696,7 @@ def test_thesis_due_date_keeps_purchase_anchor_when_future():
     from stockdiary.views_growth import _default_review_due_date
 
     user = User.objects.create_user('t_anchor', 'tanchor@e.com', 'p')
-    purchased = date.today() - timedelta(days=30)
+    purchased = timezone.localdate() - timedelta(days=30)
     diary = StockDiary.objects.create(
         user=user, stock_name='A', stock_symbol='7203',
         first_purchase_date=purchased)
@@ -711,7 +712,7 @@ def _make_diary_with_earnings(user, code, days_ahead):
     d = SD.objects.create(user=user, stock_name=code, stock_symbol=code)
     if days_ahead is not None:
         EarningsSchedule.objects.create(
-            securities_code=code, earnings_date=date.today() + timedelta(days=days_ahead))
+            securities_code=code, earnings_date=timezone.localdate() + timedelta(days=days_ahead))
     return d
 
 
@@ -768,7 +769,7 @@ def test_detail_header_shows_next_earnings(client):
     diary = StockDiary.objects.create(
         user=user, stock_name='トヨタ自動車', stock_symbol='7203')
     EarningsSchedule.objects.create(
-        securities_code='7203', earnings_date=date.today() + timedelta(days=5),
+        securities_code='7203', earnings_date=timezone.localdate() + timedelta(days=5),
         earnings_type='第1四半期')
 
     resp = client.get(reverse('stockdiary:detail', args=[diary.id]))
@@ -797,7 +798,7 @@ def test_recall_surfaces_upcoming_earnings():
     """次回決算が14日以内なら想起キューに kind='earnings' が載る。"""
     from stockdiary.services.recall_service import RecallService
 
-    today = date.today()
+    today = timezone.localdate()
     user = User.objects.create_user('r_up', 'rup@e.com', 'p')
     diary = StockDiary.objects.create(
         user=user, stock_name='トヨタ自動車', stock_symbol='7203')
@@ -821,7 +822,7 @@ def test_recall_ignores_far_earnings():
     """次回決算が14日より先なら想起には出さない（近づいたら出る）。"""
     from stockdiary.services.recall_service import RecallService
 
-    today = date.today()
+    today = timezone.localdate()
     user = User.objects.create_user('r_far', 'rfar@e.com', 'p')
     StockDiary.objects.create(user=user, stock_name='A', stock_symbol='7203')
     EarningsSchedule.objects.create(
@@ -855,7 +856,7 @@ def test_command_target_date_recovers_missed_reminder(settings):
     settings.EARNINGS_CALENDAR_API_SETTINGS = {'API_KEY': ''}
     user = User.objects.create_user('u_cmd', 'uc@e.com', 'p')
     StockDiary.objects.create(user=user, stock_name='A', stock_symbol='7203')
-    earnings_day = date.today() + timedelta(days=7)
+    earnings_day = timezone.localdate() + timedelta(days=7)
     schedule = EarningsSchedule.objects.create(
         securities_code='7203', earnings_date=earnings_day)
 
@@ -869,7 +870,7 @@ def test_command_target_date_recovers_missed_reminder(settings):
 def test_admin_run_sync_view_executes(settings, client):
     """管理画面の手動実行ビューが同期コマンドを走らせて決算予定を保存する。"""
     settings.EARNINGS_CALENDAR_API_SETTINGS = {'API_KEY': 'k'}
-    today = date.today()
+    today = timezone.localdate()
     admin_user = User.objects.create_superuser('boss', 'boss@e.com', 'p')
     client.force_login(admin_user)
 

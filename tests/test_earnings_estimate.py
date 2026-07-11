@@ -285,3 +285,40 @@ def test_sync_confirmed_overrides_estimate_same_code(settings):
     row = rows.first()
     assert row.earnings_date == date(2026, 8, 6)
     assert row.is_estimated is False
+
+
+@pytest.mark.django_db
+def test_sync_suppresses_estimate_when_confirmed_date_already_past(settings):
+    """確定発表日が「基準日より過去」でも、その四半期の予想は再生成しない。
+
+    実際にあった不具合: ある銘柄の本決算が7/10に確定発表されたが、fetch_window
+    は基準日(today)以降しか返さないため、7/10が過去になった翌日以降のバッチでは
+    確定分に含まれなくなり、近傍抑制(CONFIRMED_SUPPRESS_DAYS)が働かず、四半期末
+    +43日の自前算出（同じ7/13）が確定日を追い越して洗い替えのたびに再生成され
+    続けていた。fetch_history（過去13ヶ月の確定実績）にのみ現れる確定発表日も
+    抑制判定に使うことで、この再生成を止める。
+    """
+    settings.EARNINGS_CALENDAR_API_SETTINGS = {'API_KEY': 'k'}
+    base = date(2026, 7, 11)  # 実際の発表日(7/10)の翌日
+
+    # fetch_window（基準日以降のみ）には、既に過去になった確定発表日は含まれない
+    confirmed = []
+    # fetch_history（過去13ヶ月）にのみ、本決算の確定発表実績(7/10)が現れる
+    history = [{
+        'securities_code': '8267', 'fiscal_year_end': '2026-05-31',
+        'company_name': 'イオン', 'market_segment': 'プライム',
+        'earnings_date': date(2026, 7, 10), 'earnings_type': '本決算',
+        'is_estimated': False,
+    }]
+
+    with patch.object(EarningsCalendarAPIService, 'fetch_window',
+                      return_value=confirmed), \
+         patch.object(EarningsCalendarAPIService, 'fetch_history',
+                      return_value=history):
+        sync.sync_earnings_calendar(days=90, base_date=base)
+
+    # 会計年度末5/31+43日=7/13 の予想は、近傍(±30日)に確定実績(7/10)があるため
+    # 生成されない（生成されると洗い替えのたびに誤った未来日が残り続ける）。
+    assert not EarningsSchedule.objects.filter(
+        securities_code='8267', earnings_date=date(2026, 7, 13),
+        is_estimated=True).exists()
