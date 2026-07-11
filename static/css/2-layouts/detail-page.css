@@ -1427,3 +1427,17 @@
             [data-theme="dark"] #section-reason.is-collapsible #reasonContent::after {
               background: linear-gradient(to bottom, rgba(31,35,48,0), var(--paper, #1f2330));
             }
+
+/* ========== action-bar と右上固定メニューの重なり防止 ==========
+   .pc-only-header が非表示になる991px以下では action-bar がページ最上部に
+   来るため、常時 fixed 表示の右上ハンバーガーメニュー（.floating-nav-button、
+   base.html、top:15px/right:15px）と編集・その他操作ボタンが実座標で重なる
+   （実測で確認済み：381〜991pxはラベル付きで幅110.9px、380px以下はアイコン
+   のみ40px）。この直前の 767.98px/360px ブレークポイントが padding を
+   !important で上書きしているため、ここでも !important が必要。 */
+@media (max-width: 991px) {
+  .action-bar { padding-right: max(140px, env(safe-area-inset-right, 0px)) !important; }
+}
+@media (max-width: 380px) {
+  .action-bar { padding-right: max(68px, env(safe-area-inset-right, 0px)) !important; }
+}
