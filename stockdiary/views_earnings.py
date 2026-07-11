@@ -18,6 +18,7 @@ from datetime import date, datetime, timedelta
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.shortcuts import render
+from django.utils import timezone
 
 from earnings_analysis.models import EarningsSchedule
 from .models import StockDiary
@@ -112,7 +113,7 @@ def earnings_calendar(request):
     if scope not in ('mine', 'all'):
         scope = 'mine'
 
-    today = date.today()
+    today = timezone.localdate()
     window_start = today - timedelta(days=CALENDAR_PAST_WINDOW_DAYS)
     window_end = today + timedelta(days=CALENDAR_WINDOW_DAYS)
     ws_first = window_start.replace(day=1)

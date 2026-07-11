@@ -28,6 +28,7 @@ from datetime import date, timedelta
 
 import requests
 from django.conf import settings
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +118,7 @@ class EarningsCalendarAPIService:
             list[dict]: {securities_code, company_name, earnings_date(date),
                          earnings_type, market_segment, source_updated_at(str)}
         """
-        start = start or date.today()
+        start = start or timezone.localdate()
         end = start + timedelta(days=days)
 
         self._request_count = 0
@@ -149,7 +150,7 @@ class EarningsCalendarAPIService:
         """
         from dateutil.relativedelta import relativedelta
 
-        end = end or date.today()
+        end = end or timezone.localdate()
         start = end - relativedelta(months=months)
 
         self._request_count = 0

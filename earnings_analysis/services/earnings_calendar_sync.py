@@ -14,7 +14,7 @@ EarningsSchedule を洗い替え保存する。あわせて決算前日（翌日
 - 通知は (user, earnings_schedule) の一意制約 + ignore_conflicts で重複送信を防ぐ
 """
 import logging
-from datetime import date, timedelta
+from datetime import timedelta
 
 from django.db import transaction
 from django.utils import timezone
@@ -63,7 +63,7 @@ def sync_earnings_calendar(days: int = 90, base_date=None,
         logger.warning('決算予定同期: APIキー未設定のためスキップ')
         return 0
 
-    base_date = base_date or date.today()
+    base_date = base_date or timezone.localdate()
     confirmed = service.fetch_window(days=days, start=base_date)
 
     # 予想分（確定分で埋まらない期間を自前算出で補完）
@@ -74,6 +74,17 @@ def sync_earnings_calendar(days: int = 90, base_date=None,
             roster = build_roster(history)
             confirmed_by_code = {}
             for item in confirmed:
+                confirmed_by_code.setdefault(
+                    item['securities_code'], []).append(item['earnings_date'])
+            # history（過去13ヶ月の確定実績）の確定発表日も合流させる。
+            # fetch_window は基準日以降しか返さないため、確定発表が既に過去に
+            # なった銘柄は confirmed_by_code に入らず、近傍抑制
+            # (CONFIRMED_SUPPRESS_DAYS) が翌日以降のバッチで効かなくなり、
+            # 古い予想日が洗い替えのたびに再生成され続けていた
+            # （例: イオンは7/10確定発表後も7/13予想が残り続けた）。
+            for item in history:
+                if item.get('is_estimated'):
+                    continue
                 confirmed_by_code.setdefault(
                     item['securities_code'], []).append(item['earnings_date'])
             estimates = build_estimates(
@@ -138,7 +149,7 @@ def fan_out_earnings_reminders(target_date=None) -> int:
     from earnings_analysis.models import EarningsSchedule
 
     if target_date is None:
-        target_date = date.today() + timedelta(days=1)
+        target_date = timezone.localdate() + timedelta(days=1)
 
     schedules = list(
         EarningsSchedule.objects.filter(earnings_date=target_date)
