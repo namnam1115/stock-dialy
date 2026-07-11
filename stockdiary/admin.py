@@ -4,6 +4,7 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.db.models import Count
 from .models import StockDiary, Transaction, StockSplit, DiaryNote, PushSubscription, DiaryNotification, NotificationLog
+from .views_trade_import import _build_company_sector_map
 from django.contrib import messages
 
 class TransactionInline(admin.TabularInline):
@@ -109,7 +110,7 @@ class StockDiaryAdmin(admin.ModelAdmin):
     
     date_hierarchy = 'created_at'
     
-    actions = ['recalculate_aggregates', 'export_csv']
+    actions = ['recalculate_aggregates', 'export_csv', 'fill_missing_sectors']
     
     def get_queryset(self, request):
         """関連オブジェクトを事前取得してパフォーマンスを改善"""
@@ -228,7 +229,37 @@ class StockDiaryAdmin(admin.ModelAdmin):
         )
     recalculate_aggregates.short_description = '選択した日記の集計を再計算'
 
-    
+    def fill_missing_sectors(self, request, queryset):
+        """選択した日記のうち業種未設定のものに、銘柄コードからCompanyMasterの業種を設定する。
+
+        既存の値がある日記は上書きしない（証券CSVインポート時の自動設定と同じ方針）。
+        コードは対象日記の distinct 分だけまとめて1回で引く。
+        """
+        targets = list(
+            queryset.filter(sector='')
+            .exclude(stock_symbol='').exclude(stock_symbol__isnull=True)
+        )
+        company_sector_map = _build_company_sector_map(
+            d.stock_symbol for d in targets
+        )
+
+        updated = 0
+        for diary in targets:
+            sector = company_sector_map.get(diary.stock_symbol)
+            if sector:
+                diary.sector = sector
+                diary.save(update_fields=['sector'])
+                updated += 1
+
+        self.message_user(
+            request,
+            f'{updated}件の日記に業種を自動設定しました'
+            f'（業種未設定・銘柄コードありの対象{len(targets)}件中。'
+            f'CompanyMasterに該当コードが無いものはスキップ）。',
+            messages.SUCCESS
+        )
+    fill_missing_sectors.short_description = '選択した日記の業種未設定分をCompanyMasterから自動設定'
+
     def export_csv(self, request, queryset):
         """CSVエクスポート（簡易版）"""
         import csv

@@ -18,6 +18,7 @@ import pytest
 from stockdiary.models import StockDiary, Transaction
 from stockdiary.services.aggregate_service import AggregateService
 from stockdiary import views_trade_import
+from company_master.models import CompanyMaster
 
 
 RAKUTEN_CSV = """受渡日,銘柄コード,銘柄名,売買区分,取引区分,数量［株］,単価［円］
@@ -64,3 +65,64 @@ class TestRakutenImportAggregates:
         diary = StockDiary.objects.get(user=user, stock_symbol='7203')
         assert diary.current_quantity == Decimal('250')
         assert Transaction.objects.filter(diary=diary).count() == 3
+
+
+SBI_CSV = "\n".join([
+    'dummy1', 'dummy2', 'dummy3', 'dummy4', 'dummy5', 'dummy6', 'dummy7',
+    '受渡日,銘柄コード,銘柄,取引,市場,約定数量,約定単価',
+    '2024/01/10,7203,トヨタ自動車,現物買,東証,100,1000',
+])
+
+
+@pytest.mark.django_db
+class TestSectorAutoAssignFromCompanyMaster:
+    """証券CSVインポート時に業種（sector）を CompanyMaster から自動設定する（ユーザー要望）。
+
+    なぜこの実装か: 業種は本来 銘柄コードに紐づく値だが、参照のたびに
+    CompanyMaster を引くとコストがかかるため、インポート時（ファイル内の
+    distinct コードだけ1回）に StockDiary.sector へ書き込んで確定させる。
+    銘柄コードが CompanyMaster に無い場合は空のまま＝詳細画面から任意で設定できる。
+    """
+
+    def test_rakuten_sets_sector_from_company_master_on_create(self, user):
+        CompanyMaster.objects.create(code='7203', name='トヨタ自動車', industry_name_33='輸送用機器')
+
+        views_trade_import.process_rakuten_csv(user, RAKUTEN_CSV, 'rakuten.csv')
+
+        diary = StockDiary.objects.get(user=user, stock_symbol='7203')
+        assert diary.sector == '輸送用機器'
+
+    def test_rakuten_leaves_sector_blank_when_company_master_missing(self, user):
+        # CompanyMaster に該当コードが無い（未上場・未取得等）
+        views_trade_import.process_rakuten_csv(user, RAKUTEN_CSV, 'rakuten.csv')
+
+        diary = StockDiary.objects.get(user=user, stock_symbol='7203')
+        assert diary.sector == ''
+
+    def test_rakuten_backfills_sector_on_existing_diary_without_sector(self, user):
+        StockDiary.objects.create(user=user, stock_symbol='7203', stock_name='トヨタ自動車')
+        CompanyMaster.objects.create(code='7203', name='トヨタ自動車', industry_name_33='輸送用機器')
+
+        views_trade_import.process_rakuten_csv(user, RAKUTEN_CSV, 'rakuten.csv')
+
+        diary = StockDiary.objects.get(user=user, stock_symbol='7203')
+        assert diary.sector == '輸送用機器'
+
+    def test_rakuten_does_not_overwrite_manually_set_sector(self, user):
+        StockDiary.objects.create(
+            user=user, stock_symbol='7203', stock_name='トヨタ自動車', sector='自分で設定した業種'
+        )
+        CompanyMaster.objects.create(code='7203', name='トヨタ自動車', industry_name_33='輸送用機器')
+
+        views_trade_import.process_rakuten_csv(user, RAKUTEN_CSV, 'rakuten.csv')
+
+        diary = StockDiary.objects.get(user=user, stock_symbol='7203')
+        assert diary.sector == '自分で設定した業種'
+
+    def test_sbi_sets_sector_from_company_master_on_create(self, user):
+        CompanyMaster.objects.create(code='7203', name='トヨタ自動車', industry_name_33='輸送用機器')
+
+        views_trade_import.process_sbi_csv(user, SBI_CSV, 'sbi.csv')
+
+        diary = StockDiary.objects.get(user=user, stock_symbol='7203')
+        assert diary.sector == '輸送用機器'

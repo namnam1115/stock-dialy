@@ -27,6 +27,23 @@ from .forms import TradeUploadForm
 logger = logging.getLogger(__name__)
 
 
+def _build_company_sector_map(stock_codes):
+    """銘柄コード一覧から業種マップを1クエリで作る。
+
+    インポート行ごとに CompanyMaster を引くとコストが大きいため、
+    ファイル内の distinct なコードだけをまとめて1回で引く。
+    """
+    from company_master.models import CompanyMaster
+
+    codes = {code for code in stock_codes if code}
+    if not codes:
+        return {}
+    return {
+        c.code: c.industry_name_33 or c.industry_name_17 or ''
+        for c in CompanyMaster.objects.filter(code__in=codes)
+    }
+
+
 class TradeUploadView(LoginRequiredMixin, FormView):
     """取引履歴アップロードビュー"""
     template_name = 'stockdiary/trade_upload.html'
@@ -226,18 +243,23 @@ def process_rakuten_csv(user, csv_content, filename):
         return datetime.max
     
     all_rows.sort(key=lambda r: parse_date(r['data'].get('受渡日', '')))
-    
+
+    # 業種マップは行ごとではなく、ファイル内の distinct コードで1回だけ引く
+    company_sector_map = _build_company_sector_map(
+        r['data'].get('銘柄コード', '').strip() for r in all_rows
+    )
+
     for idx, row_data in enumerate(all_rows, start=1):
         row = row_data['data']
         original_row_num = row_data['original_row']
-        
+
         try:
             # 受渡日を取得
             trade_date_str = row.get('受渡日', '').strip()
             if not trade_date_str:
                 skip_count += 1
                 continue
-            
+
             # 日付をパース
             try:
                 trade_date = None
@@ -247,18 +269,18 @@ def process_rakuten_csv(user, csv_content, filename):
                         break
                     except ValueError:
                         continue
-                
+
                 if trade_date is None:
                     raise ValueError(f'日付形式が不正です: {trade_date_str}')
             except ValueError as e:
                 errors.append(f'行{original_row_num}: {str(e)}')
                 error_count += 1
                 continue
-            
+
             # 銘柄情報
             stock_code = row.get('銘柄コード', '').strip()
             stock_name = row.get('銘柄名', '').strip()
-            
+
             if not stock_code or not stock_name:
                 errors.append(f'行{original_row_num}: 銘柄コードまたは銘柄名が空です')
                 skip_count += 1
@@ -317,13 +339,18 @@ def process_rakuten_csv(user, csv_content, filename):
                 ).order_by('created_at').first()
                 
                 if not diary:
-                    # 存在しない場合は新規作成
+                    # 存在しない場合は新規作成（業種はコードから自動設定。銘柄コードが
+                    # CompanyMaster に無ければ空のまま＝詳細画面から任意で設定できる）
                     diary = StockDiary.objects.create(
                         user=user,
                         stock_symbol=stock_code,
                         stock_name=stock_name,
+                        sector=company_sector_map.get(stock_code, ''),
                         reason=f'楽天証券からインポート（{trade_date}）',
                     )
+                elif not diary.sector and company_sector_map.get(stock_code):
+                    diary.sector = company_sector_map[stock_code]
+                    diary.save(update_fields=['sector'])
 
                 # この行の save() による自動再集計を抑制する（末尾で1回だけ実行）。
                 diary._defer_recalc = True
@@ -649,18 +676,23 @@ def process_sbi_csv(user, csv_content, filename):
         return datetime.max
     
     all_rows.sort(key=lambda r: parse_date(r['data'].get('受渡日', '')))
-    
+
+    # 業種マップは行ごとではなく、ファイル内の distinct コードで1回だけ引く
+    company_sector_map = _build_company_sector_map(
+        r['data'].get('銘柄コード', '').strip() for r in all_rows
+    )
+
     for idx, row_data in enumerate(all_rows, start=1):
         row = row_data['data']
         original_row_num = row_data['original_row']
-        
+
         try:
             # 受渡日を取得
             trade_date_str = row.get('受渡日', '').strip()
             if not trade_date_str:
                 skip_count += 1
                 continue
-            
+
             # 日付をパース
             try:
                 trade_date = None
@@ -670,18 +702,18 @@ def process_sbi_csv(user, csv_content, filename):
                         break
                     except ValueError:
                         continue
-                
+
                 if trade_date is None:
                     raise ValueError(f'日付形式が不正です: {trade_date_str}')
             except ValueError as e:
                 errors.append(f'行{original_row_num}: {str(e)}')
                 error_count += 1
                 continue
-            
+
             # 銘柄情報
             stock_code = row.get('銘柄コード', '').strip()
             stock_name = row.get('銘柄', '').strip()
-            
+
             # 銘柄コードがない場合はスキップ（投資信託など）
             if not stock_code or not stock_name:
                 skip_count += 1
@@ -737,12 +769,18 @@ def process_sbi_csv(user, csv_content, filename):
                 ).order_by('created_at').first()
                 
                 if not diary:
+                    # 業種はコードから自動設定（CompanyMaster に無ければ空のまま＝
+                    # 詳細画面から任意で設定できる）
                     diary = StockDiary.objects.create(
                         user=user,
                         stock_symbol=stock_code,
                         stock_name=stock_name,
+                        sector=company_sector_map.get(stock_code, ''),
                         reason=f'SBI証券からインポート（{trade_date}）',
                     )
+                elif not diary.sector and company_sector_map.get(stock_code):
+                    diary.sector = company_sector_map[stock_code]
+                    diary.save(update_fields=['sector'])
 
                 # この行の save() による自動再集計を抑制する（末尾で1回だけ実行）。
                 diary._defer_recalc = True
