@@ -323,6 +323,7 @@ class TestGraphNeighbors:
     def test_unknown_node_returns_none(self, user):
         assert get_graph_neighbors(user, 'tag:999999') is None
         assert get_graph_neighbors(user, 'stock:NOPE') is None
+        assert get_graph_neighbors(user, 'sector:NOPE') is None
         assert get_graph_neighbors(user, 'garbage') is None
         assert get_graph_neighbors(user, '') is None
 
@@ -330,6 +331,38 @@ class TestGraphNeighbors:
         t = Tag.objects.create(user=another_user, name='半導体', axis='theme')
         d = _diary(another_user, '6758', 'ソニーG')
         d.tags.add(t)
-        # user からは other のタグ/銘柄は見えない
+        d.sector = '輸送用機器'
+        d.save()
+        # user からは other のタグ/銘柄/業種は見えない
         assert get_graph_neighbors(user, f'tag:{t.pk}') is None
         assert get_graph_neighbors(user, 'stock:6758') is None
+        assert get_graph_neighbors(user, 'sector:輸送用機器') is None
+
+    def test_sector_node_returns_its_stocks(self, user):
+        d1 = _diary(user, '6758', 'ソニーG', sector='電気機器')
+        d2 = _diary(user, '6752', 'パナソニック', sector='電気機器')
+        _diary(user, '7203', 'トヨタ自動車', sector='輸送用機器')
+
+        res = get_graph_neighbors(user, 'sector:電気機器')
+        assert res['node']['id'] == 'sector:電気機器'
+        assert res['node']['type'] == 'sector'
+        assert res['node']['label'] == '電気機器'
+        ids = {n['id'] for n in res['neighbors']}
+        assert ids == {'stock:6758', 'stock:6752'}
+        assert all(n['type'] == 'stock' for n in res['neighbors'])
+
+    def test_stock_node_includes_sector_neighbor(self, user):
+        t = Tag.objects.create(user=user, name='半導体', axis='theme')
+        d = _diary(user, '6758', 'ソニーG', sector='電気機器')
+        d.tags.add(t)
+
+        res = get_graph_neighbors(user, 'stock:6758')
+        ids = {n['id'] for n in res['neighbors']}
+        assert ids == {f'tag:{t.pk}', 'sector:電気機器'}
+
+    def test_stock_node_without_sector_has_no_sector_neighbor(self, user):
+        d = _diary(user, '6758', 'ソニーG')
+        assert d.sector == ''
+
+        res = get_graph_neighbors(user, 'stock:6758')
+        assert res['neighbors'] == []

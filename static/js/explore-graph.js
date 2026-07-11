@@ -1,5 +1,5 @@
 /* ドリルダウン探索グラフ（TG-DD）
- * 空から要素（タグ）を1つ選び、近傍APIで1段ずつ展開する。再タップで畳む（子孫も畳む）。
+ * 空から要素（タグ・業種）を1つ選び、近傍APIで1段ずつ展開する。再タップで畳む（子孫も畳む）。
  * 設計: docs/graph_drilldown_redesign.md
  */
 (function () {
@@ -10,6 +10,7 @@
     capital_policy: '#16a34a', macro: '#d97706', event: '#6b7280', custom: '#9333ea',
   };
   const STOCK_COLOR = '#10b981';
+  const SECTOR_COLOR = '#f59e0b';
 
   const cfg = window.EXG_CONFIG || {};
   const EXPLORE_ITEMS = JSON.parse(document.getElementById('exg-items-data').textContent || '[]');
@@ -142,10 +143,12 @@
   }
 
   // ---- 起点セット / リセット --------------------------------------------
-  // item: {id, type:'tag'|'stock', label, axis?, symbol?}。タグ・銘柄どちらからも開始できる。
+  // item: {id, type:'tag'|'sector'|'stock', label, axis?, symbol?}。タグ・業種・銘柄どちらからも開始できる。
   async function seed(item) {
     if (item.type === 'stock') {
       meta.set(item.id, { type: 'stock', label: item.label, axis: 'theme', symbol: item.symbol || null, detail_url: null });
+    } else if (item.type === 'sector') {
+      meta.set(item.id, { type: 'sector', label: item.label, axis: 'theme', symbol: null, detail_url: null });
     } else {
       meta.set(item.id, { type: 'tag', label: item.label, axis: item.axis || 'theme', symbol: null, detail_url: null });
     }
@@ -165,7 +168,7 @@
 
   // ---- パネル -----------------------------------------------------------
   function showPanel(d) {
-    panelKind.textContent = d.type === 'stock' ? '銘柄' : '要素（タグ）';
+    panelKind.textContent = d.type === 'stock' ? '銘柄' : (d.type === 'sector' ? '要素（業種）' : '要素（タグ）');
     panelName.textContent = (d.type === 'tag' ? '@' : '') + d.label;
     const isExp = expanded.has(d.id);
     panelHint.textContent = isExp ? 'タップで畳む' : 'タップで関連を展開';
@@ -180,7 +183,11 @@
   function hidePanel() { panelEl.classList.remove('open'); }
 
   // ---- 描画（増分・force） ----------------------------------------------
-  function nodeColor(d) { return d.type === 'stock' ? STOCK_COLOR : (AXIS_COLORS[d.axis] || AXIS_COLORS.theme); }
+  function nodeColor(d) {
+    if (d.type === 'stock') return STOCK_COLOR;
+    if (d.type === 'sector') return SECTOR_COLOR;
+    return AXIS_COLORS[d.axis] || AXIS_COLORS.theme;
+  }
   function nodeRadius(d) { return d.id === seedId ? 13 : (d.type === 'stock' ? 9 : 10); }
 
   function render() {
@@ -290,11 +297,13 @@
   function renderResults(q) {
     const query = q.trim().toLowerCase();
     if (!query) { resultsEl.classList.remove('open'); resultsEl.innerHTML = ''; return; }
-    // タグは名前、銘柄は名前＋コード（symbol）で部分一致。要素（タグ）を先に、銘柄を後に並べる。
+    // タグ・業種は名前、銘柄は名前＋コード（symbol）で部分一致。
+    // 要素（タグ）→ 要素（業種）→ 銘柄 の順に並べる。
+    const TYPE_RANK = { tag: 0, sector: 1, stock: 2 };
     const matches = EXPLORE_ITEMS.filter((it) =>
       it.label.toLowerCase().includes(query) ||
       (it.type === 'stock' && (it.symbol || '').toLowerCase().includes(query))
-    ).sort((a, b) => (a.type === b.type ? 0 : (a.type === 'tag' ? -1 : 1))).slice(0, 30);
+    ).sort((a, b) => TYPE_RANK[a.type] - TYPE_RANK[b.type]).slice(0, 30);
     activeIdx = -1;
     if (!matches.length) {
       resultsEl.innerHTML = '<div class="exg-res-empty">一致する要素・銘柄がありません</div>';
@@ -307,6 +316,13 @@
            <span class="exg-res-dot" style="background:${STOCK_COLOR};border-radius:3px;"></span>
            <span>${escapeHtml(it.label)}</span>
            <span style="margin-left:auto;font-size:12px;color:var(--t3);">${escapeHtml(it.symbol || '')}</span>
+         </div>`;
+      }
+      if (it.type === 'sector') {
+        return `<div class="exg-res" data-id="${it.id}" data-type="sector" data-label="${escapeHtml(it.label)}">
+           <span class="exg-res-dot" style="background:${SECTOR_COLOR};"></span>
+           <span>${escapeHtml(it.label)}</span>
+           <span style="margin-left:auto;font-size:12px;color:var(--t3);">業種</span>
          </div>`;
       }
       return `<div class="exg-res" data-id="${it.id}" data-type="tag" data-label="${escapeHtml(it.label)}" data-axis="${it.axis}">

@@ -677,11 +677,12 @@ def _explore_tag_neighbor(tag, rel) -> dict:
 def get_graph_neighbors(user, node_id: str):
     """ドリルダウン探索グラフで、1ノードの近傍を返す（オンデマンド展開用・TG-DD）。
 
-    node_id: 'tag:<pk>' または 'stock:<symbol>'。
+    node_id: 'tag:<pk>' または 'stock:<symbol>' または 'sector:<name>'。
     返り値: {'node': {...}, 'neighbors': [...]} ／ 見つからなければ None。
 
     - tag ノードの近傍 = 親タグ + 子タグ（`Tag.parent` 由来）+ そのタグの銘柄。
-    - stock ノードの近傍 = その銘柄（user の同一 symbol 日記群）に付いた全タグ。
+    - stock ノードの近傍 = その銘柄（user の同一 symbol 日記群）に付いた全タグ + 業種（設定があれば）。
+    - sector ノードの近傍 = その業種（`StockDiary.sector`）が設定された銘柄（distinct symbol）。
     - ノイズ除外は get_tag_graph_data と同方針（event/custom 軸・df > RELATED_NOISE_MAX）。
     設計: docs/graph_drilldown_redesign.md
     """
@@ -743,6 +744,29 @@ def get_graph_neighbors(user, node_id: str):
                 seen_tag_ids.add(tag.id)
                 if _explore_tag_visible(tag, RELATED_NOISE_MAX):
                     neighbors.append(_explore_tag_neighbor(tag, 'tag'))
+        sector_name = next((d.sector for d in diaries if (d.sector or '').strip()), '').strip()
+        if sector_name:
+            neighbors.append({'id': f'sector:{sector_name}', 'type': 'sector',
+                              'label': sector_name, 'rel': 'sector'})
+        return {'node': node, 'neighbors': neighbors}
+
+    if kind == 'sector':
+        name = raw
+        if not name:
+            return None
+        diaries = list(StockDiary.objects.filter(user=user, sector=name))
+        if not diaries:
+            return None
+        node = {'id': f'sector:{name}', 'type': 'sector', 'label': name}
+        neighbors = []
+        seen = {}
+        for d in diaries:
+            if not d.stock_symbol or d.stock_symbol in seen:
+                continue
+            seen[d.stock_symbol] = d.stock_name or d.stock_symbol
+        for symbol, name in seen.items():
+            neighbors.append({'id': f'stock:{symbol}', 'type': 'stock',
+                              'label': name, 'symbol': symbol, 'rel': 'sector'})
         return {'node': node, 'neighbors': neighbors}
 
     return None

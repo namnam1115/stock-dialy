@@ -78,14 +78,14 @@
 <div class="exg">
   <div class="exg-head">
     <div class="exg-title"><i class="bi bi-diagram-3-fill"></i>要素で探索</div>
-    <div class="exg-sub">要素（タグ）や銘柄を1つ選び、タップで関連する小要素・銘柄へ深掘りします。もう一度タップで畳みます。
+    <div class="exg-sub">要素（タグ・業種）や銘柄を1つ選び、タップで関連する小要素・銘柄へ深掘りします。もう一度タップで畳みます。
       <a href="{% url 'stockdiary:diary_graph' %}" class="exg-xlink"><i class="bi bi-diagram-3"></i>全体マップで見る →</a>
     </div>
   </div>
 
   <div class="exg-search">
     <i class="bi bi-search exg-search-ic"></i>
-    <input type="text" id="exgSearch" class="exg-search-in" placeholder="要素・銘柄を検索（例: 半導体 / 6758）…" autocomplete="off">
+    <input type="text" id="exgSearch" class="exg-search-in" placeholder="要素・業種・銘柄を検索（例: 半導体 / 6758）…" autocomplete="off">
     <div id="exgResults" class="exg-results"></div>
   </div>
 
@@ -94,7 +94,7 @@
     <svg id="exgSvg" class="exg-svg"></svg>
     <div id="exgEmpty" class="exg-empty">
       <i class="bi bi-diagram-3"></i>
-      <div>上の検索から要素（タグ）または銘柄を1つ選ぶと、ここに関連が広がります。</div>
+      <div>上の検索から要素（タグ・業種）または銘柄を1つ選ぶと、ここに関連が広がります。</div>
     </div>
     <div id="exgPanel" class="exg-panel">
       <div class="exg-panel-kind" id="exgPanelKind"></div>

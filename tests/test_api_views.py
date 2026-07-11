@@ -356,6 +356,32 @@ class TestGraphNeighborsAPI:
         assert data['node']['detail_url'].endswith(f'/{d.pk}/')
         assert {n['id'] for n in data['neighbors']} == {f'tag:{t.pk}'}
 
+    def test_sector_node_returns_stocks(self, authed_client, user):
+        StockDiary.objects.create(
+            user=user, stock_symbol='6758', stock_name='ソニーG', sector='電気機器'
+        )
+        StockDiary.objects.create(
+            user=user, stock_symbol='7203', stock_name='トヨタ自動車', sector='輸送用機器'
+        )
+
+        url = reverse('stockdiary:api_graph_neighbors')
+        resp = authed_client.get(url, {'node': 'sector:電気機器'})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data['node']['id'] == 'sector:電気機器'
+        assert {n['id'] for n in data['neighbors']} == {'stock:6758'}
+
+    def test_stock_node_includes_sector_neighbor(self, authed_client, user):
+        StockDiary.objects.create(
+            user=user, stock_symbol='6758', stock_name='ソニーG', sector='電気機器'
+        )
+
+        url = reverse('stockdiary:api_graph_neighbors')
+        resp = authed_client.get(url, {'node': 'stock:6758'})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert 'sector:電気機器' in {n['id'] for n in data['neighbors']}
+
     def test_unknown_node_returns_404(self, authed_client):
         url = reverse('stockdiary:api_graph_neighbors')
         resp = authed_client.get(url, {'node': 'stock:NOPE'})
@@ -405,6 +431,20 @@ class TestExploreGraphPage:
         ids = {i['id'] for i in items}
         assert f'tag:{theme.pk}' in ids
         assert f'tag:{evt.pk}' not in ids  # event 軸は入口に出さない
+
+    def test_entry_items_include_sectors(self, authed_client, user):
+        import json
+        import re
+        StockDiary.objects.create(
+            user=user, stock_symbol='6758', stock_name='ソニーG', sector='電気機器'
+        )
+
+        resp = authed_client.get(reverse('stockdiary:explore_graph'))
+        body = resp.content.decode()
+        items = json.loads(re.search(r'id="exg-items-data"[^>]*>(.*?)</script>', body, re.S).group(1))
+        ids = {i['id']: i for i in items}
+        assert ids['sector:電気機器']['type'] == 'sector'
+        assert ids['sector:電気機器']['label'] == '電気機器'
 
 
 # ---------------------------------------------------------------------------
