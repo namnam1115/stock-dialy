@@ -91,7 +91,16 @@ class StockDiary(models.Model):
     cash_only_total_sold_quantity = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='現物累計売却数')
     cash_only_total_buy_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='現物累計購入額')
     cash_only_total_sell_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='現物累計売却額')
-    
+
+    # 信用売り（ショート）建玉のみの集計フィールド。current_quantity（現物+信用ロング）
+    # とは別建てで持つ理由: 同一銘柄でロングとショートを同時に保有すると、符号付き
+    # 単一カウンタでは両者を区別できず、ショートの新規売りをロングの決済売りと
+    # 誤認してしまうため（詳細は AggregateService._recalculate_all のコメント）。
+    margin_short_quantity = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='信用売り建玉数')
+    margin_short_average_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='信用売り平均建単価')
+    margin_short_total_proceeds = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='信用売り建玉総代金')
+    margin_short_realized_profit = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='信用売り実現損益')
+
     # 日付情報
     first_purchase_date = models.DateField(null=True, blank=True, db_index=True, verbose_name='最初の購入日')
     last_transaction_date = models.DateField(null=True, blank=True, verbose_name='最後の取引日')
@@ -256,7 +265,11 @@ class Transaction(models.Model):
         ('buy', '購入'),
         ('sell', '売却'),
     ]
-    
+    MARGIN_ACTIONS = [
+        ('open', '新規'),
+        ('close', '返済'),
+    ]
+
     diary = models.ForeignKey(StockDiary, on_delete=models.CASCADE, related_name='transactions')
     transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES, verbose_name='取引種別')
     transaction_date = models.DateField(verbose_name='取引日', db_index=True)
@@ -264,6 +277,16 @@ class Transaction(models.Model):
     quantity = models.DecimalField(max_digits=15, decimal_places=2, verbose_name='数量')
     memo = models.TextField(blank=True, max_length=500, verbose_name='メモ')
     is_margin = models.BooleanField(default=False, verbose_name='信用取引')
+    # 信用取引の新規/返済区分。is_margin=True のときだけ意味を持つ。
+    # 「買い」「売り」だけでは新規建てと決済を区別できない
+    # （新規売建と返済売りはどちらも type='sell'）ため、この区別がないと
+    # 同一銘柄でロング・ショートを同時に保有した場合に集計が破綻する
+    # （docs化はせず、AggregateService._recalculate_all のdocstringに詳細）。
+    # CSV取込（証券会社の「取引区分」列）から設定する。手入力等で未設定
+    # （null）の場合は、集計側で状態依存のヒューリスティックにフォールバックする。
+    margin_action = models.CharField(
+        max_length=10, choices=MARGIN_ACTIONS, null=True, blank=True, verbose_name='信用建玉区分'
+    )
     
     # 取引時点の状態（参照用）
     quantity_after = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True, verbose_name='取引後保有数')

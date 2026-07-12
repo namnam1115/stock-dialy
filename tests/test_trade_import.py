@@ -126,3 +126,51 @@ class TestSectorAutoAssignFromCompanyMaster:
 
         diary = StockDiary.objects.get(user=user, stock_symbol='7203')
         assert diary.sector == '輸送用機器'
+
+
+RAKUTEN_MARGIN_CSV = """受渡日,銘柄コード,銘柄名,売買区分,取引区分,数量［株］,単価［円］
+2024/04/10,7011,三菱重工業,売建,信用新規,100,1356.70
+2024/04/10,7011,三菱重工業,買付,信用返済,100,1351.10
+"""
+
+SBI_MARGIN_CSV = "\n".join([
+    'dummy1', 'dummy2', 'dummy3', 'dummy4', 'dummy5', 'dummy6', 'dummy7',
+    '受渡日,銘柄コード,銘柄,取引,市場,約定数量,約定単価',
+    '2024/04/10,7011,三菱重工業,信用新規売,東証,100,1356.70',
+    '2024/04/10,7011,三菱重工業,信用返済買,東証,100,1351.10',
+])
+
+
+@pytest.mark.django_db
+class TestMarginActionParsedFromCsv:
+    """証券CSVの「新規/返済」を Transaction.margin_action へ取り込む回帰テスト。
+
+    なぜこのテストがあるか: 買い/売りだけでは信用の新規建てと決済を区別できず、
+    同一銘柄でロング・ショートを同時に保有すると集計が破綻する
+    （tests/test_margin_long_short_separation.py 参照）。CSV側の「取引区分」に
+    ある新規/返済の情報を確実に取り込めていることをここで固定する。
+    """
+
+    def test_rakuten_sets_margin_action_open_and_close(self, user):
+        views_trade_import.process_rakuten_csv(user, RAKUTEN_MARGIN_CSV, 'rakuten_margin.csv')
+
+        diary = StockDiary.objects.get(user=user, stock_symbol='7011')
+        open_tx = Transaction.objects.get(diary=diary, transaction_type='sell')
+        close_tx = Transaction.objects.get(diary=diary, transaction_type='buy')
+
+        assert open_tx.is_margin is True
+        assert open_tx.margin_action == 'open'
+        assert close_tx.is_margin is True
+        assert close_tx.margin_action == 'close'
+
+    def test_sbi_sets_margin_action_open_and_close(self, user):
+        views_trade_import.process_sbi_csv(user, SBI_MARGIN_CSV, 'sbi_margin.csv')
+
+        diary = StockDiary.objects.get(user=user, stock_symbol='7011')
+        open_tx = Transaction.objects.get(diary=diary, transaction_type='sell')
+        close_tx = Transaction.objects.get(diary=diary, transaction_type='buy')
+
+        assert open_tx.is_margin is True
+        assert open_tx.margin_action == 'open'
+        assert close_tx.is_margin is True
+        assert close_tx.margin_action == 'close'

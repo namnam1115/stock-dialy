@@ -57,17 +57,37 @@ class AggregateService:
 
     @staticmethod
     def _recalculate_all(diary):
-        """全取引（信用含む）の集計を diary フィールドに書き込む。save() は呼ばない。"""
-        # 同日内は 'buy' < 'sell'（辞書順）を使い、買いを先に処理する。
-        # 証券会社CSVの受渡日は同日内の実際の約定順を保証しないため（例: 信用の
-        # 返済取引が新規建て取引より先に並ぶ実例が確認済み）、created_at
-        # （＝取込のファイル行順）だけに頼ると FIFO/移動平均の状態機械が
-        # 建玉の新規/決済を取り違える。現物取引や同一方向の日計り取引では
-        # 買い→売りの順が常に正しいため、このタイブレークで解消する
-        # （信用の異方向・同日複数ラウンドトリップは対象外。要 建玉単位の追跡）。
-        transactions = diary.transactions.all().order_by(
-            'transaction_date', 'transaction_type', 'created_at'
-        )
+        """全取引（信用含む）の集計を diary フィールドに書き込む。save() は呼ばない。
+
+        current_quantity/total_cost/realized_profit（信用ショート用フィールドを
+        除く既存フィールド）は現物＋信用ロングを1本の状態機械で追跡する（従来通り）。
+
+        信用ショート（新規売り→返済買い）は margin_short_* に完全に別建てで
+        追跡する。理由: 符号付き単一カウンタでは「ロングを保有しながら同じ
+        銘柄でショートも建てる」を表現できない。例えば current_quantity=+100
+        （ロング保有中）の状態で新規に信用売りをすると、それが「新規のショート
+        建て」なのか「ロングの決済売り」なのかは transaction_type（buy/sell）
+        と is_margin だけでは判別できず、誤ってロングの決済として処理してしまう。
+
+        新規/返済の判定は Transaction.margin_action（証券CSV取込が「取引区分」
+        列から設定）を優先する。手入力等で margin_action が未設定（null）の
+        場合のみ、状態依存のヒューリスティック（保有中なら決済・保有していな
+        ければ新規）にフォールバックする。フォールバックは同一銘柄のロング・
+        ショートを同時に持たない単純なケースでのみ正しく動作する
+        （手入力でロング・ショートを同時に持つケースは margin_action が
+        無いと原理的に判別不能なため対象外）。
+
+        同日内の処理順序: margin_action が既知なら「新規→返済」、未知なら
+        「買い→売り」をタイブレークに使う（証券会社CSVの受渡日は同日内の
+        実際の約定順を保証しないため）。
+        """
+        def _rank(t):
+            if t.is_margin and t.margin_action:
+                return 0 if t.margin_action == 'open' else 1
+            return 0 if t.transaction_type == 'buy' else 1
+
+        transactions = list(diary.transactions.all().order_by('transaction_date', 'created_at'))
+        transactions.sort(key=lambda t: (t.transaction_date, _rank(t)))
 
         diary.current_quantity = Decimal('0')
         diary.total_cost = Decimal('0')
@@ -81,6 +101,10 @@ class AggregateService:
         diary.last_transaction_date = None
         diary.average_purchase_price = None
 
+        margin_short_quantity = Decimal('0')
+        margin_short_proceeds = Decimal('0')
+        margin_short_realized_profit = Decimal('0')
+
         logger.debug("集計開始: %s (%s)", diary.stock_name, diary.stock_symbol)
 
         for idx, transaction in enumerate(transactions, 1):
@@ -88,11 +112,69 @@ class AggregateService:
             adjusted_price = transaction.price
             before_qty = diary.current_quantity
 
-            if transaction.transaction_type == 'buy':
+            is_short_open = (
+                transaction.is_margin and transaction.transaction_type == 'sell' and (
+                    transaction.margin_action == 'open'
+                    or (transaction.margin_action is None and diary.current_quantity <= 0)
+                )
+            )
+            is_short_close = (
+                transaction.is_margin and transaction.transaction_type == 'buy' and (
+                    transaction.margin_action == 'close'
+                    or (transaction.margin_action is None and margin_short_quantity > 0)
+                )
+            )
+
+            if is_short_close:
+                # 信用売り建玉の返済買い（ロング用カウンタとは別建てで処理）
+                close_quantity = min(adjusted_quantity, margin_short_quantity) if margin_short_quantity > 0 else Decimal('0')
+                if close_quantity > 0:
+                    avg_short_price = margin_short_proceeds / margin_short_quantity
+                    returned_proceeds = avg_short_price * close_quantity
+                    buy_cost = adjusted_price * close_quantity
+                    profit = returned_proceeds - buy_cost
+                    margin_short_realized_profit += profit
+                    margin_short_proceeds -= returned_proceeds
+                    margin_short_quantity -= close_quantity
+
+                    logger.debug(
+                        "%d. %s 信用返済買い %s株 @ %s円 (平均建単価: %.2f円) 損益: %+,.2f円",
+                        idx, transaction.transaction_date, close_quantity,
+                        adjusted_price, avg_short_price, profit,
+                    )
+
+                remaining_quantity = adjusted_quantity - close_quantity
+                if remaining_quantity > 0:
+                    # 決済数量が建玉を上回った分は新規の買い（現物/信用ロング）として計上する
+                    diary.total_cost += adjusted_price * remaining_quantity
+                    diary.current_quantity += remaining_quantity
+                    if diary.first_purchase_date is None:
+                        diary.first_purchase_date = transaction.transaction_date
+
+                diary.total_bought_quantity += adjusted_quantity
+                diary.total_buy_amount += adjusted_price * adjusted_quantity
+
+            elif is_short_open:
+                # 信用の新規売り建て（ロング用カウンタとは別建てで処理）
+                margin_short_quantity += adjusted_quantity
+                margin_short_proceeds += adjusted_price * adjusted_quantity
+
+                logger.debug(
+                    "%d. %s 信用新規売り %s株 @ %s円 → 建玉: %s",
+                    idx, transaction.transaction_date, adjusted_quantity,
+                    adjusted_price, margin_short_quantity,
+                )
+
+                diary.total_sold_quantity += adjusted_quantity
+                diary.total_sell_amount += adjusted_price * adjusted_quantity
+
+            elif transaction.transaction_type == 'buy':
                 buy_amount = adjusted_price * adjusted_quantity
 
                 if diary.current_quantity < 0:
-                    # 信用売りの返済買い
+                    # 現物のオーバーセル等、既存の負のポジションに対する買い戻し
+                    # （信用ショートは上の is_short_close で別建て処理されるため、
+                    # ここに来るのは is_margin=False の想定外ケースのみ）
                     returned_quantity = min(adjusted_quantity, abs(diary.current_quantity))
 
                     if diary.total_cost < 0:
@@ -155,11 +237,13 @@ class AggregateService:
 
                     remaining_quantity = adjusted_quantity - sold_quantity
                     if remaining_quantity > 0:
+                        # is_margin=False の想定外オーバーセルのみここに来る
+                        # （信用ショートは is_short_open で別建て処理される）
                         diary.current_quantity -= remaining_quantity
                         diary.total_cost -= adjusted_price * remaining_quantity
 
                         logger.debug(
-                            "    ↳ 信用売り %s株 → 保有: %s",
+                            "    ↳ オーバーセル %s株 → 保有: %s",
                             remaining_quantity, diary.current_quantity,
                         )
                 else:
@@ -198,10 +282,23 @@ class AggregateService:
             Decimal('0.01'), rounding=ROUND_HALF_UP
         )
 
+        margin_short_quantity = margin_short_quantity.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        diary.margin_short_quantity = margin_short_quantity
+        diary.margin_short_total_proceeds = margin_short_proceeds.quantize(
+            Decimal('0.01'), rounding=ROUND_HALF_UP
+        )
+        diary.margin_short_realized_profit = margin_short_realized_profit.quantize(
+            Decimal('0.01'), rounding=ROUND_HALF_UP
+        )
+        diary.margin_short_average_price = (
+            (margin_short_proceeds / margin_short_quantity).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            if margin_short_quantity > 0 else None
+        )
+
         logger.debug(
-            "集計完了: 保有数=%s, 購入計=%s, 売却計=%s, 実現損益=%s",
+            "集計完了: 保有数=%s, 購入計=%s, 売却計=%s, 実現損益=%s, 信用ショート建玉=%s",
             diary.current_quantity, diary.total_bought_quantity,
-            diary.total_sold_quantity, diary.realized_profit,
+            diary.total_sold_quantity, diary.realized_profit, diary.margin_short_quantity,
         )
 
     @staticmethod
