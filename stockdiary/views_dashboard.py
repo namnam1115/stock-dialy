@@ -177,21 +177,27 @@ class TradingDashboardView(LoginRequiredMixin, TemplateView):
         total_cash_invested = Decimal('0')  # 総投資額（現物のみ）
         total_cash_sell_amount = Decimal('0')  # 総売却額（現物のみ）
         total_current_value = Decimal('0')  # 現在の評価額
-        
+        total_realized_profit = Decimal('0')  # 実現損益（日記ごとのFIFO計算値を合算）
+
         for diary in diaries_in_period:
             # ✅ 現物取引のみの統計を取得
             cash_stats = diary.calculate_cash_only_stats()
-            
+
             # 現物取引の数をカウント
             cash_transaction_count = period_transactions.filter(diary=diary).count()
             total_transactions += cash_transaction_count
-            
+
             # 総投資額（購入総額）
             total_cash_invested += cash_stats['total_buy_amount']
-            
+
             # 総売却額
             total_cash_sell_amount += cash_stats['total_sell_amount']
-            
+
+            # 実現損益（日記が個別に保持するFIFO/移動平均計算済みの値をそのまま合算する。
+            # 「総売却額－簿価減少分」で逆算すると、総売却額と簿価計算の前提が崩れた
+            # ときに大きくズレるため使わない）
+            total_realized_profit += cash_stats['realized_profit'] or Decimal('0')
+
             # 現在の評価額（保有数 × 平均取得単価）
             if cash_stats['current_quantity'] > 0 and cash_stats['average_purchase_price']:
                 current_value = cash_stats['current_quantity'] * cash_stats['average_purchase_price']
@@ -199,13 +205,10 @@ class TradingDashboardView(LoginRequiredMixin, TemplateView):
 
         # ✅ ROI = (売却総額 + 評価額 - 総投資額) / 総投資額 × 100
         if total_cash_invested > 0:
-            total_roi = ((total_cash_sell_amount + total_current_value - total_cash_invested) 
+            total_roi = ((total_cash_sell_amount + total_current_value - total_cash_invested)
                         / total_cash_invested * 100)
         else:
             total_roi = Decimal('0')
-
-        # 実現損益
-        total_realized_profit = total_cash_sell_amount - (total_cash_invested - total_current_value)
 
         # 保有中銘柄数（現物のみ）
         holding_count = 0
