@@ -134,8 +134,10 @@ function renderStockDiaryList(diaries, stockCode, stockName) {
         totalRoi = ((totalSell + totalCurrentValue - totalInvested) / totalInvested * 100);
     }
 
-    // 実現損益
-    let realizedProfit = totalSell - (totalInvested - totalCurrentValue);
+    // 実現損益: 「総売却額－簿価減少分」の逆算ではなく、各日記が保持する
+    // FIFO/移動平均計算済みの realized_profit をそのまま合算する
+    // （逆算式は総売却額と簿価計算の前提が崩れると大きくズレるため使わない）
+    let realizedProfit = diaries.reduce((sum, d) => sum + (d.realized_profit || 0), 0);
     
     const roiClass = totalRoi >= 0 ? 'highlight-positive' : 'highlight-negative';
     const profitClass = realizedProfit >= 0 ? 'highlight-positive' : 'highlight-negative';

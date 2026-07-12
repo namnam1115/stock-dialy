@@ -58,7 +58,16 @@ class AggregateService:
     @staticmethod
     def _recalculate_all(diary):
         """全取引（信用含む）の集計を diary フィールドに書き込む。save() は呼ばない。"""
-        transactions = diary.transactions.all().order_by('transaction_date', 'created_at')
+        # 同日内は 'buy' < 'sell'（辞書順）を使い、買いを先に処理する。
+        # 証券会社CSVの受渡日は同日内の実際の約定順を保証しないため（例: 信用の
+        # 返済取引が新規建て取引より先に並ぶ実例が確認済み）、created_at
+        # （＝取込のファイル行順）だけに頼ると FIFO/移動平均の状態機械が
+        # 建玉の新規/決済を取り違える。現物取引や同一方向の日計り取引では
+        # 買い→売りの順が常に正しいため、このタイブレークで解消する
+        # （信用の異方向・同日複数ラウンドトリップは対象外。要 建玉単位の追跡）。
+        transactions = diary.transactions.all().order_by(
+            'transaction_date', 'transaction_type', 'created_at'
+        )
 
         diary.current_quantity = Decimal('0')
         diary.total_cost = Decimal('0')
@@ -198,9 +207,12 @@ class AggregateService:
     @staticmethod
     def _recalculate_cash_only(diary):
         """現物取引（is_margin=False）のみの集計を diary フィールドに書き込む。save() は呼ばない。"""
+        # 同日内は 'buy' < 'sell'（辞書順）で買いを先に処理する（詳細は _recalculate_all 参照）。
+        # 現物は空売りができないため、このタイブレークだけで同日ラウンドトリップの
+        # 取り違え（保有数超の売却扱い）を確実に解消できる。
         cash_transactions = diary.transactions.filter(
             is_margin=False
-        ).order_by('transaction_date', 'created_at')
+        ).order_by('transaction_date', 'transaction_type', 'created_at')
 
         cash_quantity = Decimal('0')
         cash_cost = Decimal('0')
