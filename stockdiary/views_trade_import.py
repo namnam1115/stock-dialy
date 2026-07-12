@@ -292,7 +292,18 @@ def process_rakuten_csv(user, csv_content, filename):
             
             # ✅ 信用取引かどうかを判定
             is_margin_trade = '信用' in trade_category
-            
+
+            # ✅ 信用の新規/返済区分（現物なら None のまま）。
+            # 買い/売りだけでは新規建てと決済を区別できず、同一銘柄でロング・
+            # ショートを同時に持つと集計が破綻するため、CSVの取引区分から
+            # 明示的に取得する（詳細: aggregate_service.py の _recalculate_all）。
+            margin_action = None
+            if is_margin_trade:
+                if '新規' in trade_category:
+                    margin_action = 'open'
+                elif '返済' in trade_category:
+                    margin_action = 'close'
+
             # 売買区分を変換
             if '買' in trade_type_raw or '積立' in trade_type_raw:
                 transaction_type = 'buy'
@@ -377,6 +388,7 @@ def process_rakuten_csv(user, csv_content, filename):
                     existing_transaction.price = price
                     existing_transaction.memo = memo_content
                     existing_transaction.is_margin = is_margin_trade  # ✅ 信用取引フラグを更新
+                    existing_transaction.margin_action = margin_action
                     existing_transaction.save()
                     overwrite_count += 1
 
@@ -389,7 +401,8 @@ def process_rakuten_csv(user, csv_content, filename):
                         price=price,
                         quantity=quantity,
                         memo=memo_content,
-                        is_margin=is_margin_trade  # ✅ 信用取引フラグを設定
+                        is_margin=is_margin_trade,  # ✅ 信用取引フラグを設定
+                        margin_action=margin_action,
                     )
 
                     transaction_obj.save()
@@ -725,7 +738,16 @@ def process_sbi_csv(user, csv_content, filename):
             
             # ✅ 信用取引かどうかを判定
             is_margin_trade = '信用' in trade_type_raw
-            
+
+            # ✅ 信用の新規/返済区分（現物なら None のまま）。詳細は楽天側の
+            # 同種コメント、または aggregate_service.py の _recalculate_all を参照。
+            margin_action = None
+            if is_margin_trade:
+                if '新規' in trade_type_raw:
+                    margin_action = 'open'
+                elif '返済' in trade_type_raw:
+                    margin_action = 'close'
+
             # 売買区分を変換
             if '買' in trade_type_raw:
                 transaction_type = 'buy'
@@ -810,6 +832,7 @@ def process_sbi_csv(user, csv_content, filename):
                     existing_transaction.price = price
                     existing_transaction.memo = memo_content
                     existing_transaction.is_margin = is_margin_trade  # ✅ 信用取引フラグを更新
+                    existing_transaction.margin_action = margin_action
                     existing_transaction.save()
                     overwrite_count += 1
                 else:
@@ -821,7 +844,8 @@ def process_sbi_csv(user, csv_content, filename):
                         price=price,
                         quantity=quantity,
                         memo=memo_content,
-                        is_margin=is_margin_trade  # ✅ 信用取引フラグを設定
+                        is_margin=is_margin_trade,  # ✅ 信用取引フラグを設定
+                        margin_action=margin_action,
                     )
                     transaction_obj.save()
                     success_count += 1
