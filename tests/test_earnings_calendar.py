@@ -213,8 +213,7 @@ def test_sync_replaces_future_keeps_past(settings):
         'source_updated_at': '',
     }]
     with patch.object(EarningsCalendarAPIService, 'fetch_window', return_value=new_items):
-        # 予想分は別テストで検証。ここは確定分の洗い替えのみを見る。
-        saved = sync.sync_earnings_calendar(days=90, with_estimates=False)
+        saved = sync.sync_earnings_calendar(days=90)
 
     assert saved == 1
     codes = set(EarningsSchedule.objects.values_list('securities_code', flat=True))
@@ -244,7 +243,7 @@ def test_sync_base_date_controls_window_and_cutoff(settings):
         return []
 
     with patch.object(EarningsCalendarAPIService, 'fetch_window', fake_fetch):
-        sync.sync_earnings_calendar(days=30, base_date=base, with_estimates=False)
+        sync.sync_earnings_calendar(days=30, base_date=base)
 
     assert captured == {'days': 30, 'start': base}  # 起点が base に渡る
     codes = set(EarningsSchedule.objects.values_list('securities_code', flat=True))

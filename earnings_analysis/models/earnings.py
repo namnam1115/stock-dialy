@@ -27,9 +27,9 @@ class EarningsSchedule(models.Model):
     )
     company_name = models.CharField('企業名', max_length=255, blank=True)
     earnings_date = models.DateField('決算予定日', db_index=True)
-    # 予想日(estimated)か確定日(confirmed)か。将来分の多くは会計年度末から
-    # 四半期末＋約43日で自前算出した予想（earnings_calendar_estimate）で数日ずれる。
-    # 既定は True（＝予想）とし、提供元APIの確定発表日が取れたときだけ False。
+    # 予想日(estimated)か確定日(confirmed)か。提供元APIが確定発表日
+    # （announcementDate）を返せば False、予測日（estimatedAnnouncementDate）
+    # のみ返す場合は True。自前算出（計算）による予定日は設定しない。
     is_estimated = models.BooleanField('予想日フラグ', default=True, db_index=True)
     # 本決算・第1四半期・第2四半期 など。APIの値をそのまま保持する。
     earnings_type = models.CharField('決算種別', max_length=50, blank=True)
