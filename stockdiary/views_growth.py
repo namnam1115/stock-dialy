@@ -109,6 +109,15 @@ class LibraryView(LoginRequiredMixin, TemplateView):
     """
     template_name = 'stockdiary/library.html'
 
+    def get_template_names(self):
+        is_htmx = (
+            self.request.headers.get('HX-Request') == 'true'
+            or self.request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        )
+        if is_htmx:
+            return ['stockdiary/partials/library_content.html']
+        return [self.template_name]
+
     def get_context_data(self, **kwargs):
         from django.db.models import Count, Q as _Q
         from tags.models import Tag

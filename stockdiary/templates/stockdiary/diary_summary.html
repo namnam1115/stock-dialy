@@ -9,22 +9,34 @@
 
 .ds-page { max-width: 42em; margin: 0 auto; padding: 0 1rem 4rem; }
 
-/* ヘッダー */
+/* ヘッダー：タイトルを主役にし、件数は静かな補助バッジへ */
 .ds-header {
-  display: flex; align-items: baseline; justify-content: space-between;
-  margin: 1.5rem 0 1.25rem; gap: 0.75rem;
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 1.75rem 0 1.5rem; gap: 0.75rem;
 }
 .ds-title {
-  font-size: 1.0625rem; font-weight: 700; color: var(--ink);
-  display: flex; align-items: center; gap: 0.45rem;
+  font-size: 1.375rem; font-weight: 700; color: var(--ink);
+  letter-spacing: -0.01em;
+  display: flex; align-items: center; gap: 0.5rem;
 }
-.ds-total { font-size: 0.75rem; color: var(--faint-ink); font-weight: 400; }
+.ds-title i { font-size: 0.85em; color: var(--muted-ink); }
+.ds-total {
+  font-size: 0.75rem; font-weight: 600; color: var(--muted-ink);
+  background: var(--paper-sunken); border: 1px solid var(--hairline);
+  border-radius: 999px; padding: 0.15rem 0.55rem;
+  font-variant-numeric: tabular-nums;
+}
 
-/* 検索バー */
+/* 検索バー：タップしやすい高さ＋フォーカス時に静かなリングを出す */
 .ds-search {
-  display: flex; align-items: center; gap: 0.5rem; height: 40px;
+  display: flex; align-items: center; gap: 0.55rem; height: 44px;
   background: var(--paper-raised); border: 1px solid var(--hairline);
-  border-radius: var(--radius-md); padding: 0 0.75rem; margin-bottom: 1rem;
+  border-radius: var(--radius-md); padding: 0 0.85rem; margin-bottom: 1.25rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.ds-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
 }
 .ds-search i { color: var(--faint-ink); font-size: 0.9em; flex-shrink: 0; }
 .ds-search input {
@@ -153,45 +165,69 @@
 
 /* 銘柄テーブルビュー */
 .ds-symbol-table {
-  width: 100%; border-collapse: collapse; margin-top: 0.5rem;
+  width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 0.65rem;
 }
+/* 列幅を固定し、銘柄名だけが可変幅で残りを取る（table-layout:fixed の前提）。
+   これにより長い銘柄名を折り返さず1行で省略でき、行の高さが常に揃う。
+   数値/バッジ列は%でなくpx固定（数字の桁数は画面幅で変わらないため、
+   コンテナ幅に応じて伸縮する%だと狭い画面でバッジが折り返せず溢れる）。
+   損益バッジは "+" コンマ区切り「円」を含み、句読点のない文字列は改行できず
+   はみ出すため、7桁の損益でも収まる余裕を持たせる。 */
+.ds-symbol-table col.ds-col-name { width: auto; }
+.ds-symbol-table col.ds-col-num  { width: 46px; }
+.ds-symbol-table col.ds-col-pnl  { width: 120px; }
+
 .ds-symbol-table th {
-  font-size: 0.7rem; font-weight: 600; color: var(--faint-ink);
-  letter-spacing: 0.04em; padding: 0.4rem 0.5rem 0.4rem 0;
+  font-size: 0.7rem; font-weight: 600; color: var(--muted-ink);
+  letter-spacing: 0.04em; padding: 0.5rem 0.5rem 0.5rem 0;
   border-bottom: 1px solid var(--hairline); text-align: left;
   white-space: nowrap;
 }
-.ds-symbol-table th:not(:first-child) { text-align: center; }
 .ds-symbol-table td {
-  padding: 0.6rem 0.5rem 0.6rem 0;
+  padding: 0.75rem 0.5rem 0.75rem 0;
   border-top: 1px solid var(--hairline-soft);
   font-size: 0.875rem; color: var(--ink);
   vertical-align: middle;
 }
 .ds-symbol-table tbody tr { cursor: pointer; }
 .ds-symbol-table tbody tr:hover td { background: var(--paper-sunken); }
-.ds-symbol-table td:not(:first-child) { text-align: center; }
-/* 数値列は右寄せ・等幅で対比しやすく */
+/* 数値列はヘッダーもセルも右寄せで揃える（左右で基準がズレると走査しづらい）。
+   記録/取引は補助情報として控えめに、損益・的中だけが視線を引くようにする。 */
 .ds-symbol-table th.num, .ds-symbol-table td.num {
   text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;
 }
-/* 損益・的中は共通バッジ（components.css の .badge / _profit_display）を使用。
-   セル内では等幅で右寄せに整え、未確定値はミュート表示にする。 */
+.ds-symbol-table td.num.ds-col-secondary { color: var(--muted-ink); }
 .ds-symbol-table td.num .badge { font-variant-numeric: tabular-nums; }
 .ds-num-empty { color: var(--faint-ink); }
 
-/* 銘柄テーブルのソート軸 */
+/* 銘柄名セル：ドット＋名前＋コードを1行に固定し、はみ出す名前は省略記号にする
+   （折り返すと行高がバラつき、CJKは単語境界なく途中で割れて読みにくくなるため）。 */
+.ds-table-name-wrap {
+  display: flex; align-items: center; gap: 0.5rem; min-width: 0;
+}
+.ds-table-name {
+  font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+}
+
+/* 銘柄テーブルのソート軸：6個並ぶと2行に折り返して間延びするため、
+   ds-lenses と同じ「横スクロール1行」に統一する（コンポーネントの一貫性）。 */
 .ds-table-sort {
-  display: flex; gap: 0.3rem; flex-wrap: wrap;
-  margin: 0.75rem 0 0.25rem;
+  display: flex; gap: 0.4rem; flex-wrap: nowrap;
+  margin: 0.85rem 0 0.35rem;
+  overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
 }
+.ds-table-sort::-webkit-scrollbar { display: none; }
 .ds-tsort {
-  font-size: 0.72rem; color: var(--muted-ink); text-decoration: none;
-  padding: 0.2rem 0.55rem; border-radius: 999px;
+  flex-shrink: 0;
+  font-size: 0.75rem; font-weight: 500; color: var(--muted-ink); text-decoration: none;
+  padding: 0.35rem 0.75rem; border-radius: 999px;
   border: 1px solid var(--hairline); white-space: nowrap;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
+.ds-tsort:hover { color: var(--ink); border-color: var(--muted-ink); }
 .ds-tsort.is-active {
-  color: var(--paper); background: var(--ink); border-color: var(--ink);
+  color: var(--paper); background: var(--ink); border-color: var(--ink); font-weight: 600;
 }
 
 /* 空状態 */
@@ -200,21 +236,49 @@
 }
 .ds-empty i { font-size: 2.5rem; color: var(--hairline); display: block; margin-bottom: 0.75rem; }
 
-/* ビュー切り替えボタン（カード/銘柄） */
+/* ビュー切り替えボタン（リスト/銘柄別）：セグメントコントロール */
 .ds-view-toggle {
-  display: flex; gap: 0; border: 1px solid var(--hairline);
-  border-radius: var(--radius-sm); overflow: hidden;
+  display: flex; gap: 0; background: var(--paper-sunken);
+  border: 1px solid var(--hairline); border-radius: var(--radius-md);
+  padding: 0.15rem;
 }
 .ds-view-btn {
-  font-size: 0.75rem; font-weight: 500; cursor: pointer;
-  border: none; padding: 0.25rem 0.65rem;
-  background: var(--paper-raised); color: var(--muted-ink);
+  font-size: 0.8125rem; font-weight: 500; cursor: pointer;
+  border: none; border-radius: calc(var(--radius-md) - 0.15rem);
+  padding: 0.35rem 0.85rem;
+  background: transparent; color: var(--muted-ink);
+  transition: background 0.15s ease, color 0.15s ease;
 }
-.ds-view-btn.is-active { background: var(--ink); color: var(--paper); }
+.ds-view-btn.is-active {
+  background: var(--paper-raised); color: var(--ink); font-weight: 600;
+  box-shadow: var(--shadow-xs);
+}
 
 @media (max-width: 480px) {
   .ds-page { padding: 0 0.75rem 4rem; }
   .ds-row-name { font-size: 0.9375rem; }
+  /* 5列を保ったまま余白だけ詰めて情報量を減らさずに収める */
+  .ds-symbol-table th, .ds-symbol-table td { padding-right: 0.3rem; }
+  .ds-symbol-table col.ds-col-num { width: 38px; }
+  .ds-symbol-table col.ds-col-pnl { width: 104px; }
+  .ds-table-name-wrap { gap: 0.35rem; }
+  .ds-row-code { font-size: 0.6rem; }
+}
+
+/* ヘッダー右端（リスト/銘柄別 の ds-view-toggle）と右上固定メニューの重なり防止。
+   常時 fixed 表示の右上ハンバーガーメニュー（.floating-nav-button、base.html、
+   top:15px/right:15px、幅は991px以下でラベル付き約110.9px、380px以下はアイコンのみ
+   40px）が、ページ最上部にある ds-header の右端（トグル）と実座標で重なる。
+   最初 detail-page.css の action-bar と同じ padding-right 確保を試みたが、
+   ds-title・ds-view-btn には white-space:nowrap がなく、確保した分だけ横幅が
+   減った結果、文字自体が1文字単位で折り返る事故になった（「記録」→「記」「録」等）。
+   action-bar は中身がアイコンボタンで nowrap 前提だったため通用したが、ここは
+   日本語テキストを含むため通用しない。ここでは横に押し込まず、画面が狭いときは
+   トグルをタイトル行の下に完全に改行させ、右上の重なり自体を発生させない方針にする。 */
+.ds-title, .ds-view-btn { white-space: nowrap; }
+@media (max-width: 640px) {
+  .ds-header { flex-wrap: wrap; }
+  .ds-view-toggle { flex-basis: 100%; margin-top: 0.65rem; }
 }
 </style>
 {% endblock %}
@@ -318,6 +382,13 @@
     </div>
 
     <table class="ds-symbol-table">
+      <colgroup>
+        <col class="ds-col-name">
+        <col class="ds-col-num">
+        <col class="ds-col-num">
+        <col class="ds-col-pnl">
+        <col class="ds-col-num">
+      </colgroup>
       <thead>
         <tr>
           <th>銘柄</th>
@@ -331,14 +402,14 @@
         {% for stock in table_list %}
         <tr onclick="location.href='{% if stock.diary_id %}{% url 'stockdiary:detail' pk=stock.diary_id %}{% else %}{% url 'stockdiary:home' %}?query={{ stock.symbol }}{% endif %}'">
           <td>
-            <span style="display:flex;align-items:center;gap:0.5rem;">
+            <span class="ds-table-name-wrap">
               <span class="ds-row-dot ds-row-dot--{{ stock.state }}" title="{% if stock.state == 'due' %}検証待ち{% elif stock.state == 'live' %}保有中{% else %}終了{% endif %}"></span>
-              <span style="font-weight:600;">{{ stock.name }}</span>
+              <span class="ds-table-name">{{ stock.name }}</span>
               <span class="ds-row-code">{{ stock.symbol }}</span>
             </span>
           </td>
-          <td class="num">{{ stock.record_count|intcomma }}</td>
-          <td class="num">{{ stock.txn_count|intcomma }}</td>
+          <td class="num ds-col-secondary">{{ stock.record_count|intcomma }}</td>
+          <td class="num ds-col-secondary">{{ stock.txn_count|intcomma }}</td>
           <td class="num">
             {% if stock.realized_profit != 0 %}
               {% include "stockdiary/components/_profit_display.html" with profit=stock.realized_profit style="badge" size="sm" show_icon=False decimals=0 %}

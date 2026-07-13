@@ -26,7 +26,12 @@
 /* 検索入口 */
 .exg-search{position:relative;max-width:520px;margin:0 auto 12px}
 .exg-search-in{width:100%;height:46px;border:1.5px solid var(--line);border-radius:14px;background:var(--bg-200);
-  color:var(--t1);font-size:15px;padding:0 16px 0 44px;font-family:inherit;transition:all .18s}
+  color:var(--t1);font-size:15px;padding:0 16px 0 44px;font-family:inherit;transition:all .18s;
+  text-overflow:ellipsis}
+/* placeholder が狭い画面で入り切らないと途中でハードに切れる（末尾が「67」等
+   中途半端に見える）。input の text-overflow は placeholder にも継承されるが
+   念のため明示指定する。 */
+.exg-search-in::placeholder{text-overflow:ellipsis}
 .exg-search-in:focus{outline:none;border-color:var(--accent);background:var(--bg-100);box-shadow:0 0 0 4px rgba(0,102,140,.1)}
 .exg-search-ic{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--t3)}
 .exg-results{position:absolute;left:0;right:0;top:52px;z-index:20;background:var(--bg-100);border:1px solid var(--line);

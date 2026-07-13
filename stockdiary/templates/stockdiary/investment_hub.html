@@ -301,6 +301,27 @@ table.hub-table {
 .hub-table tbody tr:hover td { background: var(--state-hover); }
 .hub-table tbody tr:hover td:first-child { background: var(--state-hover); }
 
+/* 比較テーブルは指標名列だけで画面幅の大半を使うため、狭い画面では銘柄の
+   値がほぼ見えない（右にスクロールしないと本題のデータに辿り着けない）。
+   スクロールできること自体が伝わらないと「データが空」に見えてしまうため、
+   右端にフェード＋ヒント文言を添えて発見しやすくする。 */
+.hub-table-scroll { position: relative; overflow-x: auto; }
+.hub-table-scroll::after {
+    content: '';
+    position: absolute; top: 0; right: 0; bottom: 0; width: 28px;
+    background: linear-gradient(to right, transparent, var(--bg-primary));
+    pointer-events: none;
+}
+.hub-scroll-hint {
+    display: none;
+    align-items: center; gap: 4px;
+    font-size: 0.75rem; color: var(--text-tertiary);
+    margin: -8px 0 10px;
+}
+@media (max-width: 640px) {
+    .hub-scroll-hint { display: flex; }
+}
+
 /* ---- バッジ ---- */
 .badge-good  { color: var(--success-color); font-weight: var(--font-bold); }
 .badge-mid   { color: var(--warning-color); font-weight: var(--font-bold); }
@@ -954,7 +975,8 @@ table.hub-table {
                     財務指標 比較テーブル（最新値）
                     <span class="hub-card-sub">色: 緑=良 / 黄=中 / 赤=要注意</span>
                 </div>
-                <div style="overflow-x:auto;">
+                <div class="hub-scroll-hint"><i class="bi bi-arrow-left-right"></i>横にスクロールして値を見られます</div>
+                <div class="hub-table-scroll">
                     <table class="hub-table" id="hub-compare-table">
                         <thead id="hub-compare-thead"></thead>
                         <tbody id="hub-compare-tbody"></tbody>
@@ -1007,7 +1029,8 @@ table.hub-table {
             <div style="position:relative;height:220px;margin-bottom:16px;">
                 <canvas id="hub-margin-chart"></canvas>
             </div>
-            <div style="overflow-x:auto;">
+            <div class="hub-scroll-hint"><i class="bi bi-arrow-left-right"></i>横にスクロールして値を見られます</div>
+            <div class="hub-table-scroll">
                 <table class="hub-table">
                     <thead id="hub-margin-thead"></thead>
                     <tbody id="hub-margin-tbody"></tbody>
@@ -1026,7 +1049,8 @@ table.hub-table {
                 <div class="hub-card-title">
                     <i class="bi bi-percent"></i> CAGR（年平均成長率）
                 </div>
-                <div style="overflow-x:auto;">
+                <div class="hub-scroll-hint"><i class="bi bi-arrow-left-right"></i>横にスクロールして値を見られます</div>
+                <div class="hub-table-scroll">
                     <table class="hub-table" id="hub-cagr-table">
                         <thead id="hub-cagr-thead"></thead>
                         <tbody id="hub-cagr-tbody"></tbody>

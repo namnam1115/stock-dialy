@@ -82,3 +82,21 @@ class TestLibrary:
         assert r.context['axis'] == 'time'
         assert len(r.context['timeline']) == 1
         assert r.context['timeline'][0]['stock'] == 'A'
+
+    def test_htmx_request_returns_partial_only(self, authenticated_client, user):
+        """レンズタブ切替のたびにフルページを再読込していた問題の回帰テスト。
+        HTMXリクエスト時は #lib-content の断片のみを返し、base.html のレイアウト
+        （ヘッダー・見出し等）を含めない。通常リクエストはフルページを返す。"""
+        r_full = authenticated_client.get(reverse('stockdiary:library'), {'axis': 'theme'})
+        assert r_full.status_code == 200
+        assert b'id="lib-content"' in r_full.content
+        assert '知識ライブラリ'.encode() in r_full.content
+
+        r_htmx = authenticated_client.get(
+            reverse('stockdiary:library'), {'axis': 'theme'},
+            HTTP_HX_REQUEST='true',
+        )
+        assert r_htmx.status_code == 200
+        assert b'id="lib-content"' in r_htmx.content
+        assert b'<html' not in r_htmx.content
+        assert '知識ライブラリ'.encode() not in r_htmx.content

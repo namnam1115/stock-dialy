@@ -271,11 +271,20 @@
           </span>
           <i class="bi bi-chevron-right rp-quicklink-chev"></i>
         </a>
-        <a href="{% url 'stockdiary:library' %}" class="rp-quicklink">
-          <span class="rp-quicklink-icon"><i class="bi bi-collection"></i></span>
+        <a href="{% url 'stockdiary:library' %}" class="rp-quicklink{% if recall.due_theses or recall.anniversary %} has-cue{% endif %}">
+          <span class="rp-quicklink-icon">
+            <i class="bi bi-collection"></i>
+            {% if recall.due_theses or recall.anniversary %}<span class="rp-quicklink-dot"></span>{% endif %}
+          </span>
           <span class="rp-quicklink-body">
             <span class="rp-quicklink-label">知識ライブラリ</span>
-            <span class="rp-quicklink-sub">学び・テーマで探す</span>
+            <span class="rp-quicklink-sub">
+              {% if recall.due_theses or recall.anniversary %}
+              <span class="rp-quicklink-cue"><i class="bi bi-bell-fill"></i>今日の見直しあり</span>
+              {% else %}
+              学び・テーマで探す
+              {% endif %}
+            </span>
           </span>
           <i class="bi bi-chevron-right rp-quicklink-chev"></i>
         </a>

@@ -290,17 +290,20 @@ body.reading-app .app-footer .social-link:hover {
   display: flex; flex-wrap: wrap; align-items: center;
   gap: 0.5rem 1.1rem; margin: 0.5rem 0 0.25rem;
 }
-.reading-page .rp-stat {
+.reading-page .rp-statline .rp-stat {
   display: inline-flex; align-items: center; gap: 0.35rem;
   font-size: 0.8125rem; color: var(--muted-ink); white-space: nowrap;
 }
-.reading-page .rp-stat .rp-stat-num {
+.reading-page .rp-statline .rp-stat .rp-stat-num {
   font-family: var(--font-family-mono, monospace); font-variant-numeric: tabular-nums;
   font-weight: 700; font-size: 0.95rem; color: var(--ink);
 }
 .reading-page .rp-stat--muted,
 .reading-page .rp-stat--muted .rp-stat-num { color: var(--muted-ink); }
-/* 答え合わせ待ちだけは行動対象なのでアクセントで少し立てる（それでも静かに） */
+/* 答え合わせ待ちだけは行動対象なのでアクセントで少し立てる（それでも静かに）。
+   固定padding+nowrapの「チップ」形にすると、他所の .rp-stat-num へのフォント
+   サイズ指定（例: モバイル用 @media 内の指定）が万一巻き込まれた際に文字が
+   箱からはみ出して潰れて見える事故が起きやすい。テキストのみに留める。 */
 .reading-page .rp-stat--action { color: var(--accent); text-decoration: none; transition: opacity .15s ease; }
 .reading-page .rp-stat--action .rp-stat-num { color: var(--accent); }
 .reading-page .rp-stat--action:hover { opacity: 0.75; }
@@ -1467,13 +1470,16 @@ body.writing-focus .pc-only-header:hover { opacity: 1; }
   border-top: 1px solid var(--hairline);
   border-bottom: 1px solid var(--hairline);
 }
-.reading-page .rp-stat { display: flex; flex-direction: column; gap: 0.2rem; }
-.reading-page .rp-stat-num {
+/* rp-review-stats 配下限定（ホーム rp-statline の .rp-stat とクラス名が衝突していた。
+   衝突するとソース順で後勝ちし、ホームの横並びチップが縦積みブロブに化ける事故が
+   起きるため、両ブロックとも親クラスで必ずスコープする） */
+.reading-page .rp-review-stats .rp-stat { display: flex; flex-direction: column; gap: 0.2rem; }
+.reading-page .rp-review-stats .rp-stat-num {
   font-family: var(--font-family-base);
   font-size: 2rem; font-weight: var(--font-bold); line-height: 1; color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
-.reading-page .rp-stat-label { font-size: 0.8125rem; color: var(--muted-ink); }
+.reading-page .rp-review-stats .rp-stat-label { font-size: 0.8125rem; color: var(--muted-ink); }
 
 .reading-page .rp-section-note {
   font-size: 0.8125rem; color: var(--faint-ink); margin: -0.25rem 0 1rem;
@@ -1499,19 +1505,28 @@ body.writing-focus .pc-only-header:hover { opacity: 1; }
 .reading-page .rp-learning-text { margin: 0; color: var(--ink-soft); }
 .reading-page .rp-learning:hover .rp-learning-stock { text-decoration: underline; text-underline-offset: 3px; }
 
-/* タグ別成績 */
+/* タグ別成績。タグ名は tag_master.md の短い定型語が前提だが、長い名前が来た
+   場合に備えて安全に省略する（折り返すと3行目に名前だけ流れ、件数・勝率・
+   損益が1行目に取り残されて崩れる事故があったため。診断用に長いタグ名で
+   ストレステストして確認済み）。 */
 .reading-page .rp-tagperf { display: flex; flex-direction: column; }
 .reading-page .rp-tagperf-row {
-  display: flex; align-items: baseline; gap: 0.75rem;
+  display: flex; align-items: center; gap: 0.75rem;
   padding: 0.7rem 0;
   border-bottom: 1px solid var(--hairline-soft);
 }
 .reading-page .rp-tagperf-row:last-child { border-bottom: none; }
-.reading-page .rp-tagperf-name { font-weight: var(--font-medium); color: var(--ink); min-width: 0; }
-.reading-page .rp-tagperf-meta { font-size: 0.8125rem; color: var(--muted-ink); margin-left: auto; white-space: nowrap; }
+.reading-page .rp-tagperf-name {
+  font-weight: var(--font-medium); color: var(--ink);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.reading-page .rp-tagperf-meta {
+  font-size: 0.8125rem; color: var(--muted-ink); margin-left: auto; white-space: nowrap;
+  flex-shrink: 0;
+}
 .reading-page .rp-tagperf-profit {
   font-family: var(--font-family-mono); font-variant-numeric: tabular-nums;
-  font-weight: var(--font-medium); white-space: nowrap;
+  font-weight: var(--font-medium); white-space: nowrap; flex-shrink: 0;
 }
 .reading-page .rp-tagperf-profit.rp-up { color: var(--profit-up-quiet); }
 .reading-page .rp-tagperf-profit.rp-down { color: var(--profit-down-quiet); }
@@ -1566,6 +1581,43 @@ body.writing-focus .pc-only-header:hover { opacity: 1; }
 .reading-page .rp-quicklink-chev { flex: 0 0 auto; color: var(--faint-ink); font-size: 0.8em; }
 .reading-page .rp-quicklink:hover .rp-quicklink-chev { color: var(--muted-ink); }
 
+/* 「今日の見直し」対象がある知識ライブラリ導線を目立たせる（成長OSの想起トリガー）。
+   ラベル行に文言を差し込むと折り返して見出しが崩れるため、通知ドット＋サブ行の
+   文言差し替えのみで示す（レイアウトを変えない）。 */
+.reading-page .rp-quicklink.has-cue {
+  border-color: var(--accent);
+  border-width: 1.5px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--paper-raised));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.reading-page .rp-quicklink.has-cue:hover {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), var(--shadow-sm);
+}
+.reading-page .rp-quicklink.has-cue .rp-quicklink-icon {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast, #fff);
+}
+.reading-page .rp-quicklink-icon { position: relative; }
+.reading-page .rp-quicklink-dot {
+  position: absolute;
+  top: -4px; right: -4px;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--paper-raised);
+  animation: rp-quicklink-pulse 2s ease-in-out infinite;
+}
+@keyframes rp-quicklink-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reading-page .rp-quicklink-dot { animation: none; }
+}
+.reading-page .rp-quicklink-cue { color: var(--accent); font-weight: var(--font-semibold); }
+.reading-page .rp-quicklink-cue i { margin-right: 0.25rem; }
+
 @media (max-width: 640px) {
   .reading-page .rp-quicklinks { grid-template-columns: 1fr; gap: 0.5rem; }
   .reading-page .rp-quicklink-chev { margin-left: auto; }
@@ -1580,7 +1632,7 @@ body.writing-focus .pc-only-header:hover { opacity: 1; }
 @media (max-width: 640px) {
   .reading-page .rp-review-title { font-size: 1.6rem; }
   .reading-page .rp-review-stats { gap: var(--space-5, 1.25rem); }
-  .reading-page .rp-stat-num { font-size: 1.6rem; }
+  .reading-page .rp-review-stats .rp-stat-num { font-size: 1.6rem; }
 }
 
 /* ============================================================

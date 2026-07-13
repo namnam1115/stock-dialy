@@ -929,6 +929,30 @@ class TestNavigationSlimdown:
         labels = [a['label'] for a in resp.context['form_actions']]
         assert labels == ['クイック記録', '新規登録']
 
+    def test_library_quicklink_badge_when_thesis_due(self, authenticated_client, sample_diary):
+        """知識ライブラリに「今日の見直し」対象があるとき、ホームの導線を
+        目立たせる。答え合わせ待ちの仮説がなければ出さない（過剰通知を避ける）。
+        ラベル行にバッジ文言を差し込むと折り返して見出しが崩れる事故があったため
+        （例: 「知識ライブラリ」が2行に割れる）、通知ドット＋サブ行の文言差し替え
+        のみで示す構成を維持すること。"""
+        from datetime import timedelta
+        from django.utils import timezone
+        from stockdiary.models import Thesis
+
+        html = authenticated_client.get(reverse('stockdiary:home')).content.decode()
+        assert 'rp-quicklink-dot' not in html
+        assert '今日の見直しあり' not in html
+
+        Thesis.objects.create(
+            diary=sample_diary, claim='テスト仮説', status=Thesis.STATUS_OPEN,
+            review_due_date=timezone.localdate() - timedelta(days=1),
+        )
+        html = authenticated_client.get(reverse('stockdiary:home')).content.decode()
+        assert 'rp-quicklink-dot' in html
+        assert '今日の見直しあり' in html
+        # ラベル文言自体は変えない（折り返し崩れの原因になるため）
+        assert '知識ライブラリ' in html
+
 
 @pytest.mark.django_db
 class TestDashboardKarteBridge:

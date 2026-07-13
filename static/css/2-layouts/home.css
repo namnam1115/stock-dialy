@@ -1006,9 +1006,14 @@
 
 @media (min-width: 992px) {
   .sidebar-toggle {
-    position: absolute;
+    /* absolute だと .home-layout（スクロールする通常フロー要素）基準になり、
+       サイドバーを閉じたまま下にスクロールすると一緒に流れて消えてしまう
+       （閉じている間は再度開く手段がなくなる）。ビューポート基準の fixed にし、
+       サイドバー自身のスクロール追従位置（sticky top: 5rem）に揃えて常に
+       手の届く場所に残す。 */
+    position: fixed;
     left: 1rem;
-    top: 1rem;
+    top: 5rem;
     z-index: 50;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
