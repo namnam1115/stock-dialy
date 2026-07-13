@@ -5,6 +5,10 @@
 ハイブリッド型カレンダーを表示する。表示は外部APIを叩かず、ローカルの
 EarningsSchedule（証券コードがキーの決算予定マスタ）のみを参照する。
 
+未来分は日次同期で洗い替えるが、過去分（期日を過ぎた決算）は削除せず履歴として
+保持し続ける。カレンダーの月送りナビもこれに合わせて、固定の日数ではなく実際に
+データが残っている範囲まで過去へ遡れるようにしている（`earliest_date`）。
+
 決算日は日記側に持たせない。日記は stock_symbol（銘柄コード）を持つので、
 表示時に get_next_earnings_map / attach_next_earnings で都度 join して引く
 （マスタと日記の二重管理・日次コピーを避ける）。
@@ -16,7 +20,7 @@ from calendar import Calendar, monthrange
 from datetime import date, datetime, timedelta
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count
+from django.db.models import Count, Min
 from django.shortcuts import render
 from django.utils import timezone
 
@@ -35,11 +39,9 @@ from .services.earnings_lookup import (  # noqa: F401
     classify_proximity as _classify_proximity,
 )
 
-# カレンダーの表示期間（当日からの日数）
+# カレンダーの表示期間（当日からの日数）。未来分は決算予定API（確定分）が
+# カバーする範囲に合わせる。
 CALENDAR_WINDOW_DAYS = 90
-
-# カレンダーで遡れる過去の日数（直近の決算実績を確認できるように）
-CALENDAR_PAST_WINDOW_DAYS = 30
 
 # 月グリッドの曜日見出し（月曜始まり）
 WEEKDAY_HEADERS = ['月', '火', '水', '木', '金', '土', '日']
@@ -105,7 +107,8 @@ def earnings_calendar(request):
 
     GET パラメータ:
         scope: 'mine'（記録銘柄のみ・既定）/ 'all'（全銘柄）
-        month: 'YYYY-MM'（表示月。既定=当月。当日〜90日の範囲にクランプ）
+        month: 'YYYY-MM'（表示月。既定=当月。未来は当日〜90日、過去は実際に
+            EarningsSchedule が残っている範囲にクランプ）
         date:  'YYYY-MM-DD'（選択日。既定=今日 or 当月で決算のある最初の日）
         panel=day: 指定時、HTMXで選択日パネルのみ返す
     """
@@ -114,10 +117,26 @@ def earnings_calendar(request):
         scope = 'mine'
 
     today = timezone.localdate()
-    window_start = today - timedelta(days=CALENDAR_PAST_WINDOW_DAYS)
     window_end = today + timedelta(days=CALENDAR_WINDOW_DAYS)
-    ws_first = window_start.replace(day=1)
     we_first = window_end.replace(day=1)
+
+    # 記録銘柄（4桁）集合
+    user_diaries = StockDiary.objects.filter(user=request.user, is_excluded=False)
+    user_symbols = set(
+        user_diaries
+        .filter(stock_symbol__regex=r'^\d{4}$')
+        .values_list('stock_symbol', flat=True)
+    )
+
+    # 過去側は「実際に決算予定データが残っている範囲」まで遡れるようにする
+    # （洗い替えで削除されるのは未来分のみで、過去の確定実績は保持し続ける設計。
+    #  固定日数でウィンドウを切ると、DBには残っているのにカレンダーからは
+    #  参照できなくなってしまう）。データが無ければ当日を下限にする。
+    earliest_date = _scope_filter(
+        EarningsSchedule.objects.all(), scope, user_symbols
+    ).aggregate(Min('earnings_date'))['earnings_date__min']
+    window_start = min(earliest_date, today) if earliest_date else today
+    ws_first = window_start.replace(day=1)
 
     # 表示月を決定し、ウィンドウ（月単位）にクランプ
     month_first = _parse_month(request.GET.get('month'), today.replace(day=1))
@@ -127,14 +146,6 @@ def earnings_calendar(request):
         month_first = we_first
     year, month = month_first.year, month_first.month
     month_last = month_first.replace(day=monthrange(year, month)[1])
-
-    # 記録銘柄（4桁）集合
-    user_diaries = StockDiary.objects.filter(user=request.user, is_excluded=False)
-    user_symbols = set(
-        user_diaries
-        .filter(stock_symbol__regex=r'^\d{4}$')
-        .values_list('stock_symbol', flat=True)
-    )
 
     # --- サマリー: 保有・売却済・メモ（日記の状態3分類、月・日に依らず常時表示） ---
     # StockDiary.is_holding / is_sold_out / is_memo と同じ判定基準に揃える
@@ -227,7 +238,6 @@ def earnings_calendar(request):
         'scope': scope,
         'today': today,
         'window_days': CALENDAR_WINDOW_DAYS,
-        'past_window_days': CALENDAR_PAST_WINDOW_DAYS,
         'holdings': holdings,
         'sold': sold,
         'watchlist': watchlist,

@@ -554,6 +554,36 @@ def test_calendar_shows_recent_past_earnings(client):
     assert 'トヨタ自動車'.encode() in resp.content
 
 
+def test_calendar_shows_old_past_earnings_beyond_fixed_window(client):
+    """30日より前の過去決算も、その月まで遡ってカレンダーから参照できる。
+
+    以前は過去側が固定30日でクランプされており、洗い替えで消えず履歴として
+    DBに残っているだけの決算予定でも、31日以上前のものはカレンダー上で
+    月送り・表示ともに一切参照できなかった（DBには残るが画面からは見えない
+    ＝実質参照不能）。決算予定APIの自前算出を廃止し確定分のみを保存する
+    ようになったことで、過去分をいつでも参照できることの重要性が増したため、
+    過去側の下限を固定日数ではなく「実際にデータが残っている範囲」まで
+    動的に広げた。
+    """
+    user = User.objects.create_user('v_old_past', 'vop@e.com', 'p')
+    client.force_login(user)
+    target = timezone.localdate() - timedelta(days=200)
+    EarningsSchedule.objects.create(
+        securities_code='7203', earnings_date=target, company_name='トヨタ自動車')
+
+    url = reverse('stockdiary:earnings_calendar')
+    resp = client.get(url, {
+        'scope': 'all',
+        'month': target.strftime('%Y-%m'),
+        'date': target.isoformat(),
+    })
+    assert resp.status_code == 200
+    assert 'トヨタ自動車'.encode() in resp.content
+    # 月グリッド上でもクリック可能なセルとして表示される（in_window=Trueで
+    # レンダリングされる ec-cell--has）。ec-cell--out（範囲外扱い）ではない。
+    assert b'ec-cell--has' in resp.content
+
+
 def test_calendar_scope_mine_filters_to_recorded_symbols(client):
     """scope=mine は記録銘柄のみ、scope=all は全銘柄を選択日パネルに出す。"""
     user = User.objects.create_user('v2', 'v2@e.com', 'p')
