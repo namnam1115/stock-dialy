@@ -5,6 +5,12 @@
 EarningsSchedule を洗い替え保存する。あわせて決算前日（翌日決算）の銘柄を
 記録中のユーザーへアプリ内通知をファンアウトする。
 
+保存するのは API が返した値のみ（確定日 announcementDate、または提供元自身が
+返す予測日 estimatedAnnouncementDate）。四半期末＋オフセット等の自前算出による
+予定日は設定しない（自前算出は実際の発表日とズレが大きく、記録の信頼性を損なう
+ため廃止した）。そのため提供元APIが確定分を返さない期間（現状は直近2週間程度より
+先）は、記録銘柄であってもマスタに載らないことがある。
+
 設計方針:
 - 決算予定は EarningsSchedule（証券コードがキーの決算予定マスタ）を唯一の正とする。
   日記側へは事前計算カラムを持たせず、表示時に銘柄コードで都度 join する
@@ -25,27 +31,21 @@ logger = logging.getLogger(__name__)
 FANOUT_BATCH_SIZE = 500
 
 
-def sync_earnings_calendar(days: int = 90, base_date=None,
-                           with_estimates: bool = True) -> int:
+def sync_earnings_calendar(days: int = 90, base_date=None) -> int:
     """決算予定APIから取得して EarningsSchedule を洗い替え保存する。
 
     取得期間（基準日〜days日後）の既存レコードを削除してから再投入するため、
     リスケ・取り下げがあっても未来分は常に最新のAPI内容と一致する。基準日より
     前のレコードは履歴として保持する。
 
-    保存する未来分は2種類:
-      - 確定分（is_estimated=False）: APIが返す直近の確定発表日（現状は約2週間先まで）
-      - 予想分（is_estimated=True）: 各社の会計年度末から自前算出した次回以降の
-        発表予想日（earnings_calendar_estimate）。提供元APIが予想日を返さなく
-        なったため、確定分だけだと記録銘柄の多くがマスタから外れて日記に
-        関連付かなくなる。予想分で残りの期間を埋める。毎回ゼロから再生成する
-        ので、洗い替え方式のまま予想が陳腐化しない。
+    保存するのは API が返した値のみ（is_estimated=False の確定日
+    announcementDate、または is_estimated=True の提供元自身の予測日
+    estimatedAnnouncementDate）。自前算出による予定日の補完は行わない。
 
     Args:
         days: 取得期間（基準日からの日数）
         base_date: 取得基準日（既定=今日）。日次バッチが失敗した日のリカバリ実行で
             過去日を指定できる。
-        with_estimates: 予想日の自前算出を行うか（既定 True。テスト等で無効化可）
 
     Returns:
         int: 保存した決算予定レコード数
@@ -53,9 +53,6 @@ def sync_earnings_calendar(days: int = 90, base_date=None,
     from earnings_analysis.models import EarningsSchedule
     from earnings_analysis.services.earnings_calendar_api import (
         EarningsCalendarAPIService,
-    )
-    from earnings_analysis.services.earnings_calendar_estimate import (
-        build_roster, build_estimates,
     )
 
     service = EarningsCalendarAPIService()
@@ -66,43 +63,8 @@ def sync_earnings_calendar(days: int = 90, base_date=None,
     base_date = base_date or timezone.localdate()
     confirmed = service.fetch_window(days=days, start=base_date)
 
-    # 予想分（確定分で埋まらない期間を自前算出で補完）
-    estimates = []
-    if with_estimates:
-        try:
-            history = service.fetch_history(months=13, end=base_date)
-            roster = build_roster(history)
-            confirmed_by_code = {}
-            for item in confirmed:
-                confirmed_by_code.setdefault(
-                    item['securities_code'], []).append(item['earnings_date'])
-            # history（過去13ヶ月の確定実績）の確定発表日も合流させる。
-            # fetch_window は基準日以降しか返さないため、確定発表が既に過去に
-            # なった銘柄は confirmed_by_code に入らず、近傍抑制
-            # (CONFIRMED_SUPPRESS_DAYS) が翌日以降のバッチで効かなくなり、
-            # 古い予想日が洗い替えのたびに再生成され続けていた
-            # （例: イオンは7/10確定発表後も7/13予想が残り続けた）。
-            for item in history:
-                if item.get('is_estimated'):
-                    continue
-                confirmed_by_code.setdefault(
-                    item['securities_code'], []).append(item['earnings_date'])
-            estimates = build_estimates(
-                roster, confirmed_by_code, base_date,
-                horizon_days=days,
-                to_business_day=EarningsCalendarAPIService._to_business_day,
-            )
-        except Exception as e:
-            # 予想の算出に失敗しても確定分の保存は続ける（決算前日通知等を止めない）
-            logger.warning('決算予想日の算出に失敗（確定分のみ保存）: %s', e,
-                           exc_info=True)
-            estimates = []
-
     # 同一バッチ内のコード×日付の重複を排除（DBの一意制約に合わせる）。
-    # 予想を先に入れ、確定を後から入れて上書き（同一日は確定を正とする）。
     deduped = {}
-    for item in estimates:
-        deduped[(item['securities_code'], item['earnings_date'])] = item
     for item in confirmed:
         deduped[(item['securities_code'], item['earnings_date'])] = item
 
@@ -127,8 +89,7 @@ def sync_earnings_calendar(days: int = 90, base_date=None,
                 to_create, batch_size=500, ignore_conflicts=True
             )
 
-    logger.info('決算予定同期完了: 保存=%s件（確定=%s / 予想=%s）',
-                len(to_create), len(confirmed), len(estimates))
+    logger.info('決算予定同期完了: 保存=%s件', len(to_create))
     return len(to_create)
 
 

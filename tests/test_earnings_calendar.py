@@ -213,8 +213,7 @@ def test_sync_replaces_future_keeps_past(settings):
         'source_updated_at': '',
     }]
     with patch.object(EarningsCalendarAPIService, 'fetch_window', return_value=new_items):
-        # 予想分は別テストで検証。ここは確定分の洗い替えのみを見る。
-        saved = sync.sync_earnings_calendar(days=90, with_estimates=False)
+        saved = sync.sync_earnings_calendar(days=90)
 
     assert saved == 1
     codes = set(EarningsSchedule.objects.values_list('securities_code', flat=True))
@@ -244,7 +243,7 @@ def test_sync_base_date_controls_window_and_cutoff(settings):
         return []
 
     with patch.object(EarningsCalendarAPIService, 'fetch_window', fake_fetch):
-        sync.sync_earnings_calendar(days=30, base_date=base, with_estimates=False)
+        sync.sync_earnings_calendar(days=30, base_date=base)
 
     assert captured == {'days': 30, 'start': base}  # 起点が base に渡る
     codes = set(EarningsSchedule.objects.values_list('securities_code', flat=True))
@@ -553,6 +552,36 @@ def test_calendar_shows_recent_past_earnings(client):
     })
     assert resp.status_code == 200
     assert 'トヨタ自動車'.encode() in resp.content
+
+
+def test_calendar_shows_old_past_earnings_beyond_fixed_window(client):
+    """30日より前の過去決算も、その月まで遡ってカレンダーから参照できる。
+
+    以前は過去側が固定30日でクランプされており、洗い替えで消えず履歴として
+    DBに残っているだけの決算予定でも、31日以上前のものはカレンダー上で
+    月送り・表示ともに一切参照できなかった（DBには残るが画面からは見えない
+    ＝実質参照不能）。決算予定APIの自前算出を廃止し確定分のみを保存する
+    ようになったことで、過去分をいつでも参照できることの重要性が増したため、
+    過去側の下限を固定日数ではなく「実際にデータが残っている範囲」まで
+    動的に広げた。
+    """
+    user = User.objects.create_user('v_old_past', 'vop@e.com', 'p')
+    client.force_login(user)
+    target = timezone.localdate() - timedelta(days=200)
+    EarningsSchedule.objects.create(
+        securities_code='7203', earnings_date=target, company_name='トヨタ自動車')
+
+    url = reverse('stockdiary:earnings_calendar')
+    resp = client.get(url, {
+        'scope': 'all',
+        'month': target.strftime('%Y-%m'),
+        'date': target.isoformat(),
+    })
+    assert resp.status_code == 200
+    assert 'トヨタ自動車'.encode() in resp.content
+    # 月グリッド上でもクリック可能なセルとして表示される（in_window=Trueで
+    # レンダリングされる ec-cell--has）。ec-cell--out（範囲外扱い）ではない。
+    assert b'ec-cell--has' in resp.content
 
 
 def test_calendar_scope_mine_filters_to_recorded_symbols(client):
