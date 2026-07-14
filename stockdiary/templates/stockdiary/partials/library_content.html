@@ -32,19 +32,19 @@
   のみ計算し、タブ切替では再計算しない（active表示はJSで即時トグル）。
   {% endcomment %}
   <div class="lib-lenses" role="tablist">
-    <a href="?axis=learning" class="lib-lens{% if axis == 'learning' %} is-active{% endif %}"
+    <a href="?axis=learning" data-axis="learning" class="lib-lens{% if axis == 'learning' %} is-active{% endif %}"
        hx-get="{% url 'stockdiary:library' %}?axis=learning" hx-target="#lib-content" hx-swap="outerHTML" hx-push-url="true">
       <span class="lib-lens-label">学び</span><span class="lib-lens-count">{{ counts.learning }}</span>
     </a>
-    <a href="?axis=theme" class="lib-lens{% if axis == 'theme' %} is-active{% endif %}"
+    <a href="?axis=theme" data-axis="theme" class="lib-lens{% if axis == 'theme' %} is-active{% endif %}"
        hx-get="{% url 'stockdiary:library' %}?axis=theme" hx-target="#lib-content" hx-swap="outerHTML" hx-push-url="true">
       <span class="lib-lens-label">テーマ</span><span class="lib-lens-count">{{ counts.theme }}</span>
     </a>
-    <a href="?axis=thesis" class="lib-lens{% if axis == 'thesis' %} is-active{% endif %}"
+    <a href="?axis=thesis" data-axis="thesis" class="lib-lens{% if axis == 'thesis' %} is-active{% endif %}"
        hx-get="{% url 'stockdiary:library' %}?axis=thesis" hx-target="#lib-content" hx-swap="outerHTML" hx-push-url="true">
       <span class="lib-lens-label">仮説</span><span class="lib-lens-count">{{ counts.thesis }}</span>
     </a>
-    <a href="?axis=time" class="lib-lens{% if axis == 'time' %} is-active{% endif %}"
+    <a href="?axis=time" data-axis="time" class="lib-lens{% if axis == 'time' %} is-active{% endif %}"
        hx-get="{% url 'stockdiary:library' %}?axis=time" hx-target="#lib-content" hx-swap="outerHTML" hx-push-url="true">
       <span class="lib-lens-label">時系列</span><span class="lib-lens-count">{{ counts.time }}</span>
     </a>
@@ -55,15 +55,58 @@
 </div>
 <script>
 (function () {
+  var AXIS_ORDER = ['learning', 'theme', 'thesis', 'time'];
+  var shell = document.getElementById('lib-shell');
+  if (!shell) return;
+
+  function lensLinks() {
+    return shell.querySelectorAll('.lib-lenses .lib-lens');
+  }
+
+  function currentAxisIndex() {
+    var active = shell.querySelector('.lib-lenses .lib-lens.is-active');
+    return active ? AXIS_ORDER.indexOf(active.dataset.axis) : 0;
+  }
+
   // レンズタブの is-active はサーバー再計算なしで即時トグルする
   // （#lib-content の外にあるため、タブ切替のHTMXレスポンスには含まれない）。
-  document.querySelectorAll('.lib-lenses .lib-lens').forEach(function (link) {
+  lensLinks().forEach(function (link) {
     link.addEventListener('click', function () {
-      document.querySelectorAll('.lib-lenses .lib-lens').forEach(function (l) {
-        l.classList.remove('is-active');
-      });
+      lensLinks().forEach(function (l) { l.classList.remove('is-active'); });
       link.classList.add('is-active');
     });
   });
+
+  // フリック（左右スワイプ）でタブを移動する。
+  // #lib-content はタブ切替のたびに丸ごと差し替わるため、リスナーは
+  // 差し替わらない親（#lib-shell）に置き、イベント委譲で拾う。
+  var SWIPE_MIN_X = 60;   // これ未満は誤操作扱い
+  var SWIPE_MAX_Y = 60;   // 縦方向にこれ以上ずれたらスクロール扱いで無視
+  var touchStartX = null;
+  var touchStartY = null;
+
+  shell.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1 || !e.target.closest('#lib-content')) {
+      touchStartX = null;
+      return;
+    }
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  shell.addEventListener('touchend', function (e) {
+    if (touchStartX === null) return;
+    var touch = e.changedTouches[0];
+    var dx = touch.clientX - touchStartX;
+    var dy = touch.clientY - touchStartY;
+    touchStartX = null;
+    if (Math.abs(dx) < SWIPE_MIN_X || Math.abs(dy) > SWIPE_MAX_Y) return;
+
+    var idx = currentAxisIndex();
+    var nextIdx = dx < 0 ? idx + 1 : idx - 1;  // 左フリック→次のタブ、右フリック→前のタブ
+    if (nextIdx < 0 || nextIdx >= AXIS_ORDER.length) return;
+    var links = lensLinks();
+    if (links[nextIdx]) links[nextIdx].click();
+  }, { passive: true });
 })();
 </script>
