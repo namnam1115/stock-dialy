@@ -109,13 +109,18 @@ class LibraryView(LoginRequiredMixin, TemplateView):
     """
     template_name = 'stockdiary/library.html'
 
-    def get_template_names(self):
-        is_htmx = (
+    def _is_htmx(self):
+        return (
             self.request.headers.get('HX-Request') == 'true'
             or self.request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         )
-        if is_htmx:
-            return ['stockdiary/partials/library_content.html']
+
+    def get_template_names(self):
+        if self._is_htmx():
+            # タブ/検索/タグ切替は #lib-content（軸別データ）だけを返す。
+            # 今日の見直し・レンズ件数はここに含めない＝再計算しない
+            # （axis に依存しないデータを毎回作り直していたのが遅さの主因だった）。
+            return ['stockdiary/partials/library_axis_body.html']
         return [self.template_name]
 
     def get_context_data(self, **kwargs):
@@ -132,26 +137,30 @@ class LibraryView(LoginRequiredMixin, TemplateView):
         context['q'] = q
         context['active_tag'] = tag_id
 
-        # ── レンズ別の件数（4レンズのタブに常時表示）──
-        learning_total = (
-            Verdict.objects.filter(thesis__diary__user=user).exclude(learning='').count()
-        )
-        theme_total = (
-            Tag.objects.filter(user=user)
-            .annotate(n=Count('stockdiary', distinct=True)).filter(n__gt=0).count()
-        )
-        thesis_total = (
-            Thesis.objects.filter(diary__user=user, verdict__isnull=True).count()
-            + Verdict.objects.filter(thesis__diary__user=user).count()
-        )
-        time_total = DiaryNote.objects.filter(diary__user=user).count()
-        context['counts'] = {
-            'learning': learning_total, 'theme': theme_total,
-            'thesis': thesis_total, 'time': time_total,
-        }
+        if not self._is_htmx():
+            # ── レンズ別の件数（4レンズのタブに常時表示）──
+            # フルページ読み込み時のみ計算する。タブ切替(HTMX)のたびに
+            # 全レンズ分を数え直すのは axis に依存しない無駄な再計算のため。
+            learning_total = (
+                Verdict.objects.filter(thesis__diary__user=user).exclude(learning='').count()
+            )
+            theme_total = (
+                Tag.objects.filter(user=user)
+                .annotate(n=Count('stockdiary', distinct=True)).filter(n__gt=0).count()
+            )
+            thesis_total = (
+                Thesis.objects.filter(diary__user=user, verdict__isnull=True).count()
+                + Verdict.objects.filter(thesis__diary__user=user).count()
+            )
+            time_total = DiaryNote.objects.filter(diary__user=user).count()
+            context['counts'] = {
+                'learning': learning_total, 'theme': theme_total,
+                'thesis': thesis_total, 'time': time_total,
+            }
 
-        # ── 今日の見直し（現在の出来事 × 過去の仮説）— 想起から実現可能な手掛かりだけ ──
-        context['today_cues'] = self._build_today_cues(user, today)
+            # ── 今日の見直し（現在の出来事 × 過去の仮説）— 想起から実現可能な手掛かりだけ ──
+            # RecallService.build は複数クエリを伴うため、同様にフルページ読み込み時のみ。
+            context['today_cues'] = self._build_today_cues(user, today)
 
         if axis == 'theme':
             context['theme_rows'] = (
