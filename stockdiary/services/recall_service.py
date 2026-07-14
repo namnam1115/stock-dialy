@@ -50,7 +50,10 @@ class RecallService:
                 'has_content': bool,
             }
         """
-        today = today or timezone.now().date()
+        # timezone.now().date() は UTC の日付になり、JST（TIME_ZONE設定）とは
+        # 最大9時間ズレる。JST 0時〜9時の間は「今日」が1日前になり、当日が
+        # 検証予定日の仮説が答え合わせ待ちに出ない等のズレが生じていた。
+        today = today or timezone.localdate()
 
         anniversary = cls._build_anniversary(user, today)
         unreviewed, unreviewed_count = cls._build_unreviewed(user)

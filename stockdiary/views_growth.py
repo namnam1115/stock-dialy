@@ -138,6 +138,19 @@ class LibraryView(LoginRequiredMixin, TemplateView):
         context['active_tag'] = tag_id
 
         if not self._is_htmx():
+            # ── FAB（スピードダイアル）。ライブラリは home/timeline のようなトップ
+            # ナビ直下のメイン画面ではなく、karte/review と同じ成長OS系のサブ
+            # ページ。DiarySummaryView・NotificationListView と同様、FABは
+            # 「戻る」のみとする（クイック記録・新規登録はメイン画面側の動線）。
+            context['page_actions'] = [
+                {
+                    'type': 'back',
+                    'url': reverse('stockdiary:home'),
+                    'icon': 'bi-arrow-left',
+                    'label': '戻る',
+                },
+            ]
+
             # ── レンズ別の件数（4レンズのタブに常時表示）──
             # フルページ読み込み時のみ計算する。タブ切替(HTMX)のたびに
             # 全レンズ分を数え直すのは axis に依存しない無駄な再計算のため。

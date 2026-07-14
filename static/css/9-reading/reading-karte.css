@@ -652,6 +652,12 @@ body.dark-mode, html[data-theme="dark"] {
   font-family: var(--font-family-base); font-size: 0.75rem; font-weight: var(--font-semibold); color: var(--ink);
 }
 
+/* ── 軸別データ本体（フリックタブ切替の対象領域）──
+   touch-action: pan-y でブラウザに「縦方向だけネイティブ処理し、横方向は
+   JSに任せる」と伝える。これが無いと横フリック時に画面全体がラバーバンド
+   （吸着して左右に引っ張られる）した。 */
+.reading-page #lib-content { touch-action: pan-y; }
+
 /* ── レンズタブ（4等分・ラベル＋件数）── */
 .reading-page .lib-lenses { display: flex; gap: 0.1rem; border-bottom: 1px solid var(--hairline); margin-bottom: 1.25rem; }
 .reading-page .lib-lens {

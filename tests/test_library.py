@@ -101,6 +101,20 @@ class TestLibrary:
         assert b'<html' not in r_htmx.content
         assert '知識ライブラリ'.encode() not in r_htmx.content
 
+    def test_fab_is_back_to_home_not_quick_record(self, authenticated_client, user):
+        """知識ライブラリは home/timeline のようなトップナビ直下のメイン画面ではなく、
+        karte/review と同じ成長OS系のサブページ（DiarySummaryView・
+        NotificationListViewと同様の位置づけ）。一度「クイック記録・新規登録」の
+        FABを付けたが、このページの階層には合わずFABは「戻る」（日記一覧=home）
+        のみが正しいという指摘を受けて修正した回帰テスト。"""
+        r = authenticated_client.get(reverse('stockdiary:library'))
+        assert r.status_code == 200
+        actions = r.context['page_actions']
+        assert [a['label'] for a in actions] == ['戻る']
+        assert actions[0]['type'] == 'back'
+        assert actions[0]['url'] == reverse('stockdiary:home')
+        assert b'speed-dial-container' in r.content
+
     def test_htmx_axis_switch_skips_counts_and_today_cues_recompute(self, authenticated_client, user):
         """レンズタブ/検索/タグ切替(HTMX)のたびに、axisに依存しない「今日の見直し」
         （RecallService.build）とレンズ件数(counts)を毎回数え直していたため、
