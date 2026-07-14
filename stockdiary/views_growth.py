@@ -138,24 +138,16 @@ class LibraryView(LoginRequiredMixin, TemplateView):
         context['active_tag'] = tag_id
 
         if not self._is_htmx():
-            # ── FAB（スピードダイアル）。他の横断閲覧画面（timeline等）と同じ
-            # 「クイック記録・新規登録」の記録動線に揃える。
+            # ── FAB（スピードダイアル）。ライブラリは home/timeline のようなトップ
+            # ナビ直下のメイン画面ではなく、karte/review と同じ成長OS系のサブ
+            # ページ。DiarySummaryView・NotificationListView と同様、FABは
+            # 「戻る」のみとする（クイック記録・新規登録はメイン画面側の動線）。
             context['page_actions'] = [
                 {
-                    'id': 'quick-add',
-                    'type': 'quick-add',
-                    'url': '#',
-                    'icon': 'bi-lightning-charge-fill',
-                    'label': 'クイック記録',
-                    'aria_label': '素早く投資記録を作成',
-                    'condition': True,
-                },
-                {
-                    'type': 'add',
-                    'url': reverse('stockdiary:create'),
-                    'icon': 'bi-plus-lg',
-                    'label': '新規登録',
-                    'aria_label': '新規登録',
+                    'type': 'back',
+                    'url': reverse('stockdiary:home'),
+                    'icon': 'bi-arrow-left',
+                    'label': '戻る',
                 },
             ]
 
