@@ -130,6 +130,7 @@ class StockDiary(models.Model):
             models.Index(fields=['user', 'current_quantity']),
             models.Index(fields=['user', '-updated_at']),
             models.Index(fields=['user', 'is_excluded']),
+            models.Index(fields=['user', '-created_at']),
         ]
         verbose_name = '株式日記'
         verbose_name_plural = '株式日記'

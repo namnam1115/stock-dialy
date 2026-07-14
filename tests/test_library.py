@@ -100,3 +100,38 @@ class TestLibrary:
         assert b'id="lib-content"' in r_htmx.content
         assert b'<html' not in r_htmx.content
         assert '知識ライブラリ'.encode() not in r_htmx.content
+
+    def test_htmx_axis_switch_skips_counts_and_today_cues_recompute(self, authenticated_client, user):
+        """レンズタブ/検索/タグ切替(HTMX)のたびに、axisに依存しない「今日の見直し」
+        （RecallService.build）とレンズ件数(counts)を毎回数え直していたため、
+        タブを切り替えるだけで待たされる問題があった。HTMXリクエストではこの2つを
+        計算しない（コンテキストに含めない）ことを保証する回帰テスト。
+        フルページ読み込み（非HTMX）では従来通り両方とも計算されること。"""
+        StockDiary.objects.create(user=user, stock_name='A', stock_symbol='1')
+
+        r_full = authenticated_client.get(reverse('stockdiary:library'), {'axis': 'theme'})
+        assert 'counts' in r_full.context
+        assert 'today_cues' in r_full.context
+
+        r_htmx = authenticated_client.get(
+            reverse('stockdiary:library'), {'axis': 'theme'},
+            HTTP_HX_REQUEST='true',
+        )
+        assert 'counts' not in r_htmx.context
+        assert 'today_cues' not in r_htmx.context
+        # レンズタブ本体（件数バッジ・今日の見直し）は断片に含まれない
+        assert b'lib-lenses' not in r_htmx.content
+        assert b'lib-today' not in r_htmx.content
+
+    def test_htmx_axis_switch_still_returns_axis_specific_data(self, authenticated_client, user):
+        """今日の見直し/countsの計算を省いても、axis別のデータ自体は
+        HTMXリクエストでも従来通り取得できること。"""
+        d = StockDiary.objects.create(user=user, stock_name='日本郵船', stock_symbol='9101')
+        _learning(d, '海運は運賃サイクルを読む')
+
+        r_htmx = authenticated_client.get(
+            reverse('stockdiary:library'), {'axis': 'learning'},
+            HTTP_HX_REQUEST='true',
+        )
+        assert r_htmx.status_code == 200
+        assert any(v.learning == '海運は運賃サイクルを読む' for v in r_htmx.context['learnings'])

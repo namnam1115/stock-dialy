@@ -15,7 +15,7 @@
 - 新着開示（disclosures キー）: 直近に開示書類が出た日記。想起キューには
   載せず、フィルタ等の補助データとして保持する
 """
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.utils import timezone
 
@@ -228,9 +228,17 @@ class RecallService:
             })
 
         if len(items) < SECTION_LIMIT:
+            # created_at__date__range だと DB 側で全行に日付キャスト関数がかかり、
+            # created_at のインデックスが使えず日記全件スキャンになる（想起のたびに
+            # 発生し、日記件数に比例してライブラリ/ホームの表示が遅くなっていた）。
+            # ローカル日付の範囲をタイムゾーン込みの datetime 範囲へ事前変換し、
+            # created_at にそのまま range 比較できる形にしてインデックスを使わせる。
+            tz = timezone.get_current_timezone()
+            start_dt = timezone.make_aware(datetime.combine(start, datetime.min.time()), tz)
+            end_dt = timezone.make_aware(datetime.combine(end + timedelta(days=1), datetime.min.time()), tz)
             diaries = (
                 StockDiary.objects
-                .filter(user=user, is_excluded=False, created_at__date__range=(start, end))
+                .filter(user=user, is_excluded=False, created_at__gte=start_dt, created_at__lt=end_dt)
                 .order_by('-created_at')[:SECTION_LIMIT - len(items)]
             )
             for diary in diaries:
