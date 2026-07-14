@@ -101,6 +101,17 @@ class TestLibrary:
         assert b'<html' not in r_htmx.content
         assert '知識ライブラリ'.encode() not in r_htmx.content
 
+    def test_fab_present_with_quick_record_and_new_entry(self, authenticated_client, user):
+        """知識ライブラリには他の横断閲覧画面(timeline等)と同じFAB（スピードダイアル）
+        が無く、記録動線への導線が抜けていた。timelineと同じ「クイック記録・新規登録」
+        を追加した回帰テスト。"""
+        r = authenticated_client.get(reverse('stockdiary:library'))
+        assert r.status_code == 200
+        labels = [a['label'] for a in r.context['page_actions']]
+        assert labels == ['クイック記録', '新規登録']
+        assert b'speed-dial-container' in r.content
+        assert b'openQuickRecordSheet()' in r.content
+
     def test_htmx_axis_switch_skips_counts_and_today_cues_recompute(self, authenticated_client, user):
         """レンズタブ/検索/タグ切替(HTMX)のたびに、axisに依存しない「今日の見直し」
         （RecallService.build）とレンズ件数(counts)を毎回数え直していたため、

@@ -138,6 +138,27 @@ class LibraryView(LoginRequiredMixin, TemplateView):
         context['active_tag'] = tag_id
 
         if not self._is_htmx():
+            # ── FAB（スピードダイアル）。他の横断閲覧画面（timeline等）と同じ
+            # 「クイック記録・新規登録」の記録動線に揃える。
+            context['page_actions'] = [
+                {
+                    'id': 'quick-add',
+                    'type': 'quick-add',
+                    'url': '#',
+                    'icon': 'bi-lightning-charge-fill',
+                    'label': 'クイック記録',
+                    'aria_label': '素早く投資記録を作成',
+                    'condition': True,
+                },
+                {
+                    'type': 'add',
+                    'url': reverse('stockdiary:create'),
+                    'icon': 'bi-plus-lg',
+                    'label': '新規登録',
+                    'aria_label': '新規登録',
+                },
+            ]
+
             # ── レンズ別の件数（4レンズのタブに常時表示）──
             # フルページ読み込み時のみ計算する。タブ切替(HTMX)のたびに
             # 全レンズ分を数え直すのは axis に依存しない無駄な再計算のため。
