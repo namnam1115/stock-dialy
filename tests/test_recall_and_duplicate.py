@@ -46,6 +46,49 @@ class TestRecallService:
         recall = RecallService.build(sample_diary.user)
         assert recall['anniversary'] == []
 
+    def test_anniversary_diary_window_boundaries(self, user):
+        """日記作成日での「1年前の今日」判定が境界日（±3日ちょうど）を含み、
+        ウィンドウ外（±4日）は除外すること。
+
+        _build_anniversary は元々 created_at__date__range を使っており、DB側で
+        全行に日付キャスト関数がかかってインデックスが使えず、日記件数に比例して
+        ライブラリ/ホームの表示が遅くなるバグがあった（created_at にインデックスを
+        追加し、タイムゾーン込みの datetime 範囲へ事前変換する形に修正）。
+        書き換え後も従来通り境界日を含む判定になることを確認する。
+        """
+        from django.utils import timezone as djtz
+
+        window_edge = StockDiary.objects.create(
+            user=user, stock_symbol='1001', stock_name='境界日ちょうど',
+        )
+        StockDiary.objects.filter(pk=window_edge.pk).update(
+            created_at=djtz.now() - timedelta(days=365 + 3)
+        )
+        outside = StockDiary.objects.create(
+            user=user, stock_symbol='1002', stock_name='ウィンドウ外',
+        )
+        StockDiary.objects.filter(pk=outside.pk).update(
+            created_at=djtz.now() - timedelta(days=365 + 4)
+        )
+
+        recall = RecallService.build(user)
+        found_ids = {item['diary'].id for item in recall['anniversary']}
+        assert window_edge.id in found_ids
+        assert outside.id not in found_ids
+
+    def test_anniversary_diary_query_uses_datetime_range_not_date_cast(self, user):
+        """created_at__date__range（全行に日付キャスト関数がかかりインデックスが
+        使えない書き方）へ戻していないことを回帰検証する。"""
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        StockDiary.objects.create(user=user, stock_symbol='1003', stock_name='クエリ検証用')
+
+        with CaptureQueriesContext(connection) as ctx:
+            RecallService.build(user)
+
+        assert not any('django_datetime_cast_date' in q['sql'] for q in ctx.captured_queries)
+
     def test_unreviewed_sold_diary_listed(self, sample_sold_diary):
         """売却完結済みで振り返りがない日記が出る"""
         recall = RecallService.build(sample_sold_diary.user)
