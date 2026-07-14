@@ -89,6 +89,29 @@ class TestRecallService:
 
         assert not any('django_datetime_cast_date' in q['sql'] for q in ctx.captured_queries)
 
+    def test_build_default_today_uses_jst_not_utc(self, user):
+        """RecallService.build(today未指定) が timezone.now().date()（UTC日付）を
+        使っており、TIME_ZONE=Asia/Tokyo のもとでは UTC 0時〜9時（JST 9時〜18時）の
+        間、実際のJSTの「今日」より1日前の日付として扱われていた。この間は当日が
+        検証予定日の仮説が「答え合わせ待ち」に出ない等のズレが生じる。
+        timezone.localdate() を使うよう修正した回帰テスト。"""
+        from datetime import datetime, timezone as dt_timezone
+        from unittest.mock import patch
+        from stockdiary.models import Thesis
+
+        # UTC 2026-01-01 23:00 = JST 2026-01-02 08:00（UTC日付とJST日付がズレる時間帯）
+        fake_utc_now = datetime(2026, 1, 1, 23, 0, tzinfo=dt_timezone.utc)
+        diary = StockDiary.objects.create(user=user, stock_name='A', stock_symbol='1')
+        Thesis.objects.create(
+            diary=diary, claim='JSTの今日が検証予定日',
+            review_due_date=date(2026, 1, 2),  # JSTの「今日」
+        )
+
+        with patch('django.utils.timezone.now', return_value=fake_utc_now):
+            recall = RecallService.build(user)
+
+        assert len(recall['due_theses']) == 1
+
     def test_unreviewed_sold_diary_listed(self, sample_sold_diary):
         """売却完結済みで振り返りがない日記が出る"""
         recall = RecallService.build(sample_sold_diary.user)

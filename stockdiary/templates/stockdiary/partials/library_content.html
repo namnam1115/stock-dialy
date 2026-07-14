@@ -80,10 +80,18 @@
   // フリック（左右スワイプ）でタブを移動する。
   // #lib-content はタブ切替のたびに丸ごと差し替わるため、リスナーは
   // 差し替わらない親（#lib-shell）に置き、イベント委譲で拾う。
+  //
+  // touchmove を素通りさせると、横方向の指の動きをブラウザがネイティブの
+  // 横スクロール／ラバーバンドとして処理し、コンテンツに横スクロール可能な
+  // 要素が無いため画面全体が吸着して左右に引っ張られるように見えていた。
+  // 横方向の動きだと判定できた時点で preventDefault し、ブラウザ側の処理を
+  // 止める（縦方向はそのまま素通りさせ、ページスクロールを妨げない）。
   var SWIPE_MIN_X = 60;   // これ未満は誤操作扱い
   var SWIPE_MAX_Y = 60;   // 縦方向にこれ以上ずれたらスクロール扱いで無視
+  var DIRECTION_LOCK_PX = 10;  // この移動量で横/縦どちらのジェスチャーか確定する
   var touchStartX = null;
   var touchStartY = null;
+  var isHorizontal = null;  // null=未確定 / true=横 / false=縦
 
   shell.addEventListener('touchstart', function (e) {
     if (e.touches.length !== 1 || !e.target.closest('#lib-content')) {
@@ -92,7 +100,21 @@
     }
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
+    isHorizontal = null;
   }, { passive: true });
+
+  shell.addEventListener('touchmove', function (e) {
+    if (touchStartX === null) return;
+    var touch = e.touches[0];
+    var dx = touch.clientX - touchStartX;
+    var dy = touch.clientY - touchStartY;
+
+    if (isHorizontal === null) {
+      if (Math.abs(dx) < DIRECTION_LOCK_PX && Math.abs(dy) < DIRECTION_LOCK_PX) return;
+      isHorizontal = Math.abs(dx) > Math.abs(dy);
+    }
+    if (isHorizontal) e.preventDefault();  // 横ジェスチャーはブラウザに渡さない
+  }, { passive: false });
 
   shell.addEventListener('touchend', function (e) {
     if (touchStartX === null) return;
