@@ -5,8 +5,8 @@
         hx-target="this"
         hx-swap="outerHTML">
   {% if diary.is_excluded %}
-    <i class="bi bi-eye me-2"></i>除外を解除する
+    <i class="bi bi-arrow-counterclockwise me-2"></i>アーカイブから戻す
   {% else %}
-    <i class="bi bi-eye-slash me-2"></i>一覧・グラフから除外する
+    <i class="bi bi-archive me-2"></i>アーカイブする（棚に戻す）
   {% endif %}
 </button>

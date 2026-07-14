@@ -190,9 +190,9 @@
       var panel = header.querySelector('.exclude-action-panel');
       if (panel) {
         panel.innerHTML = isNowExcluded
-          ? '<i class="bi bi-eye"></i><span>解除</span>'
-          : '<i class="bi bi-eye-slash"></i><span>除外</span>';
-        panel.setAttribute('aria-label', isNowExcluded ? '除外を解除する' : '一覧・グラフから除外する');
+          ? '<i class="bi bi-arrow-counterclockwise"></i><span>戻す</span>'
+          : '<i class="bi bi-archive"></i><span>アーカイブ</span>';
+        panel.setAttribute('aria-label', isNowExcluded ? 'アーカイブから戻す' : 'アーカイブする');
         // _excludeTapBound はリセットしない: リスナーは再利用し二重バインドを防ぐ
       }
 

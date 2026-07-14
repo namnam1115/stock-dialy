@@ -5,8 +5,10 @@ from decimal import Decimal
 
 from django.urls import reverse
 
-from stockdiary.models import StockDiary, Transaction, DiaryNote
-from stockdiary.services.recall_service import RecallService
+from django.utils import timezone
+
+from stockdiary.models import StockDiary, Transaction, DiaryNote, ReasonVersion
+from stockdiary.services.recall_service import RecallService, STALE_REASON_DAYS
 from stockdiary.utils import find_duplicate_diaries
 from stockdiary.forms import StockDiaryForm
 
@@ -113,6 +115,139 @@ class TestRecallService:
         """他ユーザーの日記は想起に出ない"""
         recall = RecallService.build(another_user)
         assert recall['has_content'] is False
+
+
+def _age_created(diary, days):
+    """auto_now_add の created_at を過去日へ書き換える（テスト補助）"""
+    StockDiary.objects.filter(pk=diary.pk).update(
+        created_at=timezone.now() - timedelta(days=days)
+    )
+    diary.refresh_from_db()
+
+
+class TestStaleReasonRecall:
+    """OD5: 保有中なのに企業説明(reason)を長期間見直していない日記の想起。
+
+    reason（企業説明）は「現状の企業の俯瞰」ゆえ時間とともに陳腐化する
+    （ontology §3：reason は買った理由=Thesis とは別レイヤの現状説明）。保有を
+    続けているのに前提を STALE_REASON_DAYS 見直していない銘柄を「前提の再点検」
+    として想起し、削除でなく更新へ誘導する。最終更新時刻は最新
+    ReasonVersion.created_at（無ければ日記作成時刻）で判定する。
+    """
+
+    def test_old_holding_reason_surfaces(self, sample_diary_with_transaction):
+        """保有中・reason あり・作成から STALE_REASON_DAYS 超 → 想起に出る"""
+        _age_created(sample_diary_with_transaction, STALE_REASON_DAYS + 40)
+        recall = RecallService.build(sample_diary_with_transaction.user)
+        assert sample_diary_with_transaction in recall['stale_reason']
+        assert recall['has_content'] is True
+        assert 'stale_reason' in [q['kind'] for q in recall['queue']]
+
+    def test_recent_holding_not_stale(self, sample_diary_with_transaction):
+        """作成が最近なら（前提が新しい）出ない"""
+        recall = RecallService.build(sample_diary_with_transaction.user)
+        assert sample_diary_with_transaction not in recall['stale_reason']
+
+    def test_recent_reason_version_resets_staleness(self, sample_diary_with_transaction):
+        """作成は古くても、最近 reason を更新（新しい ReasonVersion）していれば出ない。
+
+        現在の reason が定着した時刻＝最新 ReasonVersion.created_at で判定するため。
+        """
+        _age_created(sample_diary_with_transaction, STALE_REASON_DAYS + 40)
+        rv = ReasonVersion.objects.create(
+            diary=sample_diary_with_transaction, content='旧見立て'
+        )
+        ReasonVersion.objects.filter(pk=rv.pk).update(
+            created_at=timezone.now() - timedelta(days=10)
+        )
+        recall = RecallService.build(sample_diary_with_transaction.user)
+        assert sample_diary_with_transaction not in recall['stale_reason']
+
+    def test_old_reason_version_keeps_stale(self, sample_diary_with_transaction):
+        """最新 ReasonVersion も STALE_REASON_DAYS より古ければ、なお陳腐化として出る"""
+        _age_created(sample_diary_with_transaction, STALE_REASON_DAYS + 200)
+        rv = ReasonVersion.objects.create(
+            diary=sample_diary_with_transaction, content='さらに古い見立て'
+        )
+        ReasonVersion.objects.filter(pk=rv.pk).update(
+            created_at=timezone.now() - timedelta(days=STALE_REASON_DAYS + 30)
+        )
+        recall = RecallService.build(sample_diary_with_transaction.user)
+        assert sample_diary_with_transaction in recall['stale_reason']
+
+    def test_memo_diary_not_stale(self, sample_diary):
+        """取引ゼロ（保有していない）メモ日記は、古くても対象外（賭けていない）"""
+        _age_created(sample_diary, STALE_REASON_DAYS + 40)
+        recall = RecallService.build(sample_diary.user)
+        assert sample_diary not in recall['stale_reason']
+
+    def test_excluded_holding_not_stale(self, sample_diary_with_transaction):
+        """アーカイブ済み(is_excluded)は想起の母集団から外れる（OD2 と一貫）"""
+        _age_created(sample_diary_with_transaction, STALE_REASON_DAYS + 40)
+        sample_diary_with_transaction.is_excluded = True
+        sample_diary_with_transaction.save(update_fields=['is_excluded'])
+        recall = RecallService.build(sample_diary_with_transaction.user)
+        assert sample_diary_with_transaction not in recall['stale_reason']
+
+    def test_empty_reason_not_stale(self, sample_diary_with_transaction):
+        """reason が空なら見直す前提が無いので出ない"""
+        _age_created(sample_diary_with_transaction, STALE_REASON_DAYS + 40)
+        sample_diary_with_transaction.reason = ''
+        sample_diary_with_transaction.save(update_fields=['reason'])
+        recall = RecallService.build(sample_diary_with_transaction.user)
+        assert sample_diary_with_transaction not in recall['stale_reason']
+
+    def test_other_users_stale_not_leaked(self, sample_diary_with_transaction, another_user):
+        """他ユーザーの陳腐化日記は出ない"""
+        _age_created(sample_diary_with_transaction, STALE_REASON_DAYS + 40)
+        recall = RecallService.build(another_user)
+        assert recall['stale_reason'] == []
+
+
+class TestArchiveLabeling:
+    """OD2: ユーザー向け文言を「除外」→「アーカイブ（棚に戻す）」へ統一。
+
+    内部名(is_excluded)・status クエリ値('excluded')・DB は不変。表示の言葉と導線
+    だけを「消す」でなく「片付ける（アーカイブ）」に寄せ、North Star（過去の判断を
+    消さない）を UX で担保する。
+    """
+
+    def test_home_status_filter_uses_archive_label(self, authenticated_client, sample_diary):
+        response = authenticated_client.get(reverse('stockdiary:home'))
+        body = response.content.decode()
+        assert 'アーカイブ' in body
+        assert '除外済み' not in body
+
+    def test_detail_banner_says_archived(self, authenticated_client, sample_diary):
+        sample_diary.is_excluded = True
+        sample_diary.save(update_fields=['is_excluded'])
+        response = authenticated_client.get(
+            reverse('stockdiary:detail', kwargs={'pk': sample_diary.pk})
+        )
+        body = response.content.decode()
+        assert 'アーカイブ済み' in body
+        assert '一覧・グラフから除外されています' not in body
+
+    def test_excluded_list_shows_restore_label(self, authenticated_client, sample_diary):
+        """アーカイブ一覧（status=excluded）のカードは「アーカイブから戻す」を出す"""
+        sample_diary.is_excluded = True
+        sample_diary.save(update_fields=['is_excluded'])
+        response = authenticated_client.get(
+            reverse('stockdiary:home'), {'status': 'excluded'}
+        )
+        body = response.content.decode()
+        assert 'アーカイブから戻す' in body
+        assert '除外を解除' not in body
+
+    def test_status_value_excluded_unchanged(self, authenticated_client, sample_diary):
+        """内部の status クエリ値 'excluded' は温存（フィルタ契約は不変）"""
+        sample_diary.is_excluded = True
+        sample_diary.save(update_fields=['is_excluded'])
+        response = authenticated_client.get(
+            reverse('stockdiary:home'), {'status': 'excluded'}
+        )
+        assert response.status_code == 200
+        assert sample_diary.stock_name in response.content.decode()
 
 
 class TestFindDuplicateDiaries:

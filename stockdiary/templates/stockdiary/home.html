@@ -120,7 +120,7 @@
                  {% if request.GET.status == 'excluded' %}checked{% endif %}
                  data-target="statusFilter"
                  class="sidebar-status-radio sidebar-filter">
-          <span class="sidebar-status-label"><i class="bi bi-eye-slash me-1"></i>除外済み</span>
+          <span class="sidebar-status-label"><i class="bi bi-archive me-1"></i>アーカイブ</span>
           <span class="sidebar-status-count">·&nbsp;{{ excluded_count }}</span>
         </label>
       </div>
@@ -404,7 +404,7 @@
           <button type="button" class="status-dropdown-btn dropdown-toggle" id="statusDropdownBtn"
                   data-bs-toggle="dropdown" aria-expanded="false"
                   aria-label="表示するステータスを選択">
-            <span id="statusDropdownLabel">{% if request.GET.status == 'active' %}保有中{% elif request.GET.status == 'sold' %}売却済み{% elif request.GET.status == 'memo' %}メモ{% elif request.GET.status == 'excluded' %}除外済み{% else %}すべて{% endif %}</span>
+            <span id="statusDropdownLabel">{% if request.GET.status == 'active' %}保有中{% elif request.GET.status == 'sold' %}売却済み{% elif request.GET.status == 'memo' %}メモ{% elif request.GET.status == 'excluded' %}アーカイブ{% else %}すべて{% endif %}</span>
             <span class="status-tab-count" id="statusDropdownCount">{% if request.GET.status == 'active' %}{{ active_holdings_count }}{% elif request.GET.status == 'sold' %}{{ sold_count }}{% elif request.GET.status == 'memo' %}{{ memo_count }}{% elif request.GET.status == 'excluded' %}{{ excluded_count }}{% else %}{{ total_diary_count }}{% endif %}</span>
           </button>
           <ul class="dropdown-menu status-dropdown-menu">
@@ -434,7 +434,7 @@
             </li>
             <li>
               <button type="button" class="dropdown-item status-tab{% if request.GET.status == 'excluded' %} active{% endif %}" data-status="excluded">
-                <span class="status-tab-name">除外済み</span>
+                <span class="status-tab-name">アーカイブ</span>
                 <span class="status-tab-count">{{ excluded_count }}</span>
               </button>
             </li>

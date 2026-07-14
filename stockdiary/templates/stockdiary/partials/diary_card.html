@@ -156,9 +156,9 @@
             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
             hx-target="closest article"
             hx-swap="delete"
-            aria-label="{{ diary.stock_name }}の除外を解除">
-      <i class="bi bi-eye"></i>
-      <span>除外を解除</span>
+            aria-label="{{ diary.stock_name }}をアーカイブから戻す">
+      <i class="bi bi-arrow-counterclockwise"></i>
+      <span>アーカイブから戻す</span>
     </button>
     {% else %}
     <button type="button"

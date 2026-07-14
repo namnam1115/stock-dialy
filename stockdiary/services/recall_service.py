@@ -27,6 +27,9 @@ ANNIVERSARY_WINDOW_DAYS = 3
 DISCLOSURE_RECENT_DAYS = 30
 # 次回決算を「近い」として想起する日数（決算前に前提を見直すトリガー）
 UPCOMING_EARNINGS_DAYS = 14
+# 企業説明(reason)を「古い」とみなす日数。保有を続けているのに前提を
+# この期間見直していない銘柄を「前提の再点検」として想起する（OD5）。
+STALE_REASON_DAYS = 365
 # 各セクションの最大表示件数
 SECTION_LIMIT = 3
 # 想起キュー（スワイプ式の単一フォーカスカード）の最大件数
@@ -57,11 +60,14 @@ class RecallService:
         disclosures = cls._build_disclosures(user, today)
         upcoming = cls._build_upcoming_earnings(user, today)
         due_theses = cls._build_due_theses(user, today)
+        stale_reason = cls._build_stale_reason(user, today)
 
-        # 4種の想起を「なぜ浮上したか（理由）」付きの単一キューへ統合する。
+        # 各種の想起を「なぜ浮上したか（理由）」付きの単一キューへ統合する。
         # ZIP デザイン（ui_kits/app の RecallZone）に倣ったスワイプ式カード用。
         # 決算は「確定決算が出た（開示後）」ではなく「決算予定日が近い（決算前）」を載せる。
-        queue = cls._build_queue(due_theses, upcoming, unreviewed, anniversary, today)
+        queue = cls._build_queue(
+            due_theses, upcoming, unreviewed, stale_reason, anniversary, today
+        )
 
         return {
             'anniversary': anniversary,
@@ -70,15 +76,18 @@ class RecallService:
             'disclosures': disclosures,
             'upcoming_earnings': upcoming,
             'due_theses': due_theses,
+            'stale_reason': stale_reason,
             'queue': queue,
-            'has_content': bool(anniversary or unreviewed or upcoming or due_theses),
+            'has_content': bool(
+                anniversary or unreviewed or upcoming or due_theses or stale_reason
+            ),
             # 折りたたみ時の見出しバッジ用の総件数（キューに載る想起の合計）
             'total_count': (len(anniversary) + unreviewed_count
-                            + len(upcoming) + len(due_theses)),
+                            + len(upcoming) + len(due_theses) + len(stale_reason)),
         }
 
     @classmethod
-    def _build_queue(cls, due_theses, upcoming, unreviewed, anniversary, today):
+    def _build_queue(cls, due_theses, upcoming, unreviewed, stale_reason, anniversary, today):
         """想起をスワイプ式の単一フォーカスキューへ統合する。
 
         各カードは「なぜ今これが浮上したか」の理由を持つ。優先度の高い
@@ -156,7 +165,31 @@ class RecallService:
                 'meta': '売却済み ・ 答え合わせ未記入',
             })
 
-        # 4) 1年前の今日
+        # 4) 企業説明(reason)が古い保有（前提の再点検）
+        for d in stale_reason:
+            age_days = getattr(d, '_reason_age_days', 0) or 0
+            years = age_days // 365
+            months = (age_days % 365) // 30
+            if years >= 1:
+                age = f'約{years}年前'
+            elif months >= 1:
+                age = f'約{months}ヶ月前'
+            else:
+                age = f'{age_days}日前'
+            queue.append({
+                'kind': 'stale_reason',
+                'reason': '企業説明が古い',
+                'reason_icon': 'hourglass-split',
+                'stock_name': d.stock_name,
+                'code': code_of(d),
+                'diary_id': d.id,
+                'thesis_id': None,
+                'claim': extract_lead(d.reason or '', max_len=80)
+                         or '保有中。企業説明の前提はまだ生きているか、見直しておく。',
+                'meta': f'企業説明の更新が{age} ・ 保有中',
+            })
+
+        # 5) 1年前の今日
         for item in anniversary:
             d = item['diary']
             date = item.get('date')
@@ -195,6 +228,46 @@ class RecallService:
             .select_related('diary')
             .order_by('review_due_date')[:SECTION_LIMIT]
         )
+
+    @classmethod
+    def _build_stale_reason(cls, user, today):
+        """保有中なのに企業説明(reason)を長期間見直していない日記。
+
+        `reason`（企業説明）は「現状の企業の俯瞰」であり時間とともに陳腐化する
+        （オントロジー §3：reason は買った理由=Thesis とは別レイヤの現状説明）。
+        保有を続けているのに前提(reason)を STALE_REASON_DAYS 見直していない銘柄を
+        「前提の再点検」として想起し、削除でなく更新へ誘導する。
+
+        reason の最終更新時刻は最新 ReasonVersion.created_at（＝現在の reason に
+        置き換わった時刻）で判定する。reason は上書き編集時に旧版を ReasonVersion へ
+        退避するため、最新版の created_at＝現 reason が定着した時刻になる。一度も
+        編集していなければ版が無いので日記作成時刻(created_at)を用いる。
+        """
+        from django.db.models import Max
+        from ..models import StockDiary
+
+        cutoff = today - timedelta(days=STALE_REASON_DAYS)
+
+        diaries = (
+            StockDiary.objects
+            .filter(user=user, is_excluded=False, current_quantity__gt=0)
+            .exclude(reason='')
+            .annotate(_last_reason_ver=Max('reason_versions__created_at'))
+        )
+
+        results = []
+        for d in diaries:
+            anchor_dt = d._last_reason_ver or d.created_at
+            if not anchor_dt:
+                continue
+            anchor = timezone.localtime(anchor_dt).date()
+            if anchor <= cutoff:
+                d._reason_age_days = (today - anchor).days
+                d._reason_anchor = anchor
+                results.append(d)
+
+        results.sort(key=lambda x: x._reason_anchor)  # 古い順（最も陳腐化したものを先に）
+        return results[:SECTION_LIMIT]
 
     @classmethod
     def _build_anniversary(cls, user, today):

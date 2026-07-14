@@ -46,6 +46,9 @@
           {% elif item.kind == 'earnings' %}
           <a class="btn-quiet btn-quiet--primary recall-action" href="{% url 'stockdiary:detail' item.diary_id %}#section-reason"><i class="bi bi-pencil"></i>決算に備える</a>
           <a class="btn-quiet recall-action recall-action--side" href="{% url 'stockdiary:earnings_calendar' %}"><i class="bi bi-calendar-event"></i>カレンダー</a>
+          {% elif item.kind == 'stale_reason' %}
+          <a class="btn-quiet btn-quiet--primary recall-action" href="{% url 'stockdiary:detail' item.diary_id %}#section-reason"><i class="bi bi-pencil"></i>前提を見直す</a>
+          <a class="btn-quiet recall-action recall-action--side" href="{% url 'stockdiary:detail' item.diary_id %}"><i class="bi bi-book"></i>読む</a>
           {% else %}
           <a class="btn-quiet btn-quiet--primary recall-action" href="{% url 'stockdiary:detail' item.diary_id %}"><i class="bi bi-pencil"></i>いまの考えを残す</a>
           <a class="btn-quiet recall-action recall-action--side" href="{% url 'stockdiary:detail' item.diary_id %}"><i class="bi bi-book"></i>読む</a>

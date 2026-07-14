@@ -1134,6 +1134,10 @@ body.writing-focus .pc-only-header:hover { opacity: 1; }
   color: var(--verdict-skill);
   border-color: color-mix(in srgb, var(--verdict-skill) 36%, var(--hairline));
 }
+.reading-page .recall-reason--stale_reason {
+  color: var(--verdict-lucky);
+  border-color: color-mix(in srgb, var(--verdict-lucky) 34%, var(--hairline));
+}
 .reading-page .recall-reason--anniversary { color: var(--muted-ink); }
 
 /* 銘柄行 */
