@@ -919,3 +919,137 @@ def test_admin_run_sync_view_executes(settings, client):
         resp = client.post(url, {'days': '90', 'skip_notifications': '1'})
     assert resp.status_code == 302
     assert EarningsSchedule.objects.filter(securities_code='7203').exists()
+
+
+# ---------------------------------------------------------------------------
+# 予測精度（confidence）・予測誤差（predictionWindowDays）の取り込みと可視化
+#
+# なぜこのテスト群があるか:
+#   予想日は実際の発表日から数日〜数週間ずれ得るのに、以前は「予想」バッジしか
+#   出さず、どれだけズレ得るか（精度・±N日）が分からなかった。EDINET DB
+#   /v1/calendar が返す confidence / predictionWindowDays を取り込み、画面に
+#   テキストで明示する（＋月グリッドで予想のみの日を淡色化する）ことを固定する。
+# ---------------------------------------------------------------------------
+
+def test_normalize_extracts_confidence_and_window():
+    """予想日は confidence（high/medium/low）と predictionWindowDays を取り込む。"""
+    raw = {
+        'secCode': '9046', 'companyName': '神戸電鉄',
+        'announcementDate': None, 'estimatedAnnouncementDate': '2026-07-01',
+        'dateStatus': 'estimated', 'confidence': 'Medium',
+        'predictionWindowDays': 14,
+    }
+    item = EarningsCalendarAPIService._normalize_item(raw)
+    assert item['is_estimated'] is True
+    assert item['confidence'] == 'medium'   # 大小混在は小文字へ正規化
+    assert item['prediction_window_days'] == 14
+
+
+def test_normalize_confirmed_has_no_confidence_or_window():
+    """確定日は精度・誤差を持たない（API が返さない → 空 / None）。"""
+    raw = {
+        'secCode': '8316', 'companyName': 'SMFG',
+        'announcementDate': '2026-08-03', 'dateStatus': 'confirmed',
+    }
+    item = EarningsCalendarAPIService._normalize_item(raw)
+    assert item['is_estimated'] is False
+    assert item['confidence'] == ''
+    assert item['prediction_window_days'] is None
+
+
+def test_normalize_rejects_invalid_confidence_and_window():
+    """未知の精度値・数値化できない誤差は捨てる（空 / None にフォールバック）。"""
+    raw = {
+        'secCode': '7203', 'estimatedAnnouncementDate': '2026-07-01',
+        'dateStatus': 'estimated', 'confidence': 'とても高い',
+        'predictionWindowDays': 'N/A',
+    }
+    item = EarningsCalendarAPIService._normalize_item(raw)
+    assert item['confidence'] == ''
+    assert item['prediction_window_days'] is None
+
+
+def test_next_earnings_map_carries_confidence_and_window():
+    """次回決算の値オブジェクトが精度・誤差・日本語ラベルを載せる。"""
+    today = timezone.localdate()
+    EarningsSchedule.objects.create(
+        securities_code='7203', earnings_date=today + timedelta(days=10),
+        is_estimated=True, confidence='low', prediction_window_days=21)
+
+    ne = views_earnings.get_next_earnings_map({'7203'}, today=today)['7203']
+    assert ne.confidence == 'low'
+    assert ne.confidence_label == '低'
+    assert ne.prediction_window_days == 21
+
+
+def test_sync_persists_confidence_and_window(settings):
+    """同期が confidence / prediction_window_days を EarningsSchedule へ保存する。"""
+    settings.EARNINGS_CALENDAR_API_SETTINGS = {'API_KEY': 'k'}
+    today = timezone.localdate()
+    new_items = [{
+        'securities_code': '7203', 'company_name': 'トヨタ',
+        'earnings_date': today + timedelta(days=20),
+        'is_estimated': True, 'confidence': 'high', 'prediction_window_days': 7,
+        'earnings_type': '本決算', 'market_segment': 'プライム',
+        'source_updated_at': '',
+    }]
+    with patch.object(EarningsCalendarAPIService, 'fetch_window', return_value=new_items):
+        sync.sync_earnings_calendar(days=90)
+
+    row = EarningsSchedule.objects.get(securities_code='7203')
+    assert row.confidence == 'high'
+    assert row.confidence_label == '高'
+    assert row.prediction_window_days == 7
+
+
+def test_calendar_day_panel_shows_confidence_and_window(client):
+    """選択日パネルの予想銘柄に「精度◯」「±N日」がテキスト表示される。"""
+    user = User.objects.create_user('v_conf', 'vconf@e.com', 'p')
+    client.force_login(user)
+    target = timezone.localdate() + timedelta(days=30)
+    EarningsSchedule.objects.create(
+        securities_code='7203', earnings_date=target, company_name='トヨタ自動車',
+        is_estimated=True, confidence='medium', prediction_window_days=14)
+
+    resp = client.get(reverse('stockdiary:earnings_calendar'), {
+        'scope': 'all', 'month': target.strftime('%Y-%m'), 'date': target.isoformat(),
+    })
+    html = resp.content.decode()
+    assert '精度中' in html
+    assert '±14日' in html
+
+
+def test_calendar_grid_dims_estimated_only_days(client):
+    """月グリッドで、予想のみの日は淡色化（ec-cell--estimated）し、確定を含む日は
+    通常表示（クラスなし）にして区別する。"""
+    user = User.objects.create_user('v_dim', 'vdim@e.com', 'p')
+    client.force_login(user)
+    base = timezone.localdate() + timedelta(days=20)
+    est_day = base
+    conf_day = base + timedelta(days=1)
+    # 予想のみの日
+    EarningsSchedule.objects.create(
+        securities_code='7203', earnings_date=est_day, is_estimated=True)
+    # 確定を含む日（予想も混在するが確定が1件あれば通常表示）
+    EarningsSchedule.objects.create(
+        securities_code='6758', earnings_date=conf_day, is_estimated=False)
+    EarningsSchedule.objects.create(
+        securities_code='9984', earnings_date=conf_day, is_estimated=True)
+
+    resp = client.get(reverse('stockdiary:earnings_calendar'), {
+        'scope': 'all', 'month': base.strftime('%Y-%m'),
+    }, HTTP_HX_REQUEST='true')
+    html = resp.content.decode()
+    assert 'ec-cell--estimated' in html  # 予想のみの日が存在する
+
+    # ビュー層のフラグを直接確認（HTMLの重複クラスに依存しない厳密検証）
+    from earnings_analysis.models import EarningsSchedule as ES
+    from django.db.models import Count, Q
+    rows = {
+        r['earnings_date']: (r['c'], r['confirmed'])
+        for r in ES.objects.filter(earnings_date__in=[est_day, conf_day])
+        .values('earnings_date')
+        .annotate(c=Count('id'), confirmed=Count('id', filter=Q(is_estimated=False)))
+    }
+    assert rows[est_day][1] == 0        # 予想のみ（確定0件）→ 淡色化対象
+    assert rows[conf_day][1] == 1       # 確定を含む → 通常表示

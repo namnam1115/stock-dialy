@@ -20,7 +20,7 @@ from calendar import Calendar, monthrange
 from datetime import date, datetime, timedelta
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Min
+from django.db.models import Count, Min, Q
 from django.shortcuts import render
 from django.utils import timezone
 
@@ -48,25 +48,30 @@ WEEKDAY_HEADERS = ['月', '火', '水', '木', '金', '土', '日']
 
 
 def build_month_grid(year, month, today, window_start, window_end,
-                     counts, mine_dates, selected_date):
+                     counts, mine_dates, selected_date, estimated_only_dates=None):
     """月グリッド（週×7セル）を組む。
 
     各セルは date / in_month / count / has_mine / in_window / is_today /
-    is_selected を持つ。`counts` は {date: 件数}、`mine_dates` は記録銘柄を
-    含む日付の集合。
+    is_selected / all_estimated を持つ。`counts` は {date: 件数}、`mine_dates` は
+    記録銘柄を含む日付の集合、`estimated_only_dates` は確定日を1件も含まず予想日
+    のみの日付の集合（グリッドで淡色化して確定日と区別するため）。
     """
+    estimated_only_dates = estimated_only_dates or set()
     weeks = []
     for week in Calendar(firstweekday=0).monthdatescalendar(year, month):
         cells = []
         for day in week:
+            count = counts.get(day, 0)
             cells.append({
                 'date': day,
                 'in_month': day.month == month,
-                'count': counts.get(day, 0),
+                'count': count,
                 'has_mine': day in mine_dates,
                 'in_window': window_start <= day <= window_end,
                 'is_today': day == today,
                 'is_selected': day == selected_date,
+                # 予想日のみの日（確定日を含まない）は淡色化する
+                'all_estimated': count > 0 and day in estimated_only_dates,
             })
         weeks.append(cells)
     return weeks
@@ -183,10 +188,16 @@ def earnings_calendar(request):
         EarningsSchedule.objects.filter(
             earnings_date__range=(month_first, month_last)),
         scope, user_symbols)
-    counts = {
-        row['earnings_date']: row['c']
-        for row in month_qs.values('earnings_date').annotate(c=Count('id'))
-    }
+    # 日別の総件数と、そのうち確定日の件数を1クエリで集計する。確定日が0件の日
+    # （＝予想日のみの日）はグリッドで淡色化して確定日と区別する。
+    counts = {}
+    estimated_only_dates = set()
+    for row in (month_qs.values('earnings_date')
+                .annotate(c=Count('id'),
+                          confirmed=Count('id', filter=Q(is_estimated=False)))):
+        counts[row['earnings_date']] = row['c']
+        if row['confirmed'] == 0:
+            estimated_only_dates.add(row['earnings_date'])
     # 記録銘柄を含む日（scope に依らずハイライト用に算出）
     if user_symbols:
         mine_dates = set(
@@ -210,7 +221,7 @@ def earnings_calendar(request):
 
     grid = build_month_grid(
         year, month, today, window_start, window_end,
-        counts, mine_dates, selected_date)
+        counts, mine_dates, selected_date, estimated_only_dates)
 
     # --- 選択日の決算一覧 ---
     day_qs = _scope_filter(

@@ -55,6 +55,10 @@
     font-size: 0.72rem; font-weight: 700; padding: 0.12rem 0.5rem; border-radius: 6px;
     background: #fdf0d5; color: #8a5a00; border: 1px solid #e6c67a; white-space: nowrap;
 }
+/* 予想の精度・ズレ幅（±N日）。予想バッジに続く控えめなテキスト補足。
+   「どれだけズレ得るか」を一目で把握できるようにする。 */
+.ec-est-meta { font-size: 0.7rem; font-weight: 600; color: var(--text-secondary);
+    white-space: nowrap; }
 /* 前回（直前）決算日。次回より控えめに。 */
 .ec-prev { font-size: 0.82rem; color: var(--text-secondary); white-space: nowrap; }
 .ec-prev-est {
@@ -149,6 +153,10 @@
     min-width: 1.5rem; height: 1.5rem; padding: 0 0.4rem;
     display: inline-flex; align-items: center; justify-content: center;
 }
+/* 予想日のみの日（確定日を含まない）：点線枠＋淡色の件数バッジで確定日と区別する。
+   記録/本日/選択の状態色より優先度を下げるため、それらより前に定義する。 */
+.ec-cell--estimated { border-style: dashed; }
+.ec-cell--estimated .ec-cell-count { background: var(--bg-tertiary, #eef1f4); color: var(--text-secondary); }
 /* 記録中の銘柄を含む日：ネイビーの件数バッジ＋セルを淡くハイライト */
 .ec-cell--mine { border-color: rgba(47,62,107,0.45); background: rgba(47,62,107,0.04); }
 .ec-cell-count--mine { background: var(--ec-mine); }

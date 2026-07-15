@@ -74,6 +74,8 @@ def sync_earnings_calendar(days: int = 90, base_date=None) -> int:
             company_name=item['company_name'],
             earnings_date=item['earnings_date'],
             is_estimated=item.get('is_estimated', True),
+            confidence=item.get('confidence', ''),
+            prediction_window_days=item.get('prediction_window_days'),
             earnings_type=item['earnings_type'],
             market_segment=item['market_segment'],
             source_updated_at=_parse_source_dt(item.get('source_updated_at')),

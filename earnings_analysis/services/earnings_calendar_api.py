@@ -58,6 +58,12 @@ _UPDATED_KEYS = ('updated_at', 'updatedAt', 'modified', 'last_updated')
 # 確定日（announcementDate 系）と予想日（estimatedAnnouncementDate 系）を区別する
 _CONFIRMED_DATE_KEYS = ('earnings_date', 'announcementDate', 'announcement_date')
 _STATUS_KEYS = ('dateStatus', 'date_status', 'status')
+# 予測精度（high/medium/low）と予測誤差（±N日）。予想日のときのみ提供される。
+_CONFIDENCE_KEYS = ('confidence', 'prediction_confidence', 'predictionConfidence')
+_WINDOW_KEYS = ('predictionWindowDays', 'prediction_window_days',
+                'predictionWindow', 'window_days')
+# 正規の予測精度値（これ以外は無効として空に落とす）
+_CONFIDENCE_VALUES = ('high', 'medium', 'low')
 
 
 def _first(d: dict, keys) -> str:
@@ -236,10 +242,31 @@ class EarningsCalendarAPIService:
             'company_name': _first(raw, _NAME_KEYS),
             'earnings_date': parsed,
             'is_estimated': EarningsCalendarAPIService._is_estimated(raw),
+            'confidence': EarningsCalendarAPIService._normalize_confidence(raw),
+            'prediction_window_days':
+                EarningsCalendarAPIService._parse_window(raw),
             'earnings_type': _first(raw, _TYPE_KEYS),
             'market_segment': _first(raw, _MARKET_KEYS),
             'source_updated_at': _first(raw, _UPDATED_KEYS),
         }
+
+    @staticmethod
+    def _normalize_confidence(raw: dict) -> str:
+        """予測精度を high/medium/low に正規化する（それ以外は空文字）。"""
+        value = _first(raw, _CONFIDENCE_KEYS).lower()
+        return value if value in _CONFIDENCE_VALUES else ''
+
+    @staticmethod
+    def _parse_window(raw: dict):
+        """予測誤差（±N日）を非負整数へ変換する（不正・負値は None）。"""
+        value = _first(raw, _WINDOW_KEYS)
+        if not value:
+            return None
+        try:
+            days = int(float(value))
+        except (TypeError, ValueError):
+            return None
+        return days if days >= 0 else None
 
     @staticmethod
     def _is_estimated(raw: dict) -> bool:

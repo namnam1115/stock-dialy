@@ -13,7 +13,7 @@
       <span class="ec-arrow">→</span>
     {% endif %}
     {% if diary.next_earnings.type %}<span class="ec-type">{{ diary.next_earnings.type }}</span>{% endif %}
-    {% if diary.next_earnings.is_estimated %}<span class="ec-estimated" title="予想日です（確定前。実際の発表日は数日ずれることがあります）">予想</span>{% endif %}
+    {% if diary.next_earnings.is_estimated %}<span class="ec-estimated" title="予想日です（確定前。実際の発表日はズレることがあります）">予想</span>{% if diary.next_earnings.confidence_label or diary.next_earnings.prediction_window_days %}<span class="ec-est-meta">{% if diary.next_earnings.confidence_label %}精度{{ diary.next_earnings.confidence_label }}{% endif %}{% if diary.next_earnings.prediction_window_days %}{% if diary.next_earnings.confidence_label %} · {% endif %}±{{ diary.next_earnings.prediction_window_days }}日{% endif %}</span>{% endif %}{% endif %}
     <span class="ec-row-date">{{ diary.next_earnings.date|date:"Y/m/d" }}</span>
     {% with d=diary.next_earnings.days_until %}
       {% if d == 0 %}
