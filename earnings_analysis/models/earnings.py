@@ -12,6 +12,11 @@
 """
 from django.db import models
 
+# 予測精度（confidence）の日本語ラベル。APIは high/medium/low を返す。
+# 表示層（選択日パネルの生 EarningsSchedule・サマリーの NextEarnings 値オブジェクト）
+# の双方から参照する単一の正。
+CONFIDENCE_LABELS = {'high': '高', 'medium': '中', 'low': '低'}
+
 
 class EarningsSchedule(models.Model):
     """1銘柄の1回分の決算発表予定。
@@ -31,6 +36,13 @@ class EarningsSchedule(models.Model):
     # （announcementDate）を返せば False、予測日（estimatedAnnouncementDate）
     # のみ返す場合は True。自前算出（計算）による予定日は設定しない。
     is_estimated = models.BooleanField('予想日フラグ', default=True, db_index=True)
+    # 予測日の精度（提供元API由来）。confirmed の日は空。high/medium/low を格納。
+    # 「予想だがどれだけ信頼できるか」を画面でテキスト表示するために保持する。
+    confidence = models.CharField('予測精度', max_length=10, blank=True)
+    # 予測日の誤差目安（±N日）。confirmed の日は None。予想日がどれだけズレ得るかを
+    # ユーザーが把握できるようにするために保持し、画面に明示する。
+    prediction_window_days = models.PositiveSmallIntegerField(
+        '予測誤差(日)', null=True, blank=True)
     # 本決算・第1四半期・第2四半期 など。APIの値をそのまま保持する。
     earnings_type = models.CharField('決算種別', max_length=50, blank=True)
     market_segment = models.CharField('市場区分', max_length=50, blank=True)
@@ -57,6 +69,11 @@ class EarningsSchedule(models.Model):
 
     def __str__(self):
         return f"{self.securities_code} {self.company_name} 決算予定 {self.earnings_date}"
+
+    @property
+    def confidence_label(self):
+        """予測精度の日本語ラベル（高/中/低）。未設定・確定日は空文字。"""
+        return CONFIDENCE_LABELS.get(self.confidence, '')
 
     @property
     def ticker(self):

@@ -39,7 +39,7 @@
       {% for cell in week %}
         {% if cell.in_window and cell.count %}
         <button type="button"
-                class="ec-cell ec-cell--has{% if cell.is_selected %} ec-cell--selected{% endif %}{% if cell.is_today %} ec-cell--today{% endif %}{% if cell.has_mine %} ec-cell--mine{% endif %}{% if not cell.in_month %} ec-cell--other{% endif %}"
+                class="ec-cell ec-cell--has{% if cell.all_estimated %} ec-cell--estimated{% endif %}{% if cell.is_selected %} ec-cell--selected{% endif %}{% if cell.is_today %} ec-cell--today{% endif %}{% if cell.has_mine %} ec-cell--mine{% endif %}{% if not cell.in_month %} ec-cell--other{% endif %}"
                 hx-get="{% url 'stockdiary:earnings_calendar' %}?scope={{ scope }}&month={{ month_value }}&date={{ cell.date|date:'Y-m-d' }}"
                 hx-target="#ec-calendar" hx-swap="outerHTML" hx-push-url="true">
           <span class="ec-cell-day">{{ cell.date|date:"j" }}</span>
