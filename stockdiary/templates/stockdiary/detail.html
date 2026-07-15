@@ -197,7 +197,7 @@
                href="{% url 'stockdiary:earnings_calendar' %}"
                title="次回決算予定：{{ diary.next_earnings.date|date:'Y年m月d日' }}{% if diary.next_earnings.type %}（{{ diary.next_earnings.type }}）{% endif %}{% if diary.next_earnings.is_estimated %}｜予想{% if diary.next_earnings.confidence_label %}・精度{{ diary.next_earnings.confidence_label }}{% endif %}{% if diary.next_earnings.prediction_window_days %}・±{{ diary.next_earnings.prediction_window_days }}日{% endif %}{% endif %}">
               <i class="bi bi-calendar-event"></i>
-              <span class="earnings-date">次回決算 {{ diary.next_earnings.date|date:"n/j" }}{% with d=diary.next_earnings.days_until %}{% if d == 0 %}（本日）{% else %}（あと{{ d }}日）{% endif %}{% endwith %}</span>
+              <span class="earnings-date">次回決算 {{ diary.next_earnings.date|date:"n/j" }}{% if diary.next_earnings.is_estimated %} <span class="earnings-est">予想{% if diary.next_earnings.prediction_window_days %} ±{{ diary.next_earnings.prediction_window_days }}日{% endif %}</span>{% endif %}{% with d=diary.next_earnings.days_until %}{% if d == 0 %}（本日）{% else %}（あと{{ d }}日）{% endif %}{% endwith %}</span>
             </a>
             {% endif %}
           </div>
