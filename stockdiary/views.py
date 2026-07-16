@@ -1375,6 +1375,26 @@ class DiarySummaryView(LoginRequiredMixin, TemplateView):
         time_list = sorted(summary_list, key=lambda x: x['latest_date'] or _epoch, reverse=True)
         symbol_list = sorted(summary_list, key=lambda x: x['symbol'])
 
+        # 銘柄索引：コード帯でグルーピング（本の索引のジャンプレール用）。
+        # 日本株の4桁コードは先頭桁で束ね（例 7000番台）、外国株など英字始まりは
+        # 頭文字で束ねる。symbol_list はコード昇順のため各グループは連続・整列済み。
+        from collections import OrderedDict as _OrderedDict
+
+        def _code_group(sym):
+            s = (sym or '').strip()
+            if s[:1].isdigit():
+                return (s[0], f'{s[0]}000番台')
+            c = (s[:1] or '#').upper()
+            return (c, c)
+
+        symbol_index_map = _OrderedDict()
+        for s in symbol_list:
+            gk, gl = _code_group(s['symbol'])
+            if gk not in symbol_index_map:
+                symbol_index_map[gk] = {'key': gk, 'label': gl, 'items': []}
+            symbol_index_map[gk]['items'].append(s)
+        symbol_index = list(symbol_index_map.values())
+
         # 銘柄別テーブル（量×成果の対比）の並び替え。
         # リストビューの lens/sort とは独立に、専用のソート軸を持つ。
         table_sort = self.request.GET.get('tsort', 'record_desc')
@@ -1432,6 +1452,7 @@ class DiarySummaryView(LoginRequiredMixin, TemplateView):
             'state_counts': state_counts,
             'state_grouped': state_grouped,
             'theme_groups': dict(theme_groups),
+            'symbol_index': symbol_index,
         })
         return context
 

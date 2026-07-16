@@ -276,9 +276,73 @@
    日本語テキストを含むため通用しない。ここでは横に押し込まず、画面が狭いときは
    トグルをタイトル行の下に完全に改行させ、右上の重なり自体を発生させない方針にする。 */
 .ds-title, .ds-view-btn { white-space: nowrap; }
+
+/* ── トップレベル切替：読む ⇄ 索引（セグメントコントロール） ── */
+.ds-mode-toggle {
+  display: inline-flex; gap: 0; flex-shrink: 0;
+  background: var(--paper-sunken); border: 1px solid var(--hairline);
+  border-radius: var(--radius-md); padding: 0.15rem;
+}
+.ds-mode-btn {
+  display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap;
+  font-size: 0.8125rem; font-weight: 500; text-decoration: none; cursor: pointer;
+  color: var(--muted-ink); border: none; border-radius: calc(var(--radius-md) - 0.15rem);
+  padding: 0.35rem 0.8rem; background: transparent;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.ds-mode-btn i { font-size: 0.85em; }
+.ds-mode-btn:hover { color: var(--ink); }
+.ds-mode-btn.is-active {
+  background: var(--paper-raised); color: var(--ink); font-weight: 600;
+  box-shadow: var(--shadow-xs);
+}
+
+/* 索引レイアウト切替（リスト/銘柄別）は検索の下に独立配置 */
+.ds-view-toggle { width: fit-content; margin: 0.75rem 0 0.35rem; }
+
+/* ── sticky グループ見出し（本の索引：見出しがスクロール追従） ── */
+.ds-group-head, .ds-theme-head, .ds-index-head {
+  position: sticky; top: 0; z-index: 3;
+  background: var(--paper);
+  box-shadow: 0 1px 0 var(--hairline-soft);
+}
+.ds-index-head {
+  display: flex; align-items: baseline; gap: 0.45rem;
+  font-size: 0.78rem; font-weight: 700; color: var(--ink);
+  padding: 0.6rem 0 0.35rem; letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums; scroll-margin-top: 0.5rem;
+}
+.ds-index-count {
+  font-size: 0.65rem; font-weight: 600; color: var(--faint-ink);
+}
+
+/* ── コード索引レール（ジャンプ用チップ帯） ── */
+.ds-index-rail {
+  display: flex; gap: 0.3rem; flex-wrap: wrap;
+  padding: 0.6rem 0 0.25rem; margin-bottom: 0.15rem;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.ds-index-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.9rem; height: 1.9rem; padding: 0 0.35rem;
+  font-size: 0.78rem; font-weight: 600; text-decoration: none;
+  color: var(--muted-ink); background: var(--paper-sunken);
+  border: 1px solid var(--hairline); border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.ds-index-chip:hover {
+  color: var(--paper); background: var(--ink); border-color: var(--ink);
+}
+
+/* テーブルの見出し行も追従させる（長い一覧の走査を助ける） */
+.ds-symbol-table thead th {
+  position: sticky; top: 0; z-index: 2; background: var(--paper);
+}
+
 @media (max-width: 640px) {
   .ds-header { flex-wrap: wrap; }
-  .ds-view-toggle { flex-basis: 100%; margin-top: 0.65rem; }
+  .ds-mode-toggle { flex-basis: 100%; margin-top: 0.65rem; justify-content: center; }
 }
 </style>
 {% endblock %}
@@ -292,9 +356,15 @@
       記録
       <span class="ds-total">{{ summary_list|length }}銘柄</span>
     </div>
-    <div class="ds-view-toggle" id="ds-view-toggle">
-      <button class="ds-view-btn"           data-view="list" onclick="setView('list')">リスト</button>
-      <button class="ds-view-btn is-active" data-view="table" onclick="setView('table')">銘柄別</button>
+    {# トップレベル切替：読む（カードフィード）⇄ 索引（この画面） #}
+    <div class="ds-mode-toggle" role="tablist" aria-label="表示切替">
+      <a class="ds-mode-btn" role="tab" aria-selected="false"
+         href="{% url 'stockdiary:home' %}{% if search_query %}?query={{ search_query|urlencode }}{% endif %}">
+        <i class="bi bi-journal-text"></i>読む
+      </a>
+      <span class="ds-mode-btn is-active" role="tab" aria-selected="true">
+        <i class="bi bi-list-ul"></i>索引
+      </span>
     </div>
   </div>
 
@@ -311,6 +381,12 @@
       {% endif %}
     </div>
   </form>
+
+  {# 索引の内部レイアウト切替（フレームレス行 ⇄ 対比テーブル） #}
+  <div class="ds-view-toggle" id="ds-view-toggle" role="tablist" aria-label="索引レイアウト">
+    <button class="ds-view-btn"           data-view="list" onclick="setView('list')">リスト</button>
+    <button class="ds-view-btn is-active" data-view="table" onclick="setView('table')">銘柄別</button>
+  </div>
 
   {# ── リストビュー（既定は銘柄別。スクリプトで切替）── #}
   <div id="ds-list-view" style="display:none">
@@ -354,7 +430,23 @@
         {% for stock in items %}{% include "stockdiary/partials/_summary_row.html" %}{% endfor %}
         {% endfor %}
 
-      {# 時系列 / 銘柄レンズ #}
+      {# 銘柄レンズ：コード索引（ジャンプレール＋ sticky 帯見出し） #}
+      {% elif lens == 'symbol' %}
+        {% if symbol_index|length > 1 %}
+        <nav class="ds-index-rail" aria-label="コード索引へジャンプ">
+          {% for g in symbol_index %}
+          <a class="ds-index-chip" href="#idx-{{ g.key }}">{{ g.key }}</a>
+          {% endfor %}
+        </nav>
+        {% endif %}
+        {% for g in symbol_index %}
+        <div class="ds-index-head" id="idx-{{ g.key }}">
+          {{ g.label }}<span class="ds-index-count">{{ g.items|length }}</span>
+        </div>
+        {% for stock in g.items %}{% include "stockdiary/partials/_summary_row.html" %}{% endfor %}
+        {% endfor %}
+
+      {# 時系列レンズ #}
       {% else %}
         {% for stock in summary_list %}{% include "stockdiary/partials/_summary_row.html" %}{% endfor %}
 
