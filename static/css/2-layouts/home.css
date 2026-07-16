@@ -523,6 +523,39 @@
   margin-top: 0.5rem;
 }
 
+/* 読む ⇄ 索引 のトップレベル切替（セグメントコントロール） */
+.rp-viewswitch {
+  display: inline-flex;
+  gap: 0;
+  margin-bottom: 1.25rem;
+  background: var(--paper-sunken);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 0.15rem;
+}
+.rp-viewswitch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--muted-ink);
+  border-radius: calc(var(--radius-md) - 0.15rem);
+  padding: 0.4rem 0.9rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.rp-viewswitch-btn i { font-size: 0.85em; }
+.rp-viewswitch-btn:hover { color: var(--ink); }
+.rp-viewswitch-btn.is-active {
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: var(--shadow-xs);
+}
+
 /* 日記カードグリッド */
 #diary-container {
   width: 100%;

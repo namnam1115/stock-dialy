@@ -338,6 +338,17 @@
   <!-- 新規ユーザー向けオンボーディング（0件時は検索・フィルター群を隠す） -->
   {% include "stockdiary/components/onboarding_card.html" %}
   {% else %}
+  {% comment %}読む（カードフィード）⇄ 索引（銘柄別サマリー）のトップレベル切替。
+     長く使うほど「探す」導線が要るため、常時見える位置に置く。{% endcomment %}
+  <div class="rp-viewswitch" role="tablist" aria-label="表示切替">
+    <span class="rp-viewswitch-btn is-active" role="tab" aria-selected="true">
+      <i class="bi bi-journal-text"></i><span>読む</span>
+    </span>
+    <a class="rp-viewswitch-btn" role="tab" aria-selected="false"
+       href="{% url 'stockdiary:diary_summary' %}{% if request.GET.query %}?q={{ request.GET.query|urlencode }}{% endif %}">
+      <i class="bi bi-list-ul"></i><span>索引</span>
+    </a>
+  </div>
   <!-- 検索フォーム -->
   <div class="mobile-search-container mb-4 d-lg-none">
     <form hx-get="{% url 'stockdiary:diary_list' %}"
@@ -450,11 +461,6 @@
         @タグ
       </button>
       {% endif %}
-      <a href="{% url 'stockdiary:diary_summary' %}{% if request.GET.query %}?q={{ request.GET.query|urlencode }}{% endif %}"
-         class="status-row-btn flex-shrink-0"
-         title="銘柄単位のサマリー表で表示">
-        <i class="bi bi-table me-1"></i>銘柄別
-      </a>
       </div>
 
       <!-- 直近で使われているハッシュタグのクイックチップ（モバイルはデフォルト折りたたみ） -->
