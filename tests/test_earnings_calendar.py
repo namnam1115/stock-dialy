@@ -807,6 +807,45 @@ def test_detail_header_shows_next_earnings(client):
     assert 'あと5日'.encode() in resp.content
 
 
+def test_detail_header_shows_estimated_marker_and_window(client):
+    """予想日の次回決算は詳細ヘッダーに「予想」「±N日」を可視表示する。
+
+    なぜこのテストがあるか:
+      以前は予想/誤差をツールチップ(title属性)にしか入れておらず、スマホでは
+      見えなかった。予想日が確定発表日と誤認されるため、予想である旨と誤差日数を
+      画面テキストに出す（確定日では出さない）ことを固定する。
+    """
+    user = User.objects.create_user('v_est', 'vest@e.com', 'p')
+    client.force_login(user)
+    diary = StockDiary.objects.create(
+        user=user, stock_name='トヨタ自動車', stock_symbol='7203')
+    EarningsSchedule.objects.create(
+        securities_code='7203', earnings_date=timezone.localdate() + timedelta(days=25),
+        is_estimated=True, confidence='low', prediction_window_days=13)
+
+    resp = client.get(reverse('stockdiary:detail', args=[diary.id]))
+    html = resp.content.decode()
+    assert '予想' in html
+    assert '±13日' in html
+
+
+def test_detail_header_confirmed_has_no_estimated_marker(client):
+    """確定日の次回決算は詳細ヘッダーに「予想」マーカーを出さない。"""
+    user = User.objects.create_user('v_conf_hdr', 'vconfhdr@e.com', 'p')
+    client.force_login(user)
+    diary = StockDiary.objects.create(
+        user=user, stock_name='トヨタ自動車', stock_symbol='7203')
+    EarningsSchedule.objects.create(
+        securities_code='7203', earnings_date=timezone.localdate() + timedelta(days=5),
+        is_estimated=False)
+
+    resp = client.get(reverse('stockdiary:detail', args=[diary.id]))
+    html = resp.content.decode()
+    # 次回決算表示自体は出るが、予想マーカー(earnings-est)は付かない
+    assert '次回決算' in html
+    assert 'earnings-est' not in html
+
+
 def test_detail_header_hides_next_earnings_when_none(client):
     """決算予定が無い銘柄では次回決算表示を出さない。"""
     user = User.objects.create_user('v_detail2', 'vdt2@e.com', 'p')

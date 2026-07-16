@@ -184,6 +184,8 @@
 
 .earnings-indicator i { font-size: 0.7rem; }
 .earnings-date { opacity: 0.9; }
+/* 予想日である旨＋誤差（±N日）。確定日と誤認させないための明示。色は近さ色を継承。 */
+.earnings-est { font-weight: 700; opacity: 0.95; margin: 0 0.15rem; }
 
 /* それ以降（〜90日） */
 .earnings-indicator--scheduled {

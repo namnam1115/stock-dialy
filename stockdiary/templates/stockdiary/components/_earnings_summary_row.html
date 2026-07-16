@@ -1,9 +1,16 @@
 {% load stockdiary_filters %}
-{# 保有/ウォッチの決算サマリー1行。2段構成: タイトル(コード+銘柄名/長ければ省略)/メタ(種別・日付・残日数)。diary.next_earnings必須 #}
+{# 保有/ウォッチの決算サマリー1行。2段構成: タイトル(コード+銘柄名+残日数バッジ)/メタ(前回→・種別・予想/精度・±N日・日付)。diary.next_earnings必須。スマホでの見切れ・種別バッジ縦積みを避けるため、メタは flex-wrap で折り返す #}
 <a class="ec-row" href="{% url 'stockdiary:detail' diary.id %}">
   <div class="ec-row-title">
     <span class="ec-code">{{ diary.stock_symbol }}</span>
     <span class="ec-row-name">{{ diary.stock_name|company_short }}</span>
+    {% with d=diary.next_earnings.days_until %}
+      {% if d == 0 %}
+        <span class="ec-badge ec-badge--imminent">本日</span>
+      {% else %}
+        <span class="ec-badge ec-badge--{{ diary.next_earnings.proximity }}">あと{{ d }}日</span>
+      {% endif %}
+    {% endwith %}
   </div>
   <div class="ec-row-meta">
     {% if diary.prev_earnings %}
@@ -15,12 +22,5 @@
     {% if diary.next_earnings.type %}<span class="ec-type">{{ diary.next_earnings.type }}</span>{% endif %}
     {% if diary.next_earnings.is_estimated %}<span class="ec-estimated" title="予想日です（確定前。実際の発表日はズレることがあります）">予想</span>{% if diary.next_earnings.confidence_label or diary.next_earnings.prediction_window_days %}<span class="ec-est-meta">{% if diary.next_earnings.confidence_label %}精度{{ diary.next_earnings.confidence_label }}{% endif %}{% if diary.next_earnings.prediction_window_days %}{% if diary.next_earnings.confidence_label %} · {% endif %}±{{ diary.next_earnings.prediction_window_days }}日{% endif %}</span>{% endif %}{% endif %}
     <span class="ec-row-date">{{ diary.next_earnings.date|date:"Y/m/d" }}</span>
-    {% with d=diary.next_earnings.days_until %}
-      {% if d == 0 %}
-        <span class="ec-badge ec-badge--imminent">本日</span>
-      {% else %}
-        <span class="ec-badge ec-badge--{{ diary.next_earnings.proximity }}">あと{{ d }}日</span>
-      {% endif %}
-    {% endwith %}
   </div>
 </a>
