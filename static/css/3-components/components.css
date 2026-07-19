@@ -49,7 +49,10 @@
 
 .badge-info {
   background-color: rgba(113, 196, 239, 0.1);
-  color: var(--accent-100);
+  /* --accent-100(=淡ティール #7fb3c4)は淡背景で最小1.94:1 と AA 未達。
+     件数バッジ等の文字を一段濃いティールに固定し 4.5:1 以上を確保
+     （このルールが badge.css の .badge-info より後に読まれ勝つため、ここで是正） */
+  color: #2c7387;
 }
 
 .badge-secondary {

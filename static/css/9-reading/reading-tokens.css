@@ -14,7 +14,7 @@
   --ink:            #20201d;   /* 墨（本文・見出し） */
   --ink-soft:       #3a3a36;   /* やや淡い墨（副見出し） */
   --muted-ink:      #6b6a64;   /* メタ情報・補助テキスト */
-  --faint-ink:      #97968f;   /* さらに淡い補助 */
+  --faint-ink:      #6f6e66;   /* さらに淡い補助（WCAG AA: 白/紙/沈み面#f4f2ec でも4.5:1以上） */
   --paper:          #fcfbf8;   /* 紙（メイン背景） */
   --paper-raised:   #ffffff;   /* 一段持ち上げた面（カード） */
   --paper-sunken:   #f4f2ec;   /* 沈んだ面（入力欄・引用） */
@@ -113,7 +113,7 @@ html[data-theme="dark"] body {
   --ink:            #e9e7e1;
   --ink-soft:       #cdcbc4;
   --muted-ink:      #9b9991;
-  --faint-ink:      #6f6e68;
+  --faint-ink:      #8f8e86;   /* WCAG AA: 暗地(#232320/#161618)で4.5:1以上を確保しつつ最淡層を維持 */
   /* 青みのある暗色をやめ、温かみのある墨炭（warm charcoal）に。
      明色の紙(#fcfbf8)と同じ「温かい無彩色」の関係を夜側でも保つ */
   --paper:          #1a1917;
