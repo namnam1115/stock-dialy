@@ -471,8 +471,11 @@
 /* ========== Dark Mode ========== */
 .dark-mode .btn-primary,
 [data-theme="dark"] .btn-primary {
-  background: var(--gradient-primary);
-  box-shadow: 0 2px 8px rgba(113, 196, 239, 0.3);
+  /* 夜側アクセント(#6fa9bb)は明るく、白文字だと 2.6:1 で AA 未達。
+     塗り面には一段暗いティール(--accent-soft #4d7787=白字4.9:1)を使い可読性を確保 */
+  background: var(--accent-soft);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .dark-mode .btn-secondary,

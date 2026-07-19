@@ -92,7 +92,7 @@
 .bar-fill{height:100%;border-radius:999px;background:var(--grad);transition:width .5s cubic-bezier(.4,0,.2,1)}
 .row-foot{display:flex;align-items:center;gap:10px;margin-top:9px}
 .roi-badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:.18rem .6rem;border-radius:999px;white-space:nowrap}
-.roi-badge.positive{background:rgba(16,185,129,.15);color:#0d9668}
+.roi-badge.positive{background:rgba(16,185,129,.15);color:#07734c}
 .roi-badge.negative{background:rgba(239,68,68,.13);color:#dc2626}
 .row-pl{font-size:12.5px;color:var(--t2);font-weight:600;font-variant-numeric:tabular-nums}
 
@@ -107,11 +107,16 @@
 .pl-name{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--t1)}
 .pl-rank{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:8px;background:var(--bg-300);color:var(--t2);font-size:12px;font-weight:800;flex-shrink:0}
 .pl-rate{font-size:13.5px;font-weight:800;padding:.2rem .6rem;border-radius:8px;white-space:nowrap}
-.pl-rate.profit{background:rgba(16,185,129,.15);color:#0d9668}
+.pl-rate.profit{background:rgba(16,185,129,.15);color:#07734c}
 .pl-rate.loss{background:rgba(239,68,68,.13);color:#dc2626}
 .pl-count{font-size:12px;color:var(--t3);font-weight:600}
 .pl-money{font-size:12.5px;font-weight:600;margin-top:3px;font-variant-numeric:tabular-nums}
-.pl-money.pos{color:#0d9668}.pl-money.neg{color:#dc2626}
+.pl-money.pos{color:#07734c}.pl-money.neg{color:#dc2626}
+/* ダークは暗地のため濃い緑では沈む→明るいエメラルドに（AA: 6.4:1以上）。
+   ライトの #07734c は淡緑タイル上で4.6:1以上。損益＝投資の核のため両テーマで可読性を担保 */
+[data-theme="dark"] .roi-badge.positive,
+[data-theme="dark"] .pl-rate.profit,
+[data-theme="dark"] .pl-money.pos{color:#34d399}
 
 .empty-rows{text-align:center;padding:26px 14px;color:var(--t3);font-size:13.5px;font-weight:500}
 

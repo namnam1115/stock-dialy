@@ -1168,30 +1168,10 @@
 }
 
 /* === 操作バー === */
-.action-bar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: linear-gradient(135deg, rgba(245, 244, 241, 0.95), rgba(255, 254, 251, 0.95));
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--bg-300);
-  padding: 0.75rem 1rem;
-  margin: -1rem -1rem 1rem -1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.back-link {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--accent-200);
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
+/* .action-bar / .back-link の base 定義は 2-layouts/detail-page.css に一本化。
+   このファイルは detail.html で先に読まれ base プロパティが全て上書きされる＝
+   ここに base を重複させると読み込み順依存の drift 源になるため撤去した。
+   （unique な .action-bar.scrolled / .back-link i / dark-mode は下部に残置） */
 .back-link:hover {
   transform: translateX(-2px);
 }
