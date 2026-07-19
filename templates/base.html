@@ -944,6 +944,8 @@
     {% block head %}{% endblock %}
 </head>
 <body{% block body_class %}{% endblock %}>
+  {# a11y: 本文へスキップ（WCAG 2.4.1 Bypass Blocks）。通常は視覚的に隠し、Tab focus 時のみ表示 #}
+  <a href="#main-content" class="skip-link">本文へスキップ</a>
   <script>
     (function() {
       try {
@@ -1051,7 +1053,9 @@
           {% endif %}
 
           <!-- 実際のコンテンツ -->
+          <main id="main-content" tabindex="-1">
           {% block content %}{% endblock %}
+          </main>
 
           <!-- コンテンツ下部の広告 -->
           {% if show_ads %}

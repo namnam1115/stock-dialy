@@ -41,3 +41,26 @@ select:focus-visible,
 textarea:focus-visible {
   outline-offset: 1px !important;
 }
+
+/* ===== スキップリンク（WCAG 2.4.1 Bypass Blocks）=====
+   通常は画面外に隠し、Tab でフォーカスされたときだけ左上に現れて本文へ飛べる。
+   キーボード/スクリーンリーダー利用者が毎ページ ~10 項目のナビを飛ばせる。 */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -48px;              /* 画面外に退避 */
+  z-index: 2000;
+  padding: 0.5rem 1rem;
+  background: var(--accent-200, #1f5a6b);
+  color: #fff;
+  border-radius: 0 0 8px 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 0;                  /* フォーカスで出現 */
+  outline: 2px solid #fff !important;
+  outline-offset: 2px !important;
+}
