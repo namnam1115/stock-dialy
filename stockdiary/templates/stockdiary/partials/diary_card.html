@@ -116,8 +116,10 @@
   {% endif %}
 
   <!-- 継続・取引は件数チップに格下げ（数値は脇役） -->
-  {# notes は一覧ビューで prefetch 済み。.exists/.count はキャッシュを使わず銘柄ごとに
-     クエリを発行し N+1 になるため、prefetch キャッシュを使う .all / .all|length にする #}
+  {% comment %}
+    notes は一覧ビューで prefetch 済み。.exists/.count はキャッシュを使わず銘柄ごとに
+    クエリを発行し N+1 になるため、prefetch キャッシュを使う .all / .all|length にする。
+  {% endcomment %}
   {% if diary.notes.all or diary.transaction_count > 0 %}
   <div class="diary-meta-chips">
     {% if diary.notes.all %}

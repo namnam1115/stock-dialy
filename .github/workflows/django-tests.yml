@@ -77,6 +77,9 @@ jobs:
             git pull
             pip install -r requirements.txt
             python manage.py collectstatic --noinput --settings=config.settings
+            # フロント資産のバンドル（django-compressor）。COMPRESS_OFFLINE=True のときだけ結合ファイルを
+            # 事前生成する。無効時（既定）は「Offline compression is disabled」で終わるため || true で無害化。
+            python manage.py compress --force --settings=config.settings || true
             python manage.py migrate --settings=config.settings
             sudo systemctl restart gunicorn
             sudo systemctl restart django-qcluster

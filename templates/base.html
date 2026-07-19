@@ -1,5 +1,6 @@
 {% load static %}
 {% load ads_tags %}
+{% load compress %}
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -62,6 +63,11 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
+    {% comment %}
+      ローカルCSSは compress でまとめる。COMPRESS_ENABLED=OFF のときは各 link をそのまま
+      出力（従来どおり）。新しいCSSはこの compress ブロックの内側に足せば自動でバンドル対象になる。
+    {% endcomment %}
+    {% compress css %}
     <!-- 1. 基礎（変数） -->
     <link rel="stylesheet" href="{% static 'css/1-foundations/variables.css' %}?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="{% static 'css/1-foundations/elevation.css' %}?v={{ STATIC_VERSION }}">
@@ -100,6 +106,7 @@
     <link rel="stylesheet" href="{% static 'css/9-reading/reading-karte.css' %}?v={{ STATIC_VERSION }}">
     {# a11y: キーボードフォーカスの可視化（WCAG 2.4.7）。個別CSSの outline:none を後勝ちで上書きするため最後に読む #}
     <link rel="stylesheet" href="{% static 'css/a11y-focus.css' %}?v={{ STATIC_VERSION }}">
+    {% endcompress %}
 
 
 
@@ -1433,12 +1440,18 @@
           });
       });
   </script>
+  {% comment %}
+    連続する外部スクリプトを compress でまとめる（インラインを挟まないため実行順は不変）。
+    COMPRESS_ENABLED=OFF のときは各 script をそのまま出力。defer は付けない（同期・その場実行）。
+  {% endcomment %}
+  {% compress js %}
   <script src="{% static 'js/speed-dial.js' %}"></script>
   <script src="{% static 'js/bottom-sheet.js' %}"></script>
   <script src="{% static 'js/autocomplete.js' %}"></script>
   {# クイック記録の @タグ サジェスト用（textarea アダプタ経由で再利用） #}
   <script src="{% static 'js/hashtag-autocomplete.js' %}?v={{ STATIC_VERSION }}"></script>
   <script src="{% static 'js/image-compression.js' %}"></script>
+  {% endcompress %}
 <script>
 // 画像モーダル表示機能
 function showImageModal(imageUrl, title) {
@@ -1533,10 +1546,12 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="{% static 'js/common-utils.js' %}"></script>
 
 {% if user.is_authenticated %}
-<!-- 通知関連JavaScript -->
+<!-- 通知関連JavaScript（連続する外部scriptを compress でまとめる。順序不変・defer無し） -->
+{% compress js %}
 <script src="{% static 'js/toast.js' %}"></script>
 <script src="{% static 'js/push-notifications.js' %}"></script>
 <script src="{% static 'js/notification-ui.js' %}"></script>
+{% endcompress %}
 
 <!-- 通知ベルアイコン（ヘッダーに統合） -->
 <script>

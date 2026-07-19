@@ -137,6 +137,7 @@ THIRD_PARTY_APPS = [
     'django_filters',  # ← 追加（フィルタリング用）
     'corsheaders',     # ← 追加（CORS用、必要に応じて）
     'django_q',
+    'compressor',      # CSS/JS のバンドル・圧縮（COMPRESS_ENABLED で opt-in）
 ]
 
 # ローカルアプリ
@@ -310,6 +311,38 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
+
+# django-compressor がバンドル済み CSS/JS を見つけられるよう finder を明示
+# （Django 既定の2 finder ＋ CompressorFinder）
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'compressor.finders.CompressorFinder',
+]
+
+# =============================================================================
+# django-compressor（フロント資産のバンドル・圧縮）
+# =============================================================================
+# ★opt-in: 既定 OFF。OFF のとき {% compress %} は元の <link>/<script> をそのまま出力するため
+#   挙動は従来と完全に同一（dev/test も本番も不変）。各環境で検証後 .env に
+#   COMPRESS_ENABLED=True を置いて初めて有効化する（S3配信時は COMPRESS_STORAGE 等の追加設定が要）。
+COMPRESS_ENABLED = os.getenv('COMPRESS_ENABLED', 'False') == 'True'
+# ConoHa VPS 前提（ローカル静的配信）。推奨は「オフライン圧縮」＝デプロイの collectstatic 後に
+# `python manage.py compress` で結合ファイルを事前生成する。利点: STATIC_ROOT を実行時に書き換えず
+# 済む（読み取り専用運用・権限問題回避）／初回リクエストの圧縮遅延なし。
+#   本番(.env): COMPRESS_ENABLED=True かつ COMPRESS_OFFLINE=True → デプロイで compress を実行
+#   簡易運用 : COMPRESS_OFFLINE=False（オンライン）にすると初回リクエストで生成（deploy手順不要・要書込権限）
+COMPRESS_OFFLINE = os.getenv('COMPRESS_OFFLINE', 'False') == 'True'
+COMPRESS_FILTERS = {
+    'css': [
+        # 結合時に url()（フォント・画像）の相対パスを絶対化して壊さない（重要）
+        'compressor.filters.css_default.CssAbsoluteFilter',
+        'compressor.filters.cssmin.rCSSMinFilter',
+    ],
+    'js': [
+        'compressor.filters.jsmin.rJSMinFilter',
+    ],
+}
 
 # メディアファイル（ローカル保存時のルート）
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -849,4 +882,12 @@ Q_CLUSTER = {
     'catch_up': False,
 }
 
-STATIC_VERSION = '1.2.1125'
+STATIC_VERSION = '1.2.1126'
+
+# compress ブロック内の各 link は ?v={{ STATIC_VERSION }} を含むため、オフライン圧縮の
+# マニフェストキー（ブロック内容のハッシュ）を実リクエストと一致させるには生成時にも
+# STATIC_VERSION を渡す必要がある（未指定だと空文字でキー不一致→OfflineGenerationError）。
+COMPRESS_OFFLINE_CONTEXT = {
+    'STATIC_URL': STATIC_URL,
+    'STATIC_VERSION': STATIC_VERSION,
+}

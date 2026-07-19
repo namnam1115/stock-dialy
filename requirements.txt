@@ -117,3 +117,7 @@ wcwidth==0.2.14
 websockets==15.0.1
 yarl==1.22.0
 yfinance==1.0
+
+# フロント資産のバンドル・圧縮（COMPRESS_ENABLED で opt-in）
+django-compressor==4.6.0
+rcssmin==1.2.1
