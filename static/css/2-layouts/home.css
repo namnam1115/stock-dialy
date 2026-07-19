@@ -1220,6 +1220,17 @@
   gap: 0.25rem;
 }
 
+/* home のヘッダーは作成ボタン(.page-header-actions)が lg 未満で d-none。
+   共有の .page-header-with-actions は 768px以下で flex-direction:column 化し、
+   空の actions に対し content(flex:1) が縦方向へ伸びてクイックリンク下に
+   ~137px の死に領域を作っていた（タブレット幅でファーストビューが空く）。
+   home 専用クラスに限り row を維持し、この縦ストレッチを止める。 */
+@media (max-width: 768px) {
+  .diary-page-header.page-header-with-actions {
+    flex-direction: row;
+  }
+}
+
 .diary-page-header .page-title {
   margin-bottom: 0;
   letter-spacing: -0.01em;
