@@ -984,6 +984,12 @@ body.writing-focus .pc-only-header:hover { opacity: 1; }
    （クイックリンク→継続バー→想起カード→検索、と本文前に4段積み重なって
    一覧の主目的である日記が下に埋もれる問題への対策）。 */
 .reading-page .rp-continuity:has(+ .recall-zone) { margin-bottom: var(--space-4, 1rem); }
+/* ストリークのみ（記念日・再浮上ノートが無い日常ケース）は、器だけ大きい
+   near-empty カードになって日記を下へ押すのを避け、1行のステータス帯として圧縮する */
+.reading-page .rp-continuity:has(> .rp-streak:only-child) {
+  padding: var(--space-4, 1rem) var(--space-7, 1.75rem);
+  margin-bottom: var(--space-6, 1.5rem);
+}
 /* 2要素目以降は上に細い区切りと余白を持たせ、呼吸させる */
 .reading-page .rp-continuity > * + * {
   padding-top: var(--space-5, 1.25rem);
@@ -1543,7 +1549,10 @@ body.writing-focus .pc-only-header:hover { opacity: 1; }
    アイコン付きタイル（紙＋ヘアラインのカード調）。3列→モバイルは1列。 */
 .reading-page .rp-quicklinks {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* 実描画幅に応じて列数を自動調整（幅が足りなければ 3→2→1 列へ）。
+     旧 repeat(3, 1fr) 固定は、本文カラム(760px)やサイドバー展開時の中間幅で
+     3列が潰れ、ラベルが語の途中で折り返していた（1カード最小220px を保証） */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 0.6rem;
   margin-top: 1rem;
 }
@@ -1622,9 +1631,10 @@ body.writing-focus .pc-only-header:hover { opacity: 1; }
   .reading-page .rp-quicklinks { grid-template-columns: 1fr; gap: 0.5rem; }
   .reading-page .rp-quicklink-chev { margin-left: auto; }
 }
-/* サイドバー展開時の中間幅（例: 1024px幅でサイドバーを開くと本文が656pxまで縮む）で
-   3列のまま単語途中で折り返す崩れを防ぐ。実描画幅基準なのでビューポート幅では拾えない。 */
-@container home-main (max-width: 620px) {
+/* 2列すら入らない狭幅（<460px＝カード最小220px×2+gap）で1列へ落とす floor。
+   460〜760px は base の auto-fit が 2 列に配分する（旧620px閾値では 656px 等が
+   3列squeezeのまま漏れていた）。実描画幅基準なのでビューポート幅では拾えない。 */
+@container home-main (max-width: 460px) {
   .reading-page .rp-quicklinks { grid-template-columns: 1fr; gap: 0.5rem; }
   .reading-page .rp-quicklink-chev { margin-left: auto; }
 }

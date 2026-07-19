@@ -54,7 +54,7 @@
         <i class="bi bi-search"></i> 検索
       </label>
       <input type="text" class="form-control form-control-sm" id="sidebarSearchInput"
-             placeholder="銘柄名・背景・継続記録・@タグ" name="query">
+             placeholder="銘柄名・タグ・本文" name="query">
     </div>
 
     <!-- 2. よく使う並び替え（下の「ソート」パネルと同じ設定のショートカット） -->
@@ -368,7 +368,7 @@
                  class="main-search-input validate-inline"
                  id="mainSearchInput"
                  name="query"
-                 placeholder="銘柄名・背景・継続記録・@タグで検索..."
+                 placeholder="銘柄名・タグで検索"
                  value="{{ request.GET.query }}"
                  autocomplete="off">
           <i class="bi bi-search search-icon"></i>

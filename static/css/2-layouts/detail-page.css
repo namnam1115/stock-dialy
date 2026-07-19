@@ -17,6 +17,10 @@
 }
 
 /* ========== 操作バーの改善 ========== */
+/* このファイルが .action-bar / .back-link の権威定義（base.html→detail.html の
+   読み込み順で diary-detail.css より後に読まれるため base プロパティは常にこちらが勝つ）。
+   diary-detail.css 側の重複 base 定義は撤去済み（unique な .scrolled/.back-link i/
+   dark-mode のみ残置）。 */
 .action-bar {
   position: sticky;
   top: 0;
@@ -25,8 +29,9 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-light);
-  padding: 1rem 1.5rem;
-  margin: -1.5rem -1.5rem 2rem -1.5rem;
+  /* 単一行のツールバーに対し縦padが過大で「空の帯」に見えていた → 圧縮 */
+  padding: 0.5rem 1.5rem;
+  margin: -1.5rem -1.5rem 1.25rem -1.5rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   display: flex;
   justify-content: space-between;
@@ -45,6 +50,9 @@
   transition: all 0.2s ease;
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius-sm);
+  /* 他ページ用 .back-link（tdnet系CSS）が漏らす margin-bottom:10px を無効化し、
+     ツールバーの縦間延びを防ぐ */
+  margin: 0;
 }
 
 .back-link:hover {
