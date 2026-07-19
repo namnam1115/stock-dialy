@@ -68,7 +68,7 @@ networkx==3.4.2
 nibabel==5.3.3
 nipype==1.10.0
 numpy==2.4.0
-packaging==25.0
+packaging==26.2
 pandas==2.3.3
 peewee==3.18.3
 pillow==12.1.0
