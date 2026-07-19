@@ -38,7 +38,7 @@ django-ses==4.4.0
 django-storages==1.14.4
 django-tinymce==5.0.0
 django-widget-tweaks==1.5.1
-djangorestframework==3.16.1
+djangorestframework==3.17.1
 etelemetry==0.3.1
 filelock==3.20.2
 pymupdf==1.27.2.2
