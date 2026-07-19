@@ -116,10 +116,12 @@
   {% endif %}
 
   <!-- 継続・取引は件数チップに格下げ（数値は脇役） -->
-  {% if diary.notes.exists or diary.transaction_count > 0 %}
+  {# notes は一覧ビューで prefetch 済み。.exists/.count はキャッシュを使わず銘柄ごとに
+     クエリを発行し N+1 になるため、prefetch キャッシュを使う .all / .all|length にする #}
+  {% if diary.notes.all or diary.transaction_count > 0 %}
   <div class="diary-meta-chips">
-    {% if diary.notes.exists %}
-    <span class="chip-quiet"><i class="bi bi-journals"></i>継続 {{ diary.notes.count }}</span>
+    {% if diary.notes.all %}
+    <span class="chip-quiet"><i class="bi bi-journals"></i>継続 {{ diary.notes.all|length }}</span>
     {% endif %}
     {% if diary.transaction_count > 0 %}
     <span class="chip-quiet"><i class="bi bi-cash-coin"></i>取引 {{ diary.transaction_count }}</span>

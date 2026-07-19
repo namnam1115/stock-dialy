@@ -1,7 +1,7 @@
 # ads/middleware.py - サブスクリプション関連の参照を削除
 from django.conf import settings
 from django.urls import resolve
-from .models import UserAdPreference
+from .utils import get_user_ad_preference
 
 class AdsMiddleware:
     """広告表示を制御するミドルウェア"""
@@ -56,11 +56,8 @@ class AdsMiddleware:
         ]
         
         if path in auth_paths:
-            print(f"Path {path} matches auth_paths - should hide ads")
             return False
-        else:
-            print(f"Path {path} does not match any auth paths")
-        
+
         # URLの名前空間をチェック
         try:
             resolved = resolve(request.path_info)
@@ -69,21 +66,13 @@ class AdsMiddleware:
                 return False
         except:
             pass
-        
-        # ユーザーがログインしている場合
+
+        # ユーザーがログインしている場合（設定はリクエスト単位でキャッシュ）
         if request.user.is_authenticated:
-            # 広告設定をチェック
-            try:
-                ad_preference = UserAdPreference.objects.get(user=request.user)
+            ad_preference = get_user_ad_preference(request)
+            if ad_preference is not None:
                 return ad_preference.should_show_ads()
-            except UserAdPreference.DoesNotExist:
-                # 設定がない場合は作成
-                try:
-                    ad_preference = UserAdPreference.objects.create(user=request.user)
-                    return ad_preference.should_show_ads()
-                except:
-                    pass
-        
+
         # 上記のチェックでいずれも該当しない場合、デフォルト設定を使用
         return show_ads_default
         
@@ -92,19 +81,11 @@ class AdsMiddleware:
         # デフォルト設定
         personalized_ads_default = getattr(settings, 'ADS_SETTINGS', {}).get('PERSONALIZED_ADS_DEFAULT', True)
         
-        # ユーザーがログインしている場合
+        # ユーザーがログインしている場合（設定はリクエスト単位でキャッシュ）
         if request.user.is_authenticated:
-            try:
-                # 広告設定を確認
-                ad_preference = UserAdPreference.objects.get(user=request.user)
+            ad_preference = get_user_ad_preference(request)
+            if ad_preference is not None:
                 return ad_preference.allow_personalized_ads
-            except UserAdPreference.DoesNotExist:
-                # 設定がない場合は作成
-                try:
-                    ad_preference = UserAdPreference.objects.create(user=request.user)
-                    return ad_preference.allow_personalized_ads
-                except:
-                    pass
-        
+
         # デフォルト設定を使用
         return personalized_ads_default
