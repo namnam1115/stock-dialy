@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+{% comment %}
+  CSRF 検証失敗（403）。多くは「フォームを開いたまま放置しセッション/トークンが切れた」ケース
+  （本アプリは長文入力＋1時間セッションのため起きうる）。csrf_failure ビューは限定コンテキストで
+  描画するため、外部アセット・DB・context プロセッサに依存しない自己完結ページにする。
+  ユーザーには「セッション切れ」を分かりやすく伝え、再読み込みで復帰できることを案内する。
+{% endcomment %}
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>セッションが切れました - カブログ</title>
+  <script>
+    (function(){try{
+      var t=localStorage.getItem('theme-preference');
+      if(!t){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}
+      if(t==='dark'){document.documentElement.setAttribute('data-theme','dark');}
+    }catch(e){}})();
+  </script>
+  <style>
+    :root{ --paper:#fcfbf8; --ink:#20201d; --muted:#6b6a64; --accent:#1f5a6b; }
+    :root[data-theme="dark"]{ --paper:#1a1917; --ink:#e9e7e1; --muted:#9b9991; --accent:#6fa9bb; }
+    *{ box-sizing:border-box; }
+    body{ margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+      background:var(--paper); color:var(--ink);
+      font-family:'Hiragino Sans','Noto Sans JP',system-ui,-apple-system,sans-serif; }
+    .wrap{ max-width:520px; padding:2rem 1.5rem; text-align:center; }
+    .icon{ font-size:2.5rem; }
+    h1{ font-size:1.4rem; margin:.5rem 0 .5rem; }
+    p{ color:var(--muted); line-height:1.9; margin-bottom:1.75rem; }
+    .btn{ display:inline-block; padding:.6rem 1.4rem; border-radius:8px; border:0; cursor:pointer;
+      background:var(--accent); color:#fff; font-weight:600; text-decoration:none; font-size:1rem; }
+    .btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="icon">🕒</div>
+    <h1>セッションが切れました</h1>
+    <p>
+      一定時間が経過したため、送信を安全に完了できませんでした。<br>
+      ページを再読み込みしてから、もう一度お試しください。<br>
+      （入力内容が残っている場合はコピーしておくと安心です）
+    </p>
+    <button class="btn" onclick="location.reload()">再読み込み</button>
+  </div>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+{% comment %}
+  500: サーバーエラー。handler500 は空コンテキスト（コンテキストプロセッサ無効・request 無し・
+  DB 依存不可）で描画される。原因が DB/設定の場合でも確実に表示できるよう、base.html を継承せず
+  外部CSS/JS も一切参照しない自己完結ページにする。テーマだけ localStorage から同期反映する。
+{% endcomment %}
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>サーバーエラー - カブログ</title>
+  <script>
+    (function(){try{
+      var t=localStorage.getItem('theme-preference');
+      if(!t){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}
+      if(t==='dark'){document.documentElement.setAttribute('data-theme','dark');}
+    }catch(e){}})();
+  </script>
+  <style>
+    :root{ --paper:#fcfbf8; --ink:#20201d; --muted:#6b6a64; --accent:#1f5a6b; --card:#ffffff; --line:#e7e4dc; }
+    :root[data-theme="dark"]{ --paper:#1a1917; --ink:#e9e7e1; --muted:#9b9991; --accent:#6fa9bb; --card:#232320; --line:#33322f; }
+    *{ box-sizing:border-box; }
+    body{ margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+      background:var(--paper); color:var(--ink);
+      font-family:'Hiragino Sans','Noto Sans JP',system-ui,-apple-system,sans-serif; }
+    .wrap{ max-width:520px; padding:2rem 1.5rem; text-align:center; }
+    .code{ font-size:5rem; font-weight:800; line-height:1; color:var(--accent); }
+    h1{ font-size:1.4rem; margin:.75rem 0 .5rem; }
+    p{ color:var(--muted); line-height:1.9; margin-bottom:1.75rem; }
+    .btn{ display:inline-block; padding:.6rem 1.4rem; border-radius:8px; text-decoration:none;
+      background:var(--accent); color:#fff; font-weight:600; }
+    .btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="code">500</div>
+    <h1>サーバーエラーが発生しました</h1>
+    <p>
+      一時的な問題が発生しています。しばらくおいてから再度お試しください。<br>
+      問題が続く場合はお手数ですがお問い合わせください。
+    </p>
+    <a class="btn" href="/">ホームへ戻る</a>
+  </div>
+</body>
+</html>
