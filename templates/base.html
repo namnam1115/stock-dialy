@@ -1440,12 +1440,18 @@
           });
       });
   </script>
+  {% comment %}
+    連続する外部スクリプトを compress でまとめる（インラインを挟まないため実行順は不変）。
+    COMPRESS_ENABLED=OFF のときは各 script をそのまま出力。defer は付けない（同期・その場実行）。
+  {% endcomment %}
+  {% compress js %}
   <script src="{% static 'js/speed-dial.js' %}"></script>
   <script src="{% static 'js/bottom-sheet.js' %}"></script>
   <script src="{% static 'js/autocomplete.js' %}"></script>
   {# クイック記録の @タグ サジェスト用（textarea アダプタ経由で再利用） #}
   <script src="{% static 'js/hashtag-autocomplete.js' %}?v={{ STATIC_VERSION }}"></script>
   <script src="{% static 'js/image-compression.js' %}"></script>
+  {% endcompress %}
 <script>
 // 画像モーダル表示機能
 function showImageModal(imageUrl, title) {
@@ -1540,10 +1546,12 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="{% static 'js/common-utils.js' %}"></script>
 
 {% if user.is_authenticated %}
-<!-- 通知関連JavaScript -->
+<!-- 通知関連JavaScript（連続する外部scriptを compress でまとめる。順序不変・defer無し） -->
+{% compress js %}
 <script src="{% static 'js/toast.js' %}"></script>
 <script src="{% static 'js/push-notifications.js' %}"></script>
 <script src="{% static 'js/notification-ui.js' %}"></script>
+{% endcompress %}
 
 <!-- 通知ベルアイコン（ヘッダーに統合） -->
 <script>
