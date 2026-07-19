@@ -1,5 +1,6 @@
 # ads/context_processors.py
-from .models import AdPlacement, AdUnit, UserAdPreference
+from .models import AdPlacement, AdUnit
+from .utils import get_user_ad_preference
 from django.conf import settings
 
 def ads_processor(request):
@@ -14,14 +15,12 @@ def ads_processor(request):
     personalized_ads = getattr(request, 'personalized_ads', True)
     
     # ミドルウェアでFalseになっていない場合のみ、ユーザー設定を確認
+    # （UserAdPreference はリクエスト単位でキャッシュ済み。middleware と同じ1件を再利用）
     if show_ads and hasattr(request, 'user') and request.user.is_authenticated:
-        try:
-            ad_preference = UserAdPreference.objects.get(user=request.user)
+        ad_preference = get_user_ad_preference(request)
+        if ad_preference is not None:
             show_ads = ad_preference.should_show_ads()
             personalized_ads = ad_preference.allow_personalized_ads
-        except UserAdPreference.DoesNotExist:
-            # 設定がない場合は広告表示（通常はシグナルで作成されるはず）
-            UserAdPreference.objects.create(user=request.user)
     
     context['show_ads'] = show_ads
     context['personalized_ads'] = personalized_ads

@@ -54,7 +54,7 @@
         <i class="bi bi-search"></i> 検索
       </label>
       <input type="text" class="form-control form-control-sm" id="sidebarSearchInput"
-             placeholder="銘柄名・タグ・本文" name="query">
+             placeholder="銘柄名・タグ・本文" name="query" aria-label="記録を検索（銘柄名・タグ・本文）">
     </div>
 
     <!-- 2. よく使う並び替え（下の「ソート」パネルと同じ設定のショートカット） -->
@@ -202,7 +202,7 @@
         <i class="bi bi-sort-down"></i> ソート
       </summary>
       <div class="sidebar-details-body">
-        <select class="form-select form-select-sm sidebar-filter" id="sidebarSortFilter" name="sort" data-target="sortFilter">
+        <select class="form-select form-select-sm sidebar-filter" id="sidebarSortFilter" name="sort" data-target="sortFilter" aria-label="並び替え">
           <option value="" {% if not request.GET.sort %}selected{% endif %}>デフォルト</option>
           <option value="earnings_asc" {% if request.GET.sort == 'earnings_asc' %}selected{% endif %}>決算が近い順</option>
           <option value="date_desc" {% if request.GET.sort == 'date_desc' %}selected{% endif %}>更新日（新しい順）</option>
@@ -230,7 +230,7 @@
 </button>
 {% endif %}{# /not is_empty_state（サイドバー） #}
 
-<main class="home-main">
+<div class="home-main">
   <div class="page-header page-header-with-actions diary-page-header mb-4">
     <div class="page-header-content">
       <h1 class="page-title">
@@ -370,6 +370,7 @@
                  name="query"
                  placeholder="銘柄名・タグで検索"
                  value="{{ request.GET.query }}"
+                 aria-label="記録を検索（銘柄名・タグ・本文）"
                  autocomplete="off">
           <i class="bi bi-search search-icon"></i>
           <div class="search-suggestions" id="searchSuggestions"></div>
