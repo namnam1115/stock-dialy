@@ -98,6 +98,8 @@
     <link rel="stylesheet" href="{% static 'css/9-reading/reading-tokens.css' %}?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="{% static 'css/9-reading/reading-journal.css' %}?v={{ STATIC_VERSION }}">
     <link rel="stylesheet" href="{% static 'css/9-reading/reading-karte.css' %}?v={{ STATIC_VERSION }}">
+    {# a11y: キーボードフォーカスの可視化（WCAG 2.4.7）。個別CSSの outline:none を後勝ちで上書きするため最後に読む #}
+    <link rel="stylesheet" href="{% static 'css/a11y-focus.css' %}?v={{ STATIC_VERSION }}">
 
 
 

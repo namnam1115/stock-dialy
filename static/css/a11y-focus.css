@@ -1,0 +1,43 @@
+/* ============================================================
+   a11y-focus.css — WCAG 2.4.7 Focus Visible の担保
+   base.html の最後に読み込む（個別CSSの outline:none を後勝ちで上書きするため）。
+
+   目的: キーボード操作時、フォーカス中の操作子に必ず可視のリングを出す。
+   個別コンポーネントが outline:none している要素（ボタン/アイコンボタン/戻る導線/
+   全画面ボタン/ソーシャルリンク等）でも、キーボード焦点だけは必ず見えるようにする。
+
+   :focus-visible を使うためマウスクリック時は発火せず、見た目は不変（キーボード時のみ）。
+   色は --accent-200（light=#1f5a6b 深ティール / dark=#6fa9bb 明ティール）で
+   どちらの地色でも視認できる。individual の outline:none !important（0,2,0）に勝てるよう
+   カスタムクラスも明示し、かつ最後に読み込むことで同重要度・同詳細度の綱引きを制する。
+   ============================================================ */
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="link"]:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible,
+.btn:focus-visible,
+.btn-icon:focus-visible,
+.back-link:focus-visible,
+.reason-expand-btn:focus-visible,
+.social-link:focus-visible,
+.sidebar-close-btn:focus-visible,
+.nav-link:focus-visible,
+.improved-tab-link:focus-visible {
+  outline: 2px solid var(--accent-200, #1f5a6b) !important;
+  outline-offset: 2px !important;
+}
+
+/* フォーム入力は既存の box-shadow リングと二重にならないよう、outline は細く内寄せに留める
+   （box-shadow が消えている環境でも最低限の可視性は確保） */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline-offset: 1px !important;
+}
