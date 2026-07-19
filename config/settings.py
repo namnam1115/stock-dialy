@@ -327,9 +327,12 @@ STATICFILES_FINDERS = [
 #   挙動は従来と完全に同一（dev/test も本番も不変）。各環境で検証後 .env に
 #   COMPRESS_ENABLED=True を置いて初めて有効化する（S3配信時は COMPRESS_STORAGE 等の追加設定が要）。
 COMPRESS_ENABLED = os.getenv('COMPRESS_ENABLED', 'False') == 'True'
-# オンライン圧縮（初回リクエストで結合ファイルを生成しキャッシュ）。レイアウト変更に自動追従し、
-# デプロイに manage.py compress を挟む必要がない。オフライン化する場合のみ True + ビルド手順追加。
-COMPRESS_OFFLINE = False
+# ConoHa VPS 前提（ローカル静的配信）。推奨は「オフライン圧縮」＝デプロイの collectstatic 後に
+# `python manage.py compress` で結合ファイルを事前生成する。利点: STATIC_ROOT を実行時に書き換えず
+# 済む（読み取り専用運用・権限問題回避）／初回リクエストの圧縮遅延なし。
+#   本番(.env): COMPRESS_ENABLED=True かつ COMPRESS_OFFLINE=True → デプロイで compress を実行
+#   簡易運用 : COMPRESS_OFFLINE=False（オンライン）にすると初回リクエストで生成（deploy手順不要・要書込権限）
+COMPRESS_OFFLINE = os.getenv('COMPRESS_OFFLINE', 'False') == 'True'
 COMPRESS_FILTERS = {
     'css': [
         # 結合時に url()（フォント・画像）の相対パスを絶対化して壊さない（重要）
@@ -880,3 +883,11 @@ Q_CLUSTER = {
 }
 
 STATIC_VERSION = '1.2.1126'
+
+# compress ブロック内の各 link は ?v={{ STATIC_VERSION }} を含むため、オフライン圧縮の
+# マニフェストキー（ブロック内容のハッシュ）を実リクエストと一致させるには生成時にも
+# STATIC_VERSION を渡す必要がある（未指定だと空文字でキー不一致→OfflineGenerationError）。
+COMPRESS_OFFLINE_CONTEXT = {
+    'STATIC_URL': STATIC_URL,
+    'STATIC_VERSION': STATIC_VERSION,
+}

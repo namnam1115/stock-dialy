@@ -24,3 +24,6 @@ env/
 htmlcov/
 docs/marketing
 settings_local.py
+
+# collectstatic / django-compressor の出力（STATIC_ROOT）はコミットしない
+staticfiles/
