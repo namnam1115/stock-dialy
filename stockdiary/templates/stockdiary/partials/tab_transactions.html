@@ -283,7 +283,7 @@
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label-improved">取引種別</label>
-                  <select class="form-input-improved" name="transaction_type" required>
+                  <select class="form-input-improved" name="transaction_type" aria-label="取引種別" required>
                     <option value="buy" {% if transaction.transaction_type == 'buy' %}selected{% endif %}>購入</option>
                     <option value="sell" {% if transaction.transaction_type == 'sell' %}selected{% endif %}>売却</option>
                   </select>
@@ -291,19 +291,19 @@
                 
                 <div class="col-md-6">
                   <label class="form-label-improved">取引日</label>
-                  <input type="date" class="form-input-improved" name="transaction_date" 
+                  <input type="date" class="form-input-improved" name="transaction_date" aria-label="取引日"
                         value="{{ transaction.transaction_date|date:'Y-m-d' }}" required>
                 </div>
                 
                 <div class="col-md-6">
                   <label class="form-label-improved">単価（{{ diary|currency_unit }}）</label>
-                  <input type="number" class="form-input-improved" name="price" inputmode="decimal"
+                  <input type="number" class="form-input-improved" name="price" inputmode="decimal" aria-label="単価"
                         value="{{ transaction.price }}" step="0.01" min="0.01" required>
                 </div>
 
                 <div class="col-md-6">
                   <label class="form-label-improved">数量（株）</label>
-                  <input type="number" class="form-input-improved" name="quantity" inputmode="numeric"
+                  <input type="number" class="form-input-improved" name="quantity" inputmode="numeric" aria-label="数量"
                         value="{{ transaction.quantity }}" step="1" min="1" required>
                 </div>
                 
@@ -321,7 +321,7 @@
                 
                 <div class="col-12">
                   <label class="form-label-improved">メモ</label>
-                  <textarea class="form-input-improved" name="memo" rows="2" maxlength="500">{{ transaction.memo }}</textarea>
+                  <textarea class="form-input-improved" name="memo" rows="2" maxlength="500" aria-label="取引メモ">{{ transaction.memo }}</textarea>
                 </div>
               </div>
               

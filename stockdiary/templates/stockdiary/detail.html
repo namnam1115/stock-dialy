@@ -487,29 +487,29 @@
         {% csrf_token %}
         <div class="mb-3">
           <label class="form-label-improved">取引日<span class="text-danger ms-1">*</span></label>
-          <input type="date" class="form-input-improved" name="transaction_date"
+          <input type="date" class="form-input-improved" name="transaction_date" aria-label="取引日"
                  value="{% now 'Y-m-d' %}" required>
         </div>
         <div class="mb-3">
           <label class="form-label-improved">取引種別<span class="text-danger ms-1">*</span></label>
-          <select class="form-input-improved" name="transaction_type" required>
+          <select class="form-input-improved" name="transaction_type" aria-label="取引種別" required>
             <option value="buy">購入</option>
             <option value="sell">売却</option>
           </select>
         </div>
         <div class="mb-3">
           <label class="form-label-improved">単価（{{ diary|currency_unit }}）<span class="text-danger ms-1">*</span></label>
-          <input type="number" class="form-input-improved" name="price" inputmode="decimal"
+          <input type="number" class="form-input-improved" name="price" inputmode="decimal" aria-label="単価"
                  step="0.01" min="0.01" placeholder="例: 1000.00" required>
         </div>
         <div class="mb-3">
           <label class="form-label-improved">数量（株）<span class="text-danger ms-1">*</span></label>
-          <input type="number" class="form-input-improved" name="quantity" inputmode="numeric"
+          <input type="number" class="form-input-improved" name="quantity" inputmode="numeric" aria-label="数量"
                  step="1" min="1" placeholder="例: 100" required>
         </div>
         <div class="mb-3">
           <label class="form-label-improved">メモ（任意）</label>
-          <textarea class="form-input-improved" name="memo" rows="2" maxlength="500"></textarea>
+          <textarea class="form-input-improved" name="memo" rows="2" maxlength="500" aria-label="取引メモ"></textarea>
         </div>
         <div class="form-actions-improved mt-3">
           <button type="submit" class="btn btn-primary">
@@ -544,18 +544,18 @@
         </div>
         <div class="mb-3">
           <label class="form-label-improved">分割実行日<span class="text-danger ms-1">*</span></label>
-          <input type="date" class="form-input-improved" name="split_date"
+          <input type="date" class="form-input-improved" name="split_date" aria-label="分割実行日"
                  value="{% now 'Y-m-d' %}" required>
         </div>
         <div class="mb-3">
           <label class="form-label-improved">分割比率<span class="text-danger ms-1">*</span></label>
-          <input type="number" class="form-input-improved" name="split_ratio" inputmode="decimal"
+          <input type="number" class="form-input-improved" name="split_ratio" inputmode="decimal" aria-label="分割比率"
                  step="0.0001" min="0.0001" placeholder="例: 2.0" required>
           <small class="form-text-improved">1株が何株になるか（例: 1→2株なら「2.0」）</small>
         </div>
         <div class="mb-3">
           <label class="form-label-improved">メモ（任意）</label>
-          <textarea class="form-input-improved" name="memo" rows="2" maxlength="500"></textarea>
+          <textarea class="form-input-improved" name="memo" rows="2" maxlength="500" aria-label="分割メモ"></textarea>
         </div>
         <div class="form-actions-improved mt-3">
           <button type="submit" class="btn btn-primary">
