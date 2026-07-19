@@ -494,7 +494,9 @@
 .dark-mode .btn-outline-primary,
 [data-theme="dark"] .btn-outline-primary {
   border-color: var(--accent-100);
-  color: var(--accent-100);
+  /* --accent-100(=accent-soft #4d7787)は暗地の文字で3.7:1とAA未達。
+     文字は明るい --accent-200(#6fa9bb=暗地で約8:1)に（境界は識別用に据え置き） */
+  color: var(--accent-200);
 }
 
 .dark-mode .btn-outline-primary:hover:not(:disabled),

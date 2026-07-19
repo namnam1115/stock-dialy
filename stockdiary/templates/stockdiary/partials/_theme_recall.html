@@ -13,6 +13,9 @@
 .theme-recall-chip { display:inline-flex; align-items:center; white-space:nowrap;
   font-size:0.78rem; font-weight:600; padding:0.18rem 0.55rem; border-radius:999px;
   color:var(--chip,#7c3aed); background:rgba(148,163,184,0.12); border:1px solid var(--chip,#7c3aed); }
+/* ダーク: セクター色(--chip 例:#b45309)を暗地に直接置くと最小2.6:1でAA未達。
+   色相を保ったまま白寄りに持ち上げて文字を4.5:1以上に（境界線は元色のまま識別性を維持） */
+[data-theme="dark"] .theme-recall-chip { color:color-mix(in srgb, var(--chip,#7c3aed) 42%, #ffffff); }
 .theme-recall-est { font-size:0.58rem; margin-left:0.3rem; opacity:0.85; border:1px solid currentColor; border-radius:4px; padding:0 0.2rem; }
 .theme-recall-count { font-size:0.72rem; color:var(--text-secondary,#475569); margin-left:auto; }
 .theme-recall-group > summary .theme-recall-count::after { content:" ▾"; }
