@@ -32,6 +32,9 @@ summary:focus-visible,
 .improved-tab-link:focus-visible {
   outline: 2px solid var(--accent-200, #1f5a6b) !important;
   outline-offset: 2px !important;
+  /* transition:all を持つ要素（.back-link 等）で outline が 0.2s フェードイン
+     するのを防ぎ、フォーカスリングを即時表示にする（focus 中のみ有効） */
+  transition-duration: 0s !important;
 }
 
 /* フォーム入力は既存の box-shadow リングと二重にならないよう、outline は細く内寄せに留める

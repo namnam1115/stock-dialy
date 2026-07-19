@@ -28,11 +28,12 @@
 
       <div class="diary-header-body">
         <div class="diary-title-row">
-          <h3 class="diary-name">
+          {# 見出し階層: ページ h1（例「投資ノート」）直下の一覧項目のため h2（h3 だと h2 スキップ） #}
+          <h2 class="diary-name">
             <a href="{% url 'stockdiary:detail' diary.id %}">
               {{ diary.stock_name }}
             </a>
-          </h3>
+          </h2>
           {% if diary.realized_profit != 0 %}
             <div class="diary-profit-pill">
               {% include "stockdiary/components/_profit_display.html" with profit=diary.realized_profit style="badge" size="sm" show_icon=False decimals=0 currency=diary.currency_unit %}
