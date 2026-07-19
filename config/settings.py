@@ -137,6 +137,7 @@ THIRD_PARTY_APPS = [
     'django_filters',  # ← 追加（フィルタリング用）
     'corsheaders',     # ← 追加（CORS用、必要に応じて）
     'django_q',
+    'compressor',      # CSS/JS のバンドル・圧縮（COMPRESS_ENABLED で opt-in）
 ]
 
 # ローカルアプリ
@@ -310,6 +311,35 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
+
+# django-compressor がバンドル済み CSS/JS を見つけられるよう finder を明示
+# （Django 既定の2 finder ＋ CompressorFinder）
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'compressor.finders.CompressorFinder',
+]
+
+# =============================================================================
+# django-compressor（フロント資産のバンドル・圧縮）
+# =============================================================================
+# ★opt-in: 既定 OFF。OFF のとき {% compress %} は元の <link>/<script> をそのまま出力するため
+#   挙動は従来と完全に同一（dev/test も本番も不変）。各環境で検証後 .env に
+#   COMPRESS_ENABLED=True を置いて初めて有効化する（S3配信時は COMPRESS_STORAGE 等の追加設定が要）。
+COMPRESS_ENABLED = os.getenv('COMPRESS_ENABLED', 'False') == 'True'
+# オンライン圧縮（初回リクエストで結合ファイルを生成しキャッシュ）。レイアウト変更に自動追従し、
+# デプロイに manage.py compress を挟む必要がない。オフライン化する場合のみ True + ビルド手順追加。
+COMPRESS_OFFLINE = False
+COMPRESS_FILTERS = {
+    'css': [
+        # 結合時に url()（フォント・画像）の相対パスを絶対化して壊さない（重要）
+        'compressor.filters.css_default.CssAbsoluteFilter',
+        'compressor.filters.cssmin.rCSSMinFilter',
+    ],
+    'js': [
+        'compressor.filters.jsmin.rJSMinFilter',
+    ],
+}
 
 # メディアファイル（ローカル保存時のルート）
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -849,4 +879,4 @@ Q_CLUSTER = {
     'catch_up': False,
 }
 
-STATIC_VERSION = '1.2.1125'
+STATIC_VERSION = '1.2.1126'
