@@ -149,8 +149,15 @@
 .ec-cell--empty { color: var(--text-secondary); }
 .ec-cell--other .ec-cell-day { opacity: 0.3; }
 .ec-cell--out { background: transparent; border-color: transparent; }
-.ec-cell--has { cursor: pointer; }
+.ec-cell--has { cursor: pointer; transition: transform .1s ease, opacity .1s ease, border-color .15s, box-shadow .15s; }
 .ec-cell--has:hover { border-color: var(--ec-mine); box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+/* タップした瞬間に押下フィードバックを出す（サーバー応答を待たず即座に反応させる）。
+   htmx-request は htmx がリクエスト送信中に自動付与するクラスで、応答待ちの間
+   も視覚的な変化を継続させる（#タップの反応が遅く感じる問題への対処）。 */
+.ec-cell--has:active,
+.ec-cell--has.htmx-request { transform: scale(0.94); opacity: 0.6; }
+.ec-nav-btn:active, .ec-nav-btn.htmx-request,
+.ec-scope button:active, .ec-scope button.htmx-request { opacity: 0.6; }
 .ec-cell-count {
     font-size: 0.72rem; font-weight: 700; line-height: 1; color: #fff;
     background: var(--ec-count); border-radius: 999px;
