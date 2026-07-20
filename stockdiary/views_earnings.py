@@ -153,24 +153,25 @@ def earnings_calendar(request):
     month_last = month_first.replace(day=monthrange(year, month)[1])
 
     # --- サマリー: 保有・売却済・メモ（日記の状態3分類、月・日に依らず常時表示） ---
-    # StockDiary.is_holding / is_sold_out / is_memo と同じ判定基準に揃える
-    holdings = attach_next_earnings(
-        user_diaries.filter(current_quantity__gt=0), today=today, with_previous=True)
+    # StockDiary.is_holding / is_sold_out / is_memo と同じ判定基準に揃える。
+    # この3分類は互いに排他的かつ user_diaries 全件を尽くすため、以前は分類ごとに
+    # フィルタしてから attach_next_earnings を3回呼んでいた（=EarningsSchedule への
+    # 問い合わせが6回）。カレンダーはタップ（日付選択・月送り・scope切替）のたびに
+    # このサマリーを丸ごと再計算しており、タップ体感速度に直結していたため、
+    # user_diaries を1回だけ評価し attach_next_earnings も1回にまとめて分類は
+    # メモリ上で行うようにした（EarningsSchedule への問い合わせは2回に減る）。
+    diaries_with_earnings = [
+        d for d in attach_next_earnings(list(user_diaries), today=today, with_previous=True)
+        if d.next_earnings
+    ]
     holdings = sorted(
-        [d for d in holdings if d.next_earnings],
+        (d for d in diaries_with_earnings if d.is_holding),
         key=lambda d: d.next_earnings.date)
-
-    sold = attach_next_earnings(
-        user_diaries.filter(transaction_count__gt=0, current_quantity=0),
-        today=today, with_previous=True)
     sold = sorted(
-        [d for d in sold if d.next_earnings],
+        (d for d in diaries_with_earnings if d.is_sold_out),
         key=lambda d: d.next_earnings.date)
-
-    watchlist = attach_next_earnings(
-        user_diaries.filter(transaction_count=0), today=today, with_previous=True)
     watchlist = sorted(
-        [d for d in watchlist if d.next_earnings],
+        (d for d in diaries_with_earnings if d.is_memo),
         key=lambda d: d.next_earnings.date)
 
     # サマリーの既定タブ（データがある最初の区分を開く。全て空なら保有を既定に）

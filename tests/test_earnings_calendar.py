@@ -671,6 +671,62 @@ def test_calendar_htmx_nav_refreshes_summary_oob(client):
     assert 'トヨタ自動車' in htmx_html
 
 
+def test_calendar_tap_does_not_refetch_summary_per_category(client):
+    """日付タップ1回あたりのDBクエリ数が、サマリー区分（保有/売却済/メモ）の数に
+    比例して増えないことを固定する。
+
+    タップの反応が遅い問題を調査した結果、保有/売却済/メモの3区分それぞれに
+    対して `user_diaries.filter(...)` → `attach_next_earnings`（決算予定への
+    問い合わせ2回）を個別に実行しており、区分が増えるたびにクエリが線形に増える
+    構造だった。しかもこのサマリーは選択日にも表示月にも依存しないデータなのに、
+    カレンダーの日付タップ・月送り・scope切替のたびに毎回丸ごと再計算・再送信
+    されており、タップ体感速度を悪化させていた。3区分をまたいで日記取得と
+    決算予定の問い合わせをそれぞれ1回にまとめたので、区分ごとの重複問い合わせが
+    再発しないことをクエリ数で検証する。
+    """
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    user = User.objects.create_user('v_qcount', 'vqc@e.com', 'p')
+    client.force_login(user)
+    target = timezone.localdate() + timedelta(days=5)
+
+    # 保有・売却済・メモの3区分をすべて埋める（サマリーの全区分を計算させる）
+    StockDiary.objects.create(
+        user=user, stock_name='保有株', stock_symbol='1001', current_quantity=100)
+    StockDiary.objects.create(
+        user=user, stock_name='売却済株', stock_symbol='1002',
+        current_quantity=0, transaction_count=1)
+    StockDiary.objects.create(
+        user=user, stock_name='メモ株', stock_symbol='1003',
+        current_quantity=0, transaction_count=0)
+    for code, name in (('1001', '保有株'), ('1002', '売却済株'), ('1003', 'メモ株')):
+        EarningsSchedule.objects.create(
+            securities_code=code, earnings_date=target, company_name=name)
+
+    url = reverse('stockdiary:earnings_calendar')
+    with CaptureQueriesContext(connection) as ctx:
+        resp = client.get(url, {
+            'scope': 'mine', 'month': target.strftime('%Y-%m'),
+            'date': target.isoformat(),
+        }, HTTP_HX_REQUEST='true')
+    assert resp.status_code == 200
+
+    # 決算予定（EarningsSchedule）への問い合わせは、過去側ウィンドウ算出(Min)1回
+    # ＋ サマリー用next/prev各1回（区分によらず定数）＋ 月グリッド用 ＋
+    # 記録銘柄ハイライト用 ＋ 選択日一覧 の6回で収まるはず。区分ごとに
+    # 問い合わせていた旧実装は、サマリーだけでnext/prev×3区分=6回かかっており、
+    # 合計は10回前後だった。
+    schedule_queries = [
+        q for q in ctx.captured_queries
+        if 'earnings_analysis_earningsschedule' in q['sql'].lower()
+    ]
+    assert len(schedule_queries) <= 6, (
+        f'決算予定への問い合わせが想定より多い: {len(schedule_queries)}件\n'
+        + '\n'.join(q['sql'] for q in schedule_queries)
+    )
+
+
 def test_thesis_next_earnings_uses_actual_date():
     """Thesis「次の決算まで」の検証予定日が、実際の次回決算日になる。"""
     from stockdiary.views_growth import _default_review_due_date
