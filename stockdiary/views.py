@@ -25,6 +25,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.core.cache import cache
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from utils.mixins import ObjectNotFoundRedirectMixin
 from .models import StockDiary, DiaryNote, DiaryNotification
@@ -1727,8 +1728,19 @@ def csrf_failure_view(request, reason=""):
         )
         return redirect('stockdiary:home')
 
+    # 元のページ（フォームがあったページ）への戻り先。「ページを更新」は
+    # POST専用エンドポイント（例: 継続記録の追加/編集）だと405になり得るため、
+    # Referer が自サイト内であればそちらへ戻る導線を優先的に出す。
+    referer = request.META.get('HTTP_REFERER', '')
+    back_url = ''
+    if referer and url_has_allowed_host_and_scheme(
+        referer, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        back_url = referer
+
     return render(request, 'errors/csrf_failure.html', {
         'reason': reason,
+        'back_url': back_url,
     }, status=403)
 
 

@@ -33,9 +33,15 @@
                         </div>
 
                         <div class="d-flex justify-content-center gap-3">
+                            {% if back_url %}
+                            <a href="{{ back_url }}" class="btn btn-primary">
+                                <i class="bi bi-arrow-left me-2"></i>元のページに戻る
+                            </a>
+                            {% else %}
                             <button onclick="location.reload()" class="btn btn-primary">
                                 <i class="bi bi-arrow-clockwise me-2"></i>ページを更新
                             </button>
+                            {% endif %}
                             <a href="{% url 'users:login' %}" class="btn btn-outline-secondary">
                                 <i class="bi bi-box-arrow-in-right me-2"></i>ログインページに戻る
                             </a>

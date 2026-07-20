@@ -1,7 +1,7 @@
 /**
  * diary-draft.js — 長文入力の下書き自動保存（localStorage）
  *
- * 対象: `data-draft-key` 属性を持つ textarea（投資理由・継続記録の本文）。
+ * 対象: `data-draft-key` 属性を持つ textarea / input（投資理由・継続記録の本文・テーマ）。
  * セッション切れ・誤リロード・誤タブクローズで書きかけの長文が消える事故を防ぐ。
  *
  * 仕組み:
@@ -120,6 +120,6 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('textarea[data-draft-key]').forEach(initField);
+    document.querySelectorAll('textarea[data-draft-key], input[data-draft-key]').forEach(initField);
   });
 })();

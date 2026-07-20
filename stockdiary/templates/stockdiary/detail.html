@@ -616,7 +616,8 @@
           </div>
           {% endif %}
           <input type="text" class="form-control form-input-improved" id="note_topic" name="topic"
-                 maxlength="50" placeholder="例: ナフサの影響" list="note-topic-list" autocomplete="off">
+                 maxlength="50" placeholder="例: ナフサの影響" list="note-topic-list" autocomplete="off"
+                 data-draft-key="note-topic-{{ diary.pk }}">
           <datalist id="note-topic-list">
             {% for t in note_topics %}<option value="{{ t }}"></option>{% endfor %}
           </datalist>
