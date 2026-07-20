@@ -263,43 +263,6 @@
         <span class="rp-stat rp-stat--muted"><span class="rp-stat-num">{{ total_diary_count }}</span>件の記録</span>
       </div>
       {% endif %}
-      {% if not is_empty_state %}
-      <nav class="rp-quicklinks" aria-label="読み返す">
-        <a href="{% url 'stockdiary:annual_review' %}" class="rp-quicklink">
-          <span class="rp-quicklink-icon"><i class="bi bi-book"></i></span>
-          <span class="rp-quicklink-body">
-            <span class="rp-quicklink-label">{% now "Y" %}年のふりかえり</span>
-            <span class="rp-quicklink-sub">一年を読み返す</span>
-          </span>
-          <i class="bi bi-chevron-right rp-quicklink-chev"></i>
-        </a>
-        <a href="{% url 'stockdiary:investor_karte' %}" class="rp-quicklink">
-          <span class="rp-quicklink-icon"><i class="bi bi-clipboard-pulse"></i></span>
-          <span class="rp-quicklink-body">
-            <span class="rp-quicklink-label">投資家カルテ</span>
-            <span class="rp-quicklink-sub">判断の傾向を知る</span>
-          </span>
-          <i class="bi bi-chevron-right rp-quicklink-chev"></i>
-        </a>
-        <a href="{% url 'stockdiary:library' %}" class="rp-quicklink{% if recall.due_theses or recall.anniversary %} has-cue{% endif %}">
-          <span class="rp-quicklink-icon">
-            <i class="bi bi-collection"></i>
-            {% if recall.due_theses or recall.anniversary %}<span class="rp-quicklink-dot"></span>{% endif %}
-          </span>
-          <span class="rp-quicklink-body">
-            <span class="rp-quicklink-label">知識ライブラリ</span>
-            <span class="rp-quicklink-sub">
-              {% if recall.due_theses or recall.anniversary %}
-              <span class="rp-quicklink-cue"><i class="bi bi-bell-fill"></i>今日の見直しあり</span>
-              {% else %}
-              学び・テーマで探す
-              {% endif %}
-            </span>
-          </span>
-          <i class="bi bi-chevron-right rp-quicklink-chev"></i>
-        </a>
-      </nav>
-      {% endif %}
     </div>
     <div class="page-header-actions">
       <a href="{% url 'stockdiary:create' %}" class="btn btn-primary d-none d-lg-inline-flex align-items-center">
@@ -308,6 +271,10 @@
       </a>
     </div>
   </div>
+
+  <!-- 今日の想起カード（プロダクトの核心価値＝未来の自分の答え合わせ。ファーストビュー最上位に置く。
+       「答え合わせを待つ仮説（検証予定日が来た）」もキュー先頭に統合される） -->
+  {% include "stockdiary/components/recall_card.html" %}
 
   <!-- 継続バー：連続記録 ＋ 想起 ＋ 過去の学びの再浮上（毎日開きたくなる仕掛け） -->
   {% if not is_empty_state %}{% if record_streak or recall.anniversary or resurfaced_note %}
@@ -341,8 +308,53 @@
   </div>
   {% endif %}{% endif %}
 
-  <!-- 今日の想起カード（「答え合わせを待つ仮説（検証予定日が来た）」もキュー先頭に統合される） -->
-  {% include "stockdiary/components/recall_card.html" %}
+  {% comment %}振り返り導線（低頻度）はファーストビューの選択過多を避けるため、想起・継続の下に降格。
+     常に折りたたみ既定にしてリスト（主コンテンツ）を圧迫しない。見直し（due/記念日）がある日は
+     見出しの通知ドット＋文言で気づけるようにし、開くかはユーザーに委ねる（自動展開しない）。{% endcomment %}
+  {% if not is_empty_state %}
+  <details class="rp-quicklinks-wrap">
+    <summary class="rp-quicklinks-summary">
+      <i class="bi bi-compass"></i><span>読み返す・傾向を知る</span>
+      {% if recall.due_theses or recall.anniversary %}<span class="rp-quicklinks-cue-text"><i class="bi bi-bell-fill"></i>今日の見直し</span>{% endif %}
+      <i class="bi bi-chevron-down rp-quicklinks-chev"></i>
+    </summary>
+    <nav class="rp-quicklinks" aria-label="読み返す">
+      <a href="{% url 'stockdiary:annual_review' %}" class="rp-quicklink">
+        <span class="rp-quicklink-icon"><i class="bi bi-book"></i></span>
+        <span class="rp-quicklink-body">
+          <span class="rp-quicklink-label">{% now "Y" %}年のふりかえり</span>
+          <span class="rp-quicklink-sub">一年を読み返す</span>
+        </span>
+        <i class="bi bi-chevron-right rp-quicklink-chev"></i>
+      </a>
+      <a href="{% url 'stockdiary:investor_karte' %}" class="rp-quicklink">
+        <span class="rp-quicklink-icon"><i class="bi bi-clipboard-pulse"></i></span>
+        <span class="rp-quicklink-body">
+          <span class="rp-quicklink-label">投資家カルテ</span>
+          <span class="rp-quicklink-sub">判断の傾向を知る</span>
+        </span>
+        <i class="bi bi-chevron-right rp-quicklink-chev"></i>
+      </a>
+      <a href="{% url 'stockdiary:library' %}" class="rp-quicklink{% if recall.due_theses or recall.anniversary %} has-cue{% endif %}">
+        <span class="rp-quicklink-icon">
+          <i class="bi bi-collection"></i>
+          {% if recall.due_theses or recall.anniversary %}<span class="rp-quicklink-dot"></span>{% endif %}
+        </span>
+        <span class="rp-quicklink-body">
+          <span class="rp-quicklink-label">知識ライブラリ</span>
+          <span class="rp-quicklink-sub">
+            {% if recall.due_theses or recall.anniversary %}
+            <span class="rp-quicklink-cue"><i class="bi bi-bell-fill"></i>今日の見直しあり</span>
+            {% else %}
+            学び・テーマで探す
+            {% endif %}
+          </span>
+        </span>
+        <i class="bi bi-chevron-right rp-quicklink-chev"></i>
+      </a>
+    </nav>
+  </details>
+  {% endif %}
 
   {% if is_empty_state %}
   <!-- 新規ユーザー向けオンボーディング（0件時は検索・フィルター群を隠す） -->

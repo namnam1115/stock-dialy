@@ -74,20 +74,52 @@
 }
 .ds-lens.is-active .ds-lens-count { color: var(--muted-ink); }
 
-/* 状態サマリー行 */
-.ds-state-summary {
-  display: flex; gap: 1rem; font-size: 0.8rem; color: var(--muted-ink);
-  padding: 0.6rem 0 0.5rem; border-bottom: 1px solid var(--hairline-soft);
-  margin-bottom: 0.25rem;
+/* 選択フィルタのチップ帯（状態/テーマ）。1つ選ぶと対応セクションだけ表示する。 */
+.ds-chips {
+  display: flex; gap: 0.4rem; flex-wrap: wrap;
+  padding: 0.7rem 0 0.35rem; margin-bottom: 0.15rem;
 }
-.ds-state-summary b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.ds-chip {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.8rem; font-weight: 600; white-space: nowrap;
+  color: var(--muted-ink); background: var(--paper-sunken);
+  border: 1px solid var(--hairline); border-radius: 999px;
+  padding: 0.32rem 0.7rem; cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.ds-chip:hover { color: var(--ink); border-color: var(--muted-ink); }
+.ds-chip.is-active {
+  color: var(--paper); background: var(--ink); border-color: var(--ink);
+}
+.ds-chip-count {
+  font-size: 0.68rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--faint-ink);
+}
+.ds-chip.is-active .ds-chip-count { color: var(--paper); opacity: 0.85; }
+.ds-chip-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.ds-chip.is-active .ds-chip-dot { box-shadow: 0 0 0 1.5px var(--paper); }
+.ds-chip[hidden] { display: none; }
+.ds-section[hidden] { display: none; }
 
-/* グループ見出し */
-.ds-group-head {
-  display: flex; align-items: center; gap: 0.45rem;
-  font-size: 0.75rem; font-weight: 600; color: var(--muted-ink);
-  padding: 0.8rem 0 0.3rem; letter-spacing: 0.02em;
+/* テーマ（多数）向け: 絞り込み入力と「他N件」展開 */
+.ds-chip-tools { padding: 0.6rem 0 0.1rem; }
+.ds-chip-filter {
+  width: 100%; max-width: 320px;
+  font-size: 0.85rem; color: var(--ink);
+  background: var(--paper-sunken); border: 1px solid var(--hairline);
+  border-radius: 8px; padding: 0.4rem 0.65rem;
 }
+.ds-chip-filter:focus { outline: none; border-color: var(--muted-ink); }
+.ds-chip-filter::placeholder { color: var(--faint-ink); }
+.ds-chips-more {
+  display: inline-flex; align-items: center;
+  margin: 0.1rem 0 0.35rem; font-size: 0.78rem; font-weight: 600;
+  color: var(--muted-ink); background: none; border: none; cursor: pointer;
+  padding: 0.25rem 0.1rem;
+}
+.ds-chips-more:hover { color: var(--ink); }
+.ds-chips-more[hidden] { display: none; }
+
 .ds-group-dot {
   width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
 }
@@ -155,13 +187,6 @@
 .ds-row-state--live     { color: var(--verdict-skill); font-weight: 600; }
 .ds-row-state--closed   { color: var(--faint-ink); }
 .ds-row-disclosure { display: inline-flex; align-items: center; gap: 0.15rem; }
-
-/* テーマタグ見出し */
-.ds-theme-head {
-  display: inline-flex; align-items: center; gap: 0.35rem;
-  font-size: 0.75rem; font-weight: 600; color: var(--muted-ink);
-  padding: 0.75rem 0 0.25rem; letter-spacing: 0.02em;
-}
 
 /* 銘柄テーブルビュー */
 .ds-symbol-table {
@@ -300,41 +325,6 @@
 /* 索引レイアウト切替（リスト/銘柄別）は検索の下に独立配置 */
 .ds-view-toggle { width: fit-content; margin: 0.75rem 0 0.35rem; }
 
-/* ── sticky グループ見出し（本の索引：見出しがスクロール追従） ── */
-.ds-group-head, .ds-theme-head, .ds-index-head {
-  position: sticky; top: 0; z-index: 3;
-  background: var(--paper);
-  box-shadow: 0 1px 0 var(--hairline-soft);
-}
-.ds-index-head {
-  display: flex; align-items: baseline; gap: 0.45rem;
-  font-size: 0.78rem; font-weight: 700; color: var(--ink);
-  padding: 0.6rem 0 0.35rem; letter-spacing: 0.02em;
-  font-variant-numeric: tabular-nums; scroll-margin-top: 0.5rem;
-}
-.ds-index-count {
-  font-size: 0.65rem; font-weight: 600; color: var(--faint-ink);
-}
-
-/* ── コード索引レール（ジャンプ用チップ帯） ── */
-.ds-index-rail {
-  display: flex; gap: 0.3rem; flex-wrap: wrap;
-  padding: 0.6rem 0 0.25rem; margin-bottom: 0.15rem;
-  border-bottom: 1px solid var(--hairline-soft);
-}
-.ds-index-chip {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 1.9rem; height: 1.9rem; padding: 0 0.35rem;
-  font-size: 0.78rem; font-weight: 600; text-decoration: none;
-  color: var(--muted-ink); background: var(--paper-sunken);
-  border: 1px solid var(--hairline); border-radius: 999px;
-  font-variant-numeric: tabular-nums;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-.ds-index-chip:hover {
-  color: var(--paper); background: var(--ink); border-color: var(--ink);
-}
-
 /* テーブルの見出し行も追従させる（長い一覧の走査を助ける） */
 .ds-symbol-table thead th {
   position: sticky; top: 0; z-index: 2; background: var(--paper);
@@ -383,9 +373,11 @@
   </form>
 
   {# 索引の内部レイアウト切替（フレームレス行 ⇄ 対比テーブル） #}
+  {% comment %}役割で二分: 「まとめる」=状態/テーマでグループ化して眺める（list）／
+     「比べる」=記録・取引・損益・的中・最近・コードで並べ替えて数値比較（table）。{% endcomment %}
   <div class="ds-view-toggle" id="ds-view-toggle" role="tablist" aria-label="索引レイアウト">
-    <button class="ds-view-btn"           data-view="list" onclick="setView('list')">リスト</button>
-    <button class="ds-view-btn is-active" data-view="table" onclick="setView('table')">銘柄別</button>
+    <button class="ds-view-btn"           data-view="list"  onclick="setView('list')" title="状態・テーマでまとめて眺める">まとめる</button>
+    <button class="ds-view-btn is-active" data-view="table" onclick="setView('table')" title="記録・取引・損益・的中・最近・コードで並べ替えて比べる">比べる</button>
   </div>
 
   {# ── リストビュー（既定は銘柄別。スクリプトで切替）── #}
@@ -394,7 +386,7 @@
     {# レンズタブ #}
     <div class="ds-lenses">
       {% for l_id, l_label, l_count in lens_tabs %}
-      <a href="?lens={{ l_id }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}"
+      <a href="?lens={{ l_id }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}&view=list"
          class="ds-lens {% if lens == l_id %}is-active{% endif %}">
         {{ l_label }}
         {% if l_count %}<span class="ds-lens-count">{{ l_count }}</span>{% endif %}
@@ -404,51 +396,49 @@
 
     {% if summary_list %}
 
-      {# 状態レンズ #}
-      {% if lens == 'state' or not lens %}
-        <div class="ds-state-summary">
-          <span>検証待ち <b>{{ state_counts.due }}</b></span>
-          <span>保有中 <b>{{ state_counts.live }}</b></span>
-          <span>終了 <b>{{ state_counts.closed }}</b></span>
+      {% comment %}リストは「まとめる」＝選択フィルタ。見出しで束ねて全部並べる（＝スクロールで探す）
+         のをやめ、状態/テーマのチップを1つ選ぶと、その銘柄だけを表示する（クライアント側で即時切替）。
+         テーマ以外は状態フィルタにフォールバックする。{% endcomment %}
+      {% if lens == 'theme' %}
+        {% comment %}テーマは数十件になり得る（高カーディナリティ）。既定は使用数の多い上位のみ表示し、
+           絞り込み入力と「他N件」展開で長い裾野を畳む。チップで1テーマだけ表示する。{% endcomment %}
+        <div class="ds-chip-tools">
+          <input type="text" id="ds-theme-filter" class="ds-chip-filter"
+                 placeholder="テーマを絞り込み" autocomplete="off" aria-label="テーマを絞り込み">
+        </div>
+        <div class="ds-chips" id="ds-theme-chips" role="tablist" aria-label="テーマで絞り込み" data-collapse="10">
+          {% for theme, items in theme_groups.items %}
+          <button type="button" class="ds-chip" role="tab" data-target="ds-sec-theme-{{ forloop.counter }}"
+                  data-label="{{ theme|default:'未分類' }}">
+            <i class="bi bi-hash"></i>{{ theme|default:"未分類" }}<b class="ds-chip-count">{{ items|length }}</b>
+          </button>
+          {% endfor %}
+        </div>
+        <button type="button" id="ds-theme-more" class="ds-chips-more" hidden></button>
+        {% for theme, items in theme_groups.items %}
+        <div class="ds-section" id="ds-sec-theme-{{ forloop.counter }}" role="tabpanel" hidden>
+          {% for stock in items %}{% include "stockdiary/partials/_summary_row.html" %}{% endfor %}
+        </div>
+        {% endfor %}
+
+      {% else %}
+        {# 状態：チップで1状態だけ表示（検証待ち→保有中→終了の順、空の状態は出さない） #}
+        <div class="ds-chips" role="tablist" aria-label="状態で絞り込み">
+          {% for state_key, state_label, items in state_grouped %}
+          {% if items %}
+          <button type="button" class="ds-chip ds-chip--{{ state_key }}" role="tab" data-target="ds-sec-state-{{ state_key }}">
+            <span class="ds-chip-dot ds-group-dot--{{ state_key }}"></span>{{ state_label }}<b class="ds-chip-count">{{ items|length }}</b>
+          </button>
+          {% endif %}
+          {% endfor %}
         </div>
         {% for state_key, state_label, items in state_grouped %}
-          {% if items %}
-          <div class="ds-group-head">
-            <span class="ds-group-dot ds-group-dot--{{ state_key }}"></span>
-            {{ state_label }}
-          </div>
+        {% if items %}
+        <div class="ds-section" id="ds-sec-state-{{ state_key }}" role="tabpanel" hidden>
           {% for stock in items %}{% include "stockdiary/partials/_summary_row.html" %}{% endfor %}
-          {% endif %}
-        {% endfor %}
-
-      {# テーマレンズ #}
-      {% elif lens == 'theme' %}
-        {% for theme, items in theme_groups.items %}
-        <div class="ds-theme-head">
-          <i class="bi bi-hash"></i>{{ theme|default:"未分類" }}
         </div>
-        {% for stock in items %}{% include "stockdiary/partials/_summary_row.html" %}{% endfor %}
-        {% endfor %}
-
-      {# 銘柄レンズ：コード索引（ジャンプレール＋ sticky 帯見出し） #}
-      {% elif lens == 'symbol' %}
-        {% if symbol_index|length > 1 %}
-        <nav class="ds-index-rail" aria-label="コード索引へジャンプ">
-          {% for g in symbol_index %}
-          <a class="ds-index-chip" href="#idx-{{ g.key }}">{{ g.key }}</a>
-          {% endfor %}
-        </nav>
         {% endif %}
-        {% for g in symbol_index %}
-        <div class="ds-index-head" id="idx-{{ g.key }}">
-          {{ g.label }}<span class="ds-index-count">{{ g.items|length }}</span>
-        </div>
-        {% for stock in g.items %}{% include "stockdiary/partials/_summary_row.html" %}{% endfor %}
         {% endfor %}
-
-      {# 時系列レンズ #}
-      {% else %}
-        {% for stock in summary_list %}{% include "stockdiary/partials/_summary_row.html" %}{% endfor %}
 
       {% endif %}
 
@@ -530,7 +520,57 @@ function setView(v) {
   document.querySelectorAll('.ds-view-btn').forEach(b => b.classList.toggle('is-active', b.dataset.view === v));
   try { localStorage.setItem('ds-view', v); } catch (e) {}
 }
-// 既定は常に銘柄別ビュー（保存値に関わらず table を開く）。
-setView('table');
+// 既定は銘柄別ビュー。ただしレンズ（状態/テーマ）タブはページ再読込を伴う <a> リンクのため、
+// ?view=list を付けて「リストビューにいた」ことを引き継ぐ。これが無いとリスト表示中に
+// レンズを選ぶたびに table へ戻され、銘柄別が再選択されてしまう。
+setView(new URLSearchParams(location.search).get('view') === 'list' ? 'list' : 'table');
+
+// 「まとめる」のチップ選択フィルタ：見出しで束ねて全部並べる代わりに、選んだ状態/テーマの
+// 銘柄だけを表示する（スクロール量を実際に削る）。各 .ds-chips 内で単一選択。
+document.querySelectorAll('.ds-chips').forEach(function (group) {
+  var chips = group.querySelectorAll('.ds-chip');
+  function activate(chip) {
+    chips.forEach(function (c) {
+      var sec = document.getElementById(c.dataset.target);
+      var on = c === chip;
+      c.classList.toggle('is-active', on);
+      c.setAttribute('aria-selected', on ? 'true' : 'false');
+      if (sec) sec.hidden = !on;
+    });
+  }
+  chips.forEach(function (c) { c.addEventListener('click', function () { activate(c); }); });
+  if (chips.length) { activate(chips[0]); }  // 既定は先頭（状態=検証待ち→保有中→終了 の最上位、テーマ=最大）
+});
+
+// テーマは数十件になり得るため、上位のみ表示＋絞り込み＋「他N件」展開で壁になるのを防ぐ。
+(function setupThemeChips() {
+  var chips = document.getElementById('ds-theme-chips');
+  if (!chips) { return; }
+  var chipEls = Array.prototype.slice.call(chips.querySelectorAll('.ds-chip'));
+  var topN = parseInt(chips.dataset.collapse || '10', 10);
+  var moreBtn = document.getElementById('ds-theme-more');
+  var input = document.getElementById('ds-theme-filter');
+  var expanded = false;
+
+  function render() {
+    var q = (input && input.value || '').trim().toLowerCase();
+    chipEls.forEach(function (c, i) {
+      var label = (c.dataset.label || c.textContent).toLowerCase();
+      var show = q ? label.indexOf(q) !== -1 : (expanded || i < topN);
+      c.hidden = !show;
+    });
+    if (moreBtn) {
+      if (!q && chipEls.length > topN) {
+        moreBtn.hidden = false;
+        moreBtn.textContent = expanded ? '閉じる ▴' : ('他 ' + (chipEls.length - topN) + ' 件 ▾');
+      } else {
+        moreBtn.hidden = true;
+      }
+    }
+  }
+  if (moreBtn) { moreBtn.addEventListener('click', function () { expanded = !expanded; render(); }); }
+  if (input) { input.addEventListener('input', render); }
+  render();
+})();
 </script>
 {% endblock %}

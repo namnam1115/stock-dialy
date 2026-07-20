@@ -1645,6 +1645,41 @@ body.writing-focus .pc-only-header:hover { opacity: 1; }
 .reading-page .rp-quicklink-cue { color: var(--accent); font-weight: var(--font-semibold); }
 .reading-page .rp-quicklink-cue i { margin-right: 0.25rem; }
 
+/* 振り返り導線を折りたたむ <details> ラッパ。ファーストビューの選択過多を避けつつ、
+   見直し（due/記念日）がある日はテンプレ側で open にして見落としを防ぐ。 */
+.reading-page .rp-quicklinks-wrap { margin-top: 1.5rem; margin-bottom: 1.5rem; }
+.reading-page .rp-quicklinks-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  list-style: none;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--paper-raised);
+  font-size: 0.82rem;
+  font-weight: var(--font-semibold);
+  color: var(--muted-ink);
+  user-select: none;
+}
+.reading-page .rp-quicklinks-summary::-webkit-details-marker { display: none; }
+.reading-page .rp-quicklinks-summary > i:first-child { color: var(--accent); }
+/* 折りたたみ時でも「今日の見直し」を見出しに出す（自動展開せずに気づかせる） */
+.reading-page .rp-quicklinks-cue-text {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  margin-left: 0.15rem; font-size: 0.72rem; font-weight: var(--font-semibold);
+  color: var(--accent);
+}
+.reading-page .rp-quicklinks-cue-text i { font-size: 0.85em; }
+.reading-page .rp-quicklinks-chev { margin-left: auto; transition: transform var(--duration-150, 150ms) var(--ease-out, ease); }
+.reading-page .rp-quicklinks-wrap[open] .rp-quicklinks-chev { transform: rotate(180deg); }
+.reading-page .rp-quicklinks-wrap[open] .rp-quicklinks-summary {
+  border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+}
+.reading-page .rp-quicklinks-wrap[open] .rp-quicklinks { margin-top: 0.5rem; }
+
 @media (max-width: 640px) {
   .reading-page .rp-quicklinks { grid-template-columns: 1fr; gap: 0.5rem; }
   .reading-page .rp-quicklink-chev { margin-left: auto; }

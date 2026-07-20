@@ -1,0 +1,47 @@
+{% comment %}
+ヘッダー常設ミニ仮説カード（「いまの見立て」）。
+- open な仮説（pinned_thesis）を、現在地ストリップの直下＝損益と同一視野に固定表示する。
+- 継続/損切り判断の主ソースである claim（賭け）/ checkpoint（目印）/ worst_case（崩れ）だけを抜いた
+  軽量版。フル版（basis・verdict履歴・2×2象限）は記録タブ→仮説ビュー（_karte_block.html）に温存する。
+- 文言・アイコンは _karte_block.html / recall_card.html と対にして「書いた時」と「想起する時」の
+  見た目を揃える（目印＝bi-bullseye、崩れ＝bi-exclamation-triangle）。
+- pinned_thesis が無い保有中の銘柄では、仮説を残す動機付けの1行CTAを出す。
+{% endcomment %}
+{% if pinned_thesis %}
+<div class="thesis-pin">
+  <div class="thesis-pin-head">
+    <span class="thesis-pin-label"><i class="bi bi-lightbulb"></i>いまの見立て</span>
+    {% if pinned_thesis.is_due %}
+    <span class="thesis-pin-due"><i class="bi bi-bell"></i>答え合わせ待ち</span>
+    {% endif %}
+  </div>
+  <p class="thesis-pin-claim">{{ pinned_thesis.claim }}</p>
+  {% if pinned_thesis.checkpoint %}
+  <p class="thesis-pin-line thesis-pin-mark">
+    <i class="bi bi-bullseye"></i><span>目印：{{ pinned_thesis.checkpoint }}{% if pinned_thesis.checkpoint_direction %} → {{ pinned_thesis.get_checkpoint_direction_display }}{% endif %}</span>
+  </p>
+  {% endif %}
+  {% if pinned_thesis.worst_case %}
+  <p class="thesis-pin-line thesis-pin-worst">
+    <i class="bi bi-exclamation-triangle"></i><span>崩れ：{{ pinned_thesis.worst_case }}</span>
+  </p>
+  {% endif %}
+  <div class="thesis-pin-actions">
+    {% if pinned_thesis.is_due %}
+    <a class="btn-quiet btn-quiet--primary" href="{% url 'stockdiary:detail' diary.id %}?verify={{ pinned_thesis.id }}#karte-block">
+      <i class="bi bi-check2-square"></i>答え合わせをする
+    </a>
+    {% endif %}
+    <button type="button" class="btn-quiet" onclick="goToThesisView()">
+      <i class="bi bi-lightbulb"></i>仮説を詳しく見る
+    </button>
+  </div>
+</div>
+{% elif not diary.is_memo and diary.current_quantity > 0 %}
+<div class="thesis-pin thesis-pin--empty">
+  <p class="thesis-pin-empty-text"><i class="bi bi-lightbulb"></i>この銘柄への「賭け」はまだ言語化されていません。</p>
+  <button type="button" class="btn-quiet btn-quiet--primary" onclick="openBottomSheet('addThesisSheet')">
+    <i class="bi bi-plus-lg"></i>いまの見立てを残す
+  </button>
+</div>
+{% endif %}

@@ -42,6 +42,7 @@
             <div class="info-card-title">
               <i class="bi bi-journal-text"></i>
               {% if diary.is_memo %}メモ{% else %}この銘柄の背景{% endif %}
+              {% if not diary.is_memo %}<span class="rp-reason-subtitle">企業の俯瞰。「買った理由（賭け）」は上の<i class="bi bi-lightbulb"></i>いまの見立てへ</span>{% endif %}
               {% if diary.reason %}
               <button type="button" class="reason-expand-btn" id="reasonExpandBtn"
                       title="全画面で読む">

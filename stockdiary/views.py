@@ -441,6 +441,14 @@ class StockDiaryDetailView(ObjectNotFoundRedirectMixin, LoginRequiredMixin, Deta
             .select_related('verdict')
             .prefetch_related('basis_tags')
         )
+        # ヘッダー常設ミニ仮説カード（_thesis_pin.html）用。open な仮説のうち最新1件を
+        # 「いまの見立て」として現在地の隣に固定表示する。継続/損切り判断の主ソースである
+        # claim/checkpoint/worst_case を、損益と同一視野に置くのが狙い（→ docs/ontology.md §3）。
+        # ordering は Thesis.Meta で -created_at なので先頭が最新の open 仮説。
+        from .models import Thesis
+        context['pinned_thesis'] = next(
+            (t for t in context['theses'] if t.status == Thesis.STATUS_OPEN), None
+        )
 
         # 仮説タブ用: ユーザー全体の 2×2 判断傾向
         from .views_growth import _build_user_quadrants
@@ -1372,30 +1380,11 @@ class DiarySummaryView(LoginRequiredMixin, TemplateView):
             untagged = [s for s in summary_list if s['symbol'] not in tagged]
             for s in untagged:
                 theme_groups[''].append(s)
-
-        # 時系列・銘柄レンズの並び替え
-        time_list = sorted(summary_list, key=lambda x: x['latest_date'] or _epoch, reverse=True)
-        symbol_list = sorted(summary_list, key=lambda x: x['symbol'])
-
-        # 銘柄索引：コード帯でグルーピング（本の索引のジャンプレール用）。
-        # 日本株の4桁コードは先頭桁で束ね（例 7000番台）、外国株など英字始まりは
-        # 頭文字で束ねる。symbol_list はコード昇順のため各グループは連続・整列済み。
-        from collections import OrderedDict as _OrderedDict
-
-        def _code_group(sym):
-            s = (sym or '').strip()
-            if s[:1].isdigit():
-                return (s[0], f'{s[0]}000番台')
-            c = (s[:1] or '#').upper()
-            return (c, c)
-
-        symbol_index_map = _OrderedDict()
-        for s in symbol_list:
-            gk, gl = _code_group(s['symbol'])
-            if gk not in symbol_index_map:
-                symbol_index_map[gk] = {'key': gk, 'label': gl, 'items': []}
-            symbol_index_map[gk]['items'].append(s)
-        symbol_index = list(symbol_index_map.values())
+            # チップの既定選択が「最大のテーマ」になるよう件数降順に並べ替える（未分類は末尾）。
+            theme_groups = _dd(list, sorted(
+                theme_groups.items(),
+                key=lambda kv: (kv[0] == '', -len(kv[1])),
+            ))
 
         # 銘柄別テーブル（量×成果の対比）の並び替え。
         # リストビューの lens/sort とは独立に、専用のソート軸を持つ。
@@ -1406,24 +1395,19 @@ class DiarySummaryView(LoginRequiredMixin, TemplateView):
             'profit_desc': (lambda x: x['realized_profit'], True),
             'profit_asc':  (lambda x: x['realized_profit'], False),
             'hit_desc':    (lambda x: (x['verdict_hit'] / x['verdict_total']) if x['verdict_total'] else -1, True),
+            # 「最近順」＝旧・時系列レンズの移設先。並べ替えは銘柄別テーブルの仕事に集約する。
+            'recent_desc': (lambda x: x['latest_date'] or _epoch, True),
             'symbol':      (lambda x: x['symbol'], False),
         }
         t_key, t_reverse = table_sort_mapping.get(table_sort, table_sort_mapping['record_desc'])
         table_list = sorted(summary_list, key=t_key, reverse=t_reverse)
 
-        # レンズタブ定義
+        # レンズタブ定義。リストは「まとめる（グルーピング）」に役割を限定するため、
+        # 状態・テーマの2つだけ。並べ替え（旧・時系列/銘柄）は銘柄別テーブルへ集約した
+        # （時系列→tsort=recent_desc「最近順」、銘柄→tsort=symbol「コード順」）。
         lens_tabs = [
             ('state',  '状態',   None),
             ('theme',  'テーマ', None),
-            ('time',   '時系列', None),
-            ('symbol', '銘柄',   None),
-        ]
-
-        # 状態グルーピング順
-        state_groups = [
-            ('due',    '検証待ち'),
-            ('live',   '保有中'),
-            ('closed', '終了'),
         ]
 
         # 状態レンズ用グループ済みリスト
@@ -1434,7 +1418,9 @@ class DiarySummaryView(LoginRequiredMixin, TemplateView):
         ]
 
         context.update({
-            'summary_list': summary_list if lens in ('state', 'theme') else (time_list if lens == 'time' else symbol_list),
+            # リストは状態/テーマのグルーピングのみ。並べ替えはテーブル側に集約したため
+            # summary_list はそのまま渡す（グルーピングは template 側で行う）。
+            'summary_list': summary_list,
             'table_list': table_list,
             'table_sort': table_sort,
             'table_sorts': [
@@ -1443,6 +1429,7 @@ class DiarySummaryView(LoginRequiredMixin, TemplateView):
                 ('profit_desc', '損益（上位）'),
                 ('profit_asc',  '損益（下位）'),
                 ('hit_desc',    '的中率'),
+                ('recent_desc', '最近順'),
                 ('symbol',      'コード順'),
             ],
             'search_query': search_query,
@@ -1454,7 +1441,6 @@ class DiarySummaryView(LoginRequiredMixin, TemplateView):
             'state_counts': state_counts,
             'state_grouped': state_grouped,
             'theme_groups': dict(theme_groups),
-            'symbol_index': symbol_index,
         })
         return context
 

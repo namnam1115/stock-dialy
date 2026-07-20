@@ -30,7 +30,11 @@ a:hover {
 .pc-only-header {
   position: sticky;
   top: 0;
-  z-index: 1030;
+  /* フローティングのページ操作（.floating-nav-button / .speed-dial-container = 1040）より
+     上に置く。1030 のままだと、ヘッダーのユーザー/通知ドロップダウンがフロートボタンに
+     覆われてしまう（グローバルなヘッダーはページ内フロートより前面が正）。
+     フルスクリーンメニュー(1050)より下は維持する。 */
+  z-index: 1045;
   display: none;
 }
 

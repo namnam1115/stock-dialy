@@ -3077,3 +3077,100 @@
 [data-theme="dark"] .btn-delete-note {
   color: var(--dm-muted-foreground);
 }
+
+/* =========================================================================
+   いまの見立て（ヘッダー常設ミニ仮説カード）
+   ・ヘッダーは損益・株数などの数値を出さない（戦略的縮小。損益サマリーは
+     PCサイドバー/概要タブの取引サマリーに重複して存在する）。買った理由に集中させる。
+   ・テーマ変数（--bg-*/--text-*/--accent/danger/warning）で light/dark 両対応。
+   ========================================================================= */
+/* いまの見立て（ヘッダー常設ミニ仮説カード） */
+.thesis-pin {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--bg-300);
+  border-left: 3px solid var(--accent-200);
+  border-radius: 10px;
+  background: var(--bg-100);
+}
+.thesis-pin-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.thesis-pin-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--accent-200);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.thesis-pin-due {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--warning-color);
+  background: rgba(var(--warning-rgb), 0.14);
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+.thesis-pin-claim {
+  margin: 0 0 0.45rem;
+  font-size: 0.98rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text-100);
+}
+.thesis-pin-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0.2rem 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text-200);
+}
+.thesis-pin-line i { flex-shrink: 0; margin-top: 0.15rem; }
+.thesis-pin-mark i { color: var(--accent-200); }
+.thesis-pin-worst { color: var(--danger-color); }
+.thesis-pin-worst i { color: var(--warning-color); }
+.thesis-pin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+.thesis-pin--empty { border-left-color: var(--bg-300); }
+.thesis-pin-empty-text {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-200);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* 概要タブ「この銘柄の背景」見出しの副題（reason≠Thesis の役割分離を明示） */
+.rp-reason-subtitle {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-200);
+  opacity: 0.85;
+  letter-spacing: 0;
+}
+.rp-reason-subtitle i { color: var(--accent-200); margin: 0 0.15rem; }
+
+/* ダークモード補正（トークンで概ね追従するが、面の背景を明示的に合わせる） */
+.dark-mode .thesis-pin,
+[data-theme="dark"] .thesis-pin { background: var(--bg-200); }
