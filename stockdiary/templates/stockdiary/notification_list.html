@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}通知 - カブログ{% endblock %}
+{% block title %}予定リマインダー - カブログ{% endblock %}
 
 {% block head %}
 <style>
@@ -314,10 +314,10 @@
     <!-- Page header -->
     <div class="page-header mb-4">
         <h1 class="page-title">
-            <i class="bi bi-bell"></i>
-            通知
+            <i class="bi bi-alarm"></i>
+            予定リマインダー
         </h1>
-        <p class="page-subtitle">予定と通知一覧</p>
+        <p class="page-subtitle">自分で登録した予定リマインダーの一覧（ヘッダーの🔔は届いた通知）</p>
     </div>
 
     <!-- Filter controls -->
@@ -370,8 +370,8 @@
             <div class="empty-notification-icon">
                 <i class="bi bi-inbox"></i>
             </div>
-            <h2 class="empty-notification-title">通知がありません</h2>
-            <p class="empty-notification-text">予定が登録されると、ここに表示されます</p>
+            <h2 class="empty-notification-title">予定はありません</h2>
+            <p class="empty-notification-text">リマインダーを登録すると、ここに表示されます</p>
             <a href="{% url 'stockdiary:home' %}" class="btn btn-primary btn-sm">
                 <i class="bi bi-arrow-left"></i>
                 ホームに戻る
