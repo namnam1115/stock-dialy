@@ -211,10 +211,11 @@ class StockDiaryListView(LoginRequiredMixin, ListView):
         from .utils import annotate_search_matches
         annotate_search_matches(context['diaries'], self.request.GET.get('query', ''))
 
-        # 次回決算（カードの決算予定バッジ用）。決算日は日記に持たせず、表示中の
+        # 次回決算＋前回決算（カードの決算バッジ用）。決算日は日記に持たせず、表示中の
         # ページ分だけ銘柄コードで EarningsSchedule を1クエリ join して付与する。
+        # with_previous=True で「前回いつ決算だったか」も付与し、決算後の振り返り導線にする。
         from .views_earnings import attach_next_earnings
-        attach_next_earnings(context['diaries'])
+        attach_next_earnings(context['diaries'], with_previous=True)
 
         # フォーム用のスピードダイアルアクション。
         # 記録動線（クイック記録・新規登録）のみに絞る（FB2）。
@@ -257,7 +258,8 @@ class StockDiaryListView(LoginRequiredMixin, ListView):
         has_filters = any(
             self.request.GET.get(k) for k in
             ('query', 'hashtag', 'tag', 'sector', 'status',
-             'transaction_date_range', 'date_range', 'disclosure')
+             'transaction_date_range', 'date_range', 'disclosure',
+             'earnings', 'earnings_past')
         )
         context['is_empty_state'] = (
             not has_filters and context['total_diary_count'] == 0
@@ -392,10 +394,10 @@ class StockDiaryDetailView(ObjectNotFoundRedirectMixin, LoginRequiredMixin, Deta
         self._build_json_export_context(context)
         context['today'] = timezone.now().date()
         context['mention_map'] = get_mention_map(self.request.user)
-        # 次回決算予定日（ヘッダー表示用）。決算日は日記に持たせず、銘柄コードで
-        # EarningsSchedule を引いて self.object.next_earnings に付与する。
+        # 次回決算予定日＋前回決算日（ヘッダー表示用）。決算日は日記に持たせず、銘柄コードで
+        # EarningsSchedule を引いて self.object.next_earnings / prev_earnings に付与する。
         from .services.earnings_lookup import attach_next_earnings
-        attach_next_earnings([self.object])
+        attach_next_earnings([self.object], with_previous=True)
         from tags.models import Tag as _Tag
         context['thesis_form'] = ThesisForm(user=self.request.user)
         context['thesis_all_tags'] = list(

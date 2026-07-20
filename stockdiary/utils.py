@@ -443,6 +443,27 @@ def apply_diary_filters(queryset, params, user):
                 _next_earnings_date__range=(_today, _today + timedelta(days=earnings_days))
             )
 
+    # 決算後フィルタ/ソートで使う「直近の（過去の）決算日」。振り返りは決算直後が
+    # 最多だが、既存の導線は「決算が近い（前）」しか無かった。EarningsSchedule は
+    # 基準日より前を履歴として残す（earnings_calendar_sync）ため過去分を相関参照でき、
+    # 「最近決算があった銘柄」を上に集められる。要求時のみ付与する。
+    earnings_past = params.get('earnings_past', '')
+    earnings_past_days = {'7': 7, '14': 14, '30': 30}.get(earnings_past)
+    if earnings_past_days is not None or sort == 'earnings_desc':
+        from earnings_analysis.models import EarningsSchedule
+        _today = _tz.now().date()
+        _last_e = (
+            EarningsSchedule.objects
+            .filter(securities_code=OuterRef('stock_symbol'), earnings_date__lte=_today)
+            .order_by('-earnings_date')
+            .values('earnings_date')[:1]
+        )
+        queryset = queryset.annotate(_last_earnings_date=Subquery(_last_e))
+        if earnings_past_days is not None:
+            queryset = queryset.filter(
+                _last_earnings_date__range=(_today - timedelta(days=earnings_past_days), _today)
+            )
+
     sort_map = {
         'name': ['stock_name'],
         'symbol': ['stock_symbol'],
@@ -456,6 +477,8 @@ def apply_diary_filters(queryset, params, user):
         'total_cost_asc': ['total_cost', 'updated_at'],
         # 決算が近い順（決算予定が無い銘柄は末尾）
         'earnings_asc': [_F('_next_earnings_date').asc(nulls_last=True), '-updated_at'],
+        # 最近決算があった順（過去決算が無い銘柄は末尾）＝決算後の振り返り用
+        'earnings_desc': [_F('_last_earnings_date').desc(nulls_last=True), '-updated_at'],
     }
 
     # タイトル（銘柄名・コード）一致を優先する。全文検索は本文・ノート等も

@@ -128,7 +128,7 @@
 
     <!-- 4. 詳細フィルター（折りたたみ） -->
     <details class="sidebar-section sidebar-details"
-             {% if request.GET.tag or request.GET.sector or request.GET.transaction_date_range or request.GET.disclosure or request.GET.date_range %}open{% endif %}>
+             {% if request.GET.tag or request.GET.sector or request.GET.transaction_date_range or request.GET.disclosure or request.GET.earnings or request.GET.earnings_past or request.GET.date_range %}open{% endif %}>
       <summary class="sidebar-label sidebar-details-summary">
         <i class="bi bi-sliders2"></i> 詳細フィルター
       </summary>
@@ -183,6 +183,15 @@
           </select>
         </div>
         <div class="mt-2">
+          <label class="filter-group-label" for="sidebarEarningsPastFilter">決算後（振り返り向け）</label>
+          <select class="form-select form-select-sm sidebar-filter" id="sidebarEarningsPastFilter" name="earnings_past" data-target="earningsPastFilter">
+            <option value="">指定なし</option>
+            <option value="7" {% if request.GET.earnings_past == '7' %}selected{% endif %}>7日以内に決算</option>
+            <option value="14" {% if request.GET.earnings_past == '14' %}selected{% endif %}>14日以内に決算</option>
+            <option value="30" {% if request.GET.earnings_past == '30' %}selected{% endif %}>30日以内に決算</option>
+          </select>
+        </div>
+        <div class="mt-2">
           <label class="filter-group-label" for="sidebarDateRangeFilter">初回購入の時期</label>
           <select class="form-select form-select-sm sidebar-filter" id="sidebarDateRangeFilter" name="date_range" data-target="dateRangeFilter">
             <option value="">指定なし</option>
@@ -205,6 +214,7 @@
         <select class="form-select form-select-sm sidebar-filter" id="sidebarSortFilter" name="sort" data-target="sortFilter" aria-label="並び替え">
           <option value="" {% if not request.GET.sort %}selected{% endif %}>デフォルト</option>
           <option value="earnings_asc" {% if request.GET.sort == 'earnings_asc' %}selected{% endif %}>決算が近い順</option>
+          <option value="earnings_desc" {% if request.GET.sort == 'earnings_desc' %}selected{% endif %}>最近決算があった順</option>
           <option value="date_desc" {% if request.GET.sort == 'date_desc' %}selected{% endif %}>更新日（新しい順）</option>
           <option value="date_asc" {% if request.GET.sort == 'date_asc' %}selected{% endif %}>更新日（古い順）</option>
           <option value="profit_desc" {% if request.GET.sort == 'profit_desc' %}selected{% endif %}>含み益（大きい順）</option>
@@ -395,6 +405,7 @@
             <div class="sort-panel" id="sortPanel" role="listbox" aria-label="並び順">
               <button type="button" class="sort-option" data-value="" data-label="並び順">デフォルト（更新日）</button>
               <button type="button" class="sort-option" data-value="earnings_asc" data-label="決算が近い">決算が近い順</button>
+              <button type="button" class="sort-option" data-value="earnings_desc" data-label="最近決算">最近決算があった順</button>
               <button type="button" class="sort-option" data-value="date_desc" data-label="取引日（新）">取引日（新しい順）</button>
               <button type="button" class="sort-option" data-value="date_asc" data-label="取引日（古）">取引日（古い順）</button>
               <button type="button" class="sort-option" data-value="name" data-label="銘柄名">銘柄名順</button>
