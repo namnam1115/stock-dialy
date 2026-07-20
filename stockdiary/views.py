@@ -257,7 +257,8 @@ class StockDiaryListView(LoginRequiredMixin, ListView):
         has_filters = any(
             self.request.GET.get(k) for k in
             ('query', 'hashtag', 'tag', 'sector', 'status',
-             'transaction_date_range', 'date_range', 'disclosure')
+             'transaction_date_range', 'date_range', 'disclosure',
+             'earnings', 'earnings_past')
         )
         context['is_empty_state'] = (
             not has_filters and context['total_diary_count'] == 0
