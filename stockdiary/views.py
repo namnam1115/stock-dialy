@@ -1829,23 +1829,35 @@ class NotificationListView(LoginRequiredMixin, TemplateView):
             page_obj = paginator.page(1)
         
         # Add preview information for each notification
+        # 予定は「未読/既読」ではなく「いつの予定か」で識別する。全行に同じ
+        # 「予定あり」を出しても継続利用の助けにならないため、残り日数を実データで持たせ、
+        # 近い予定（本日・明日）だけ強調できるよう timing_state を添える。
+        today_date = today.date()
         for notification in page_obj:
             notification.title = notification.diary.stock_name
             notification.sent_at = notification.remind_at
-            notification.is_read = False  # 予定は未読状態
             notification.message_preview = notification.message[:100] if notification.message else '通知予定'
             if notification.message and len(notification.message) > 100:
                 notification.message_preview += '...'
             notification.diary_url = reverse('stockdiary:detail', kwargs={'pk': notification.diary.pk})
-        
+
+            delta_days = (notification.remind_at.date() - today_date).days
+            if delta_days < 0:
+                notification.timing_label = '期限切れ'
+                notification.timing_state = 'past'
+            elif delta_days == 0:
+                notification.timing_label = '本日'
+                notification.timing_state = 'soon'
+            elif delta_days == 1:
+                notification.timing_label = '明日'
+                notification.timing_state = 'soon'
+            else:
+                notification.timing_label = f'あと{delta_days}日'
+                notification.timing_state = 'upcoming'
+
         context.update({
             'notifications': page_obj,
             'filter_type': filter_type,
-            'unread_count': DiaryNotification.objects.filter(
-                diary__user=self.request.user,
-                is_active=True,
-                remind_at__gte=today_start
-            ).count(),
         })
         
         

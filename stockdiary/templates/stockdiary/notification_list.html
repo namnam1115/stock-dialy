@@ -70,7 +70,8 @@
     transform: translateY(-1px);
 }
 
-.notification-card.unread {
+/* 近い予定（本日・明日）だけ左アクセントで浮かせる。残りは静かに並べる */
+.notification-card.is-soon {
     background-color: rgba(90, 126, 197, 0.03);
     border-left: 3px solid var(--primary-color);
 }
@@ -128,25 +129,74 @@
     font-weight: 500;
 }
 
-.notification-status.unread {
+/* 予定の近さで状態バッジの色を変える（本日・明日=強調 / 先=中立 / 期限切れ=注意） */
+.notification-status.is-soon {
     background-color: var(--primary-light);
     color: var(--primary-color);
 }
 
-.notification-status.read {
+.notification-status.is-upcoming {
     background-color: var(--bg-secondary);
     color: var(--text-secondary);
+}
+
+.notification-status.is-past {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--danger-color, #dc3545);
 }
 
 .notification-indicator {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: var(--primary-color);
+    background-color: currentColor;
 }
 
-.notification-indicator.read {
-    background-color: transparent;
+/* Pagination */
+.notification-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.notification-pagination .page-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-light);
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.notification-pagination a.page-link-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.notification-pagination .page-link-btn.disabled {
+    opacity: 0.4;
+    cursor: default;
+    pointer-events: none;
+}
+
+.notification-pagination .page-status {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.dark-mode .notification-pagination .page-link-btn,
+[data-theme="dark"] .notification-pagination .page-link-btn {
+    background-color: var(--dm-card);
+    border-color: var(--dm-border);
+    color: var(--dm-foreground);
 }
 
 /* Empty state */
@@ -223,8 +273,8 @@
     border-color: var(--dm-primary);
 }
 
-.dark-mode .notification-card.unread,
-[data-theme="dark"] .notification-card.unread {
+.dark-mode .notification-card.is-soon,
+[data-theme="dark"] .notification-card.is-soon {
     background-color: rgba(59, 130, 246, 0.08);
     border-left-color: var(--dm-primary);
 }
@@ -239,16 +289,22 @@
     color: var(--dm-muted-foreground);
 }
 
-.dark-mode .notification-status.unread,
-[data-theme="dark"] .notification-status.unread {
+.dark-mode .notification-status.is-soon,
+[data-theme="dark"] .notification-status.is-soon {
     background-color: rgba(59, 130, 246, 0.2);
     color: var(--dm-primary);
 }
 
-.dark-mode .notification-status.read,
-[data-theme="dark"] .notification-status.read {
+.dark-mode .notification-status.is-upcoming,
+[data-theme="dark"] .notification-status.is-upcoming {
     background-color: rgba(71, 85, 105, 0.3);
     color: var(--dm-muted-foreground);
+}
+
+.dark-mode .notification-status.is-past,
+[data-theme="dark"] .notification-status.is-past {
+    background-color: rgba(220, 53, 69, 0.18);
+    color: #f1929b;
 }
 </style>
 {% endblock %}
@@ -288,21 +344,21 @@
             {% for notification in notifications %}
             <!-- Add clickable link to diary detail page -->
             <a href="{{ notification.diary_url }}" class="notification-card-link" style="text-decoration: none;">
-                <div class="notification-card unread">
-                    
+                <div class="notification-card{% if notification.timing_state == 'soon' %} is-soon{% endif %}">
+
                     <div class="notification-card-header">
                         <h3 class="notification-title">{{ notification.title }}</h3>
                         <time class="notification-date" datetime="{{ notification.sent_at|date:'c' }}">
                             {{ notification.sent_at|date:'m月d日 H:i' }}
                         </time>
                     </div>
-                    
+
                     <p class="notification-preview">{{ notification.message_preview }}</p>
-                    
+
                     <div class="notification-meta">
-                        <span class="notification-status unread">
+                        <span class="notification-status is-{{ notification.timing_state }}">
                             <span class="notification-indicator"></span>
-                            予定あり
+                            {{ notification.timing_label }}
                         </span>
                     </div>
                 </div>
@@ -323,6 +379,28 @@
         </div>
         {% endif %}
     </div>
+
+    {% if notifications.paginator.num_pages > 1 %}
+    <nav class="notification-pagination" aria-label="通知ページ送り">
+        {% if notifications.has_previous %}
+        <a class="page-link-btn" href="?filter={{ filter_type }}&page={{ notifications.previous_page_number }}">
+            <i class="bi bi-chevron-left"></i> 前へ
+        </a>
+        {% else %}
+        <span class="page-link-btn disabled"><i class="bi bi-chevron-left"></i> 前へ</span>
+        {% endif %}
+
+        <span class="page-status">{{ notifications.number }} / {{ notifications.paginator.num_pages }}</span>
+
+        {% if notifications.has_next %}
+        <a class="page-link-btn" href="?filter={{ filter_type }}&page={{ notifications.next_page_number }}">
+            次へ <i class="bi bi-chevron-right"></i>
+        </a>
+        {% else %}
+        <span class="page-link-btn disabled">次へ <i class="bi bi-chevron-right"></i></span>
+        {% endif %}
+    </nav>
+    {% endif %}
 </div>
 
 {% include 'speed_dial.html' with actions=page_actions %}
