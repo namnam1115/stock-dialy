@@ -87,3 +87,21 @@ class TestEarningsPastUI:
         html = authenticated_client.get(reverse('stockdiary:home')).content.decode('utf-8')
         assert 'earnings_desc' in html          # ソート選択肢
         assert 'name="earnings_past"' in html   # フィルタ select
+
+    def test_home_card_shows_last_earnings_date(self, authenticated_client, user):
+        """ホームのカードに「前回決算 M/D」が表示される（決算後の振り返り導線）。"""
+        from django.urls import reverse
+        _diary(user, '7203', 'トヨタ自動車')
+        _earnings('7203', days_ago=5)
+        html = authenticated_client.get(reverse('stockdiary:home')).content.decode('utf-8')
+        assert '前回決算' in html
+        assert 'prev-earnings-indicator' in html
+        # 直近30日以内なのでアクセント（recent）が付く
+        assert 'prev-earnings-indicator--recent' in html
+
+    def test_home_card_no_badge_without_past_earnings(self, authenticated_client, user):
+        """過去決算が無ければ前回決算バッジは出ない。"""
+        from django.urls import reverse
+        _diary(user, '7203', 'トヨタ自動車')
+        html = authenticated_client.get(reverse('stockdiary:home')).content.decode('utf-8')
+        assert 'prev-earnings-indicator' not in html

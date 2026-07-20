@@ -457,6 +457,24 @@ ins.adsbygoogle[data-ad-status="unfilled"] { display: none !important; }
 .reading-page .diary-profit-pill .badge.bg-danger { color: var(--profit-down-quiet) !important; }
 .reading-page .diary-profit-pill .badge.bg-secondary { color: var(--muted-ink) !important; }
 
+/* 前回決算インジケータ（決算後の振り返り導線）。既定は次回決算と同じ静かなモノトーン。
+   直近30日以内に決算があった銘柄だけ、ごく淡くアクセントを差して振り返りを促す。 */
+.reading-page .diary-meta-row .prev-earnings-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: transparent;
+  border: none;
+  color: var(--muted-ink);
+  padding: 0;
+  font-variant-numeric: tabular-nums;
+}
+.reading-page .diary-meta-row .prev-earnings-indicator .bi { opacity: .7; }
+.reading-page .diary-meta-row .prev-earnings-indicator--recent {
+  color: var(--accent) !important;
+}
+.reading-page .diary-meta-row .prev-earnings-indicator--recent .bi { opacity: 1; }
+
 /* ステータス/開示インジケータをモノトーン基調に */
 .reading-page .disclosure-indicator {
   background: var(--paper-sunken) !important;

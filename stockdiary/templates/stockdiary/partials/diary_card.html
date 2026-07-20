@@ -60,6 +60,13 @@
               {% endwith %}
             </span>
           {% endif %}
+          {% if diary.prev_earnings %}
+            <span class="prev-earnings-indicator{% if diary.prev_earnings.days_ago <= 30 %} prev-earnings-indicator--recent{% endif %}"
+                  title="前回の決算：{{ diary.prev_earnings.date|date:'Y年m月d日' }}{% if diary.prev_earnings.type %}（{{ diary.prev_earnings.type }}）{% endif %}{% if diary.prev_earnings.is_estimated %} ※予想日ベース{% else %} ※実績{% endif %}">
+              <i class="bi bi-calendar-check"></i>
+              <span class="earnings-date">前回決算 {{ diary.prev_earnings.date|date:"n/j" }}</span>
+            </span>
+          {% endif %}
         </div>
       </div>
 
