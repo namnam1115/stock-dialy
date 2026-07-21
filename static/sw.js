@@ -1,5 +1,5 @@
 // static/sw.js - シンプル版
-const VERSION = '1.2.1148';  // ← CSS変更時はここだけ変更すればOK
+const VERSION = '1.2.1149';  // ← CSS変更時はここだけ変更すればOK
 const CACHE_NAME = `kabulog-v${VERSION}`;
 const STATIC_CACHE_NAME = `kabulog-static-v${VERSION}`;
 
@@ -60,9 +60,13 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   const url = new URL(request.url);
   
-  // POSTリクエストはキャッシュしない（そのまま通す）
+  // POSTはSWが一切介入せずブラウザのネイティブ処理に任せる。
+  // event.respondWith(fetch(request)) で自前で再送すると、iOS Safari(WebKit)では
+  // ナビゲーションPOST（フォーム送信）でCookieが引き継がれない不具合があり、
+  // csrftoken Cookieが付かずに送信されてCSRF検証が「token missing」で失敗していた
+  // （document.cookieには存在するが、SW経由の再fetchだけCookieが欠落する）。
+  // event.respondWith を呼ばなければSWは関与せず、ブラウザが直接送信する。
   if (request.method !== 'GET') {
-    event.respondWith(fetch(request));
     return;
   }
   
