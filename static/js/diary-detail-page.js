@@ -197,6 +197,15 @@ document.addEventListener('DOMContentLoaded', function() {
   const quickNoteForm = document.getElementById('quickNoteForm');
   if (quickNoteForm) {
     quickNoteForm.addEventListener('submit', function(e) {
+      // テーマ入力・画像添付（圧縮待ち）を挟むとシートを開いてから送信までが長くなり、
+      // フォーム内に埋め込まれたCSRFトークンが古くなって送信が弾かれることがある。
+      // 送信直前に最新のcsrftoken Cookieへ差し替えて備える。
+      const csrfInput = quickNoteForm.querySelector('input[name="csrfmiddlewaretoken"]');
+      const freshToken = typeof getCookie === 'function' ? getCookie('csrftoken') : null;
+      if (csrfInput && freshToken) {
+        csrfInput.value = freshToken;
+      }
+
       const textarea = document.getElementById('content');
       if (noteEasyMDE && textarea) {
         // EasyMDE の内容を textarea に確実に同期する

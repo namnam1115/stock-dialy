@@ -1049,3 +1049,51 @@ class TestCSRFFailurePageIsCurrent:
         assert any('共有' in str(m) for m in messages)
         for stale_account in ['test1', 'test2', 'demo1', 'demo2']:
             assert not any(stale_account in str(m) for m in messages)
+
+    def test_csrf_failure_offers_back_link_to_safe_referer(self, settings):
+        """継続記録（テーマ入力＋画像添付）はシートを開いてから送信までが長くなりやすく、
+        フォーム内のCSRFトークンが古くなって送信が弾かれることがある。継続記録の追加/編集は
+        POST専用エンドポイントのため、失敗画面の「ページを更新」ボタン（location.reload）で
+        再送しようとすると405になり、ユーザーがエラー画面から動けなくなっていた。
+        Referer（フォームがあった日記詳細ページ）が自サイト内なら、そこへ戻れるリンクを出す。
+        """
+        from django.test import Client
+
+        user = User.objects.create_user(username='noteuser', password='testpass123')
+        diary = StockDiary.objects.create(
+            user=user, stock_symbol='7203', stock_name='トヨタ自動車',
+        )
+
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(user)
+        response = client.post(
+            reverse('stockdiary:add_note', kwargs={'pk': diary.pk}),
+            {'date': '2026-01-01', 'topic': '決算振り返り', 'content': 'テスト'},
+            HTTP_REFERER=f'http://testserver{reverse("stockdiary:detail", kwargs={"pk": diary.pk})}',
+        )
+
+        assert response.status_code == 403
+        html = response.content.decode()
+        assert reverse('stockdiary:detail', kwargs={'pk': diary.pk}) in html
+        assert '元のページに戻る' in html
+
+    def test_csrf_failure_ignores_unsafe_referer(self, settings):
+        """外部ホストのRefererはオープンリダイレクトになり得るため、戻るリンクに使わない。"""
+        from django.test import Client
+
+        user = User.objects.create_user(username='noteuser2', password='testpass123')
+        diary = StockDiary.objects.create(
+            user=user, stock_symbol='7203', stock_name='トヨタ自動車',
+        )
+
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(user)
+        response = client.post(
+            reverse('stockdiary:add_note', kwargs={'pk': diary.pk}),
+            {'date': '2026-01-01', 'topic': '決算振り返り', 'content': 'テスト'},
+            HTTP_REFERER='https://evil.example.com/phishing/',
+        )
+
+        assert response.status_code == 403
+        html = response.content.decode()
+        assert 'evil.example.com' not in html

@@ -882,7 +882,7 @@ Q_CLUSTER = {
     'catch_up': False,
 }
 
-STATIC_VERSION = '1.2.1144'
+STATIC_VERSION = '1.2.1147'
 
 # compress ブロック内の各 link は ?v={{ STATIC_VERSION }} を含むため、オフライン圧縮の
 # マニフェストキー（ブロック内容のハッシュ）を実リクエストと一致させるには生成時にも
