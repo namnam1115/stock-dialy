@@ -921,24 +921,43 @@ const imagePreviewContainer = document.getElementById('image-preview-container')
 const imagePreview = document.getElementById('image-preview');
 const removeImageBtn = document.getElementById('remove-image');
 
-if (imageInput) {
+if (imageInput && imagePreview && imagePreviewContainer && window.ImageCompressionHandler) {
+  // 継続記録（note_image）と同じ圧縮設定に揃える。
+  // サーバー側（nginx）は圧縮後サイズを前提に client_max_body_size を絞っているため、
+  // 生ファイルをそのまま送るとアップロードが413で弾かれる。
+  window.setupImageCompression({
+    inputId: 'id_image',
+    previewId: 'image-preview',
+    containerId: 'image-preview-container',
+    removeBtnId: 'remove-image',
+    options: {
+      maxWidth: 1200,
+      maxHeight: 900,
+      quality: 0.9,
+      compressionThreshold: 2 * 1024 * 1024, // 2MB以上で圧縮
+      maxFileSize: 3 * 1024 * 1024,          // 最大3MB
+      onError: (message) => alert(message)
+    }
+  });
+} else if (imageInput) {
+  // 圧縮ライブラリ未読み込み時のフォールバック（旧挙動）
   imageInput.addEventListener('change', function(e) {
     const file = e.target.files[0];
-    
+
     if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        alert('画像ファイルのサイズは10MB以下にしてください');
+      if (file.size > 3 * 1024 * 1024) {
+        alert('画像ファイルのサイズは3MB以下にしてください');
         imageInput.value = '';
         return;
       }
-      
+
       const validFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
       if (!validFormats.includes(file.type)) {
         alert('JPEG、PNG、GIF、WebP形式の画像ファイルのみアップロード可能です');
         imageInput.value = '';
         return;
       }
-      
+
       const reader = new FileReader();
       reader.onload = function(e) {
         imagePreview.src = e.target.result;
@@ -947,14 +966,14 @@ if (imageInput) {
       reader.readAsDataURL(file);
     }
   });
-}
 
-if (removeImageBtn) {
-  removeImageBtn.addEventListener('click', function() {
-    imageInput.value = '';
-    imagePreviewContainer.style.display = 'none';
-    imagePreview.src = '';
-  });
+  if (removeImageBtn) {
+    removeImageBtn.addEventListener('click', function() {
+      imageInput.value = '';
+      imagePreviewContainer.style.display = 'none';
+      imagePreview.src = '';
+    });
+  }
 }
 
 // ============================================
