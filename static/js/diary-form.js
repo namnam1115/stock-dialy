@@ -767,6 +767,15 @@ window.initReasonEasyMDE = function initReasonEasyMDE() {
         alert(`背景は${MAX_REASON_LENGTH}文字以内で入力してください。現在: ${window.easyMDE.value().length}文字`);
         return false;
       }
+
+      // PWAは画面を開いたままカメラ撮影・画像圧縮を挟むなど送信までが長くなりやすく、
+      // フォームに埋め込まれたCSRFトークンが古くなって弾かれることがある（quickNoteForm
+      // と同じ対策）。送信直前に最新のcsrftoken Cookieへhidden inputを差し替える。
+      const csrfInput = diaryForm.querySelector('input[name="csrfmiddlewaretoken"]');
+      const freshToken = typeof getCookie === 'function' ? getCookie('csrftoken') : null;
+      if (csrfInput && freshToken) {
+        csrfInput.value = freshToken;
+      }
     });
   }
 };
